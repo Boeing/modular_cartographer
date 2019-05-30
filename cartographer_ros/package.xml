@@ -27,6 +27,7 @@
     <depend>cartographer_ros_msgs</depend>
     <depend>eigen_conversions</depend>
     <depend>geometry_msgs</depend>
+    <depend>libcairo2-dev</depend>
     <depend>libceres-dev</depend>
     <depend>libgflags-dev</depend>
     <depend>libgoogle-glog-dev</depend>
