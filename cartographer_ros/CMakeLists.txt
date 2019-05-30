@@ -223,7 +223,7 @@ install(TARGETS
     cartographer_dev_trajectory_comparison
     cartographer_node
     cartographer_occupancy_grid_node
-    #cartographer_offline_node
+    cartographer_offline_node
     cartographer_pbstream_map_publisher
     cartographer_pbstream_to_ros_map
     ${PROJECT_NAME}
