@@ -45,84 +45,77 @@
 #endif
 #include "visualization_msgs/MarkerArray.h"
 
-namespace cartographer_ros {
+namespace cartographer_ros
+{
 
-class MapBuilderBridge {
- public:
-  struct LocalTrajectoryData {
-    // Contains the trajectory data received from local SLAM, after
-    // it had processed accumulated 'range_data_in_local' and estimated
-    // current 'local_pose' at 'time'.
-    struct LocalSlamData {
-      ::cartographer::common::Time time;
-      ::cartographer::transform::Rigid3d local_pose;
-      ::cartographer::sensor::RangeData range_data_in_local;
+class MapBuilderBridge
+{
+  public:
+    struct LocalTrajectoryData
+    {
+        // Contains the trajectory data received from local SLAM, after
+        // it had processed accumulated 'range_data_in_local' and estimated
+        // current 'local_pose' at 'time'.
+        struct LocalSlamData
+        {
+            ::cartographer::common::Time time;
+            ::cartographer::transform::Rigid3d local_pose;
+            ::cartographer::sensor::RangeData range_data_in_local;
+        };
+        std::shared_ptr<const LocalSlamData> local_slam_data;
+        cartographer::transform::Rigid3d local_to_map;
+        std::unique_ptr<cartographer::transform::Rigid3d> published_to_tracking;
+        TrajectoryOptions trajectory_options;
     };
-    std::shared_ptr<const LocalSlamData> local_slam_data;
-    cartographer::transform::Rigid3d local_to_map;
-    std::unique_ptr<cartographer::transform::Rigid3d> published_to_tracking;
-    TrajectoryOptions trajectory_options;
-  };
 
-  MapBuilderBridge(
-      const NodeOptions& node_options,
-      std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
-      tf2_ros::Buffer* tf_buffer);
+    MapBuilderBridge(const NodeOptions& node_options,
+                     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
+                     tf2_ros::Buffer* tf_buffer);
 
-  MapBuilderBridge(const MapBuilderBridge&) = delete;
-  MapBuilderBridge& operator=(const MapBuilderBridge&) = delete;
+    MapBuilderBridge(const MapBuilderBridge&) = delete;
+    MapBuilderBridge& operator=(const MapBuilderBridge&) = delete;
 
-  void LoadState(const std::string& state_filename, bool load_frozen_state);
-  int AddTrajectory(
-      const std::set<
-          ::cartographer::mapping::TrajectoryBuilderInterface::SensorId>&
-          expected_sensor_ids,
-      const TrajectoryOptions& trajectory_options);
-  void FinishTrajectory(int trajectory_id);
-  void RunFinalOptimization();
-  bool SerializeState(const std::string& filename,
-                      const bool include_unfinished_submaps);
+    void LoadState(const std::string& state_filename, bool load_frozen_state);
+    int AddTrajectory(
+        const std::set<::cartographer::mapping::TrajectoryBuilderInterface::SensorId>& expected_sensor_ids,
+        const TrajectoryOptions& trajectory_options);
+    void FinishTrajectory(int trajectory_id);
+    void RunFinalOptimization();
+    bool SerializeState(const std::string& filename, const bool include_unfinished_submaps);
 
-  void HandleSubmapQuery(
-      cartographer_ros_msgs::SubmapQuery::Request& request,
-      cartographer_ros_msgs::SubmapQuery::Response& response);
-  void HandleTrajectoryQuery(
-      cartographer_ros_msgs::TrajectoryQuery::Request& request,
-      cartographer_ros_msgs::TrajectoryQuery::Response& response);
+    void HandleSubmapQuery(cartographer_ros_msgs::SubmapQuery::Request& request,
+                           cartographer_ros_msgs::SubmapQuery::Response& response);
+    void HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQuery::Request& request,
+                               cartographer_ros_msgs::TrajectoryQuery::Response& response);
 
-  std::map<int /* trajectory_id */,
-           ::cartographer::mapping::PoseGraphInterface::TrajectoryState>
-  GetTrajectoryStates();
-  cartographer_ros_msgs::SubmapList GetSubmapList();
-  std::unordered_map<int, LocalTrajectoryData> GetLocalTrajectoryData()
-      LOCKS_EXCLUDED(mutex_);
-  visualization_msgs::MarkerArray GetTrajectoryNodeList();
-  visualization_msgs::MarkerArray GetLandmarkPosesList();
-  visualization_msgs::MarkerArray GetConstraintList();
+    std::map<int /* trajectory_id */, ::cartographer::mapping::PoseGraphInterface::TrajectoryState>
+        GetTrajectoryStates();
+    cartographer_ros_msgs::SubmapList GetSubmapList();
+    std::unordered_map<int, LocalTrajectoryData> GetLocalTrajectoryData() LOCKS_EXCLUDED(mutex_);
+    visualization_msgs::MarkerArray GetTrajectoryNodeList();
+    visualization_msgs::MarkerArray GetLandmarkPosesList();
+    visualization_msgs::MarkerArray GetConstraintList();
 
-  SensorBridge* sensor_bridge(int trajectory_id);
+    SensorBridge* sensor_bridge(int trajectory_id);
 
- private:
-  void OnLocalSlamResult(const int trajectory_id,
-                         const ::cartographer::common::Time time,
-                         const ::cartographer::transform::Rigid3d local_pose,
-                         ::cartographer::sensor::RangeData range_data_in_local)
-      LOCKS_EXCLUDED(mutex_);
+  private:
+    void OnLocalSlamResult(const int trajectory_id, const ::cartographer::common::Time time,
+                           const ::cartographer::transform::Rigid3d local_pose,
+                           ::cartographer::sensor::RangeData range_data_in_local) LOCKS_EXCLUDED(mutex_);
 
-  absl::Mutex mutex_;
-  const NodeOptions node_options_;
-  std::unordered_map<int,
-                     std::shared_ptr<const LocalTrajectoryData::LocalSlamData>>
-      local_slam_data_ GUARDED_BY(mutex_);
-  std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder_;
-  tf2_ros::Buffer* const tf_buffer_;
+    absl::Mutex mutex_;
+    const NodeOptions node_options_;
+    std::unordered_map<int, std::shared_ptr<const LocalTrajectoryData::LocalSlamData>>
+        local_slam_data_ GUARDED_BY(mutex_);
+    std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder_;
+    tf2_ros::Buffer* const tf_buffer_;
 
-  std::unordered_map<std::string /* landmark ID */, int> landmark_to_index_;
+    std::unordered_map<std::string /* landmark ID */, int> landmark_to_index_;
 
-  // These are keyed with 'trajectory_id'.
-  std::unordered_map<int, TrajectoryOptions> trajectory_options_;
-  std::unordered_map<int, std::unique_ptr<SensorBridge>> sensor_bridges_;
-  std::unordered_map<int, size_t> trajectory_to_highest_marker_id_;
+    // These are keyed with 'trajectory_id'.
+    std::unordered_map<int, TrajectoryOptions> trajectory_options_;
+    std::unordered_map<int, std::unique_ptr<SensorBridge>> sensor_bridges_;
+    std::unordered_map<int, size_t> trajectory_to_highest_marker_id_;
 };
 
 }  // namespace cartographer_ros

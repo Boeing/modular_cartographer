@@ -21,28 +21,42 @@
 #include "cartographer_ros/metrics/internal/gauge.h"
 #include "cartographer_ros_msgs/Metric.h"
 
-namespace cartographer_ros {
-namespace metrics {
+namespace cartographer_ros
+{
+namespace metrics
+{
 
-class Counter : public ::cartographer::metrics::Counter {
- public:
-  explicit Counter(const std::map<std::string, std::string>& labels)
-      : gauge_(labels) {}
+class Counter : public ::cartographer::metrics::Counter
+{
+  public:
+    explicit Counter(const std::map<std::string, std::string>& labels) : gauge_(labels)
+    {
+    }
 
-  void Increment(const double value) override { gauge_.Increment(value); }
+    void Increment(const double value) override
+    {
+        gauge_.Increment(value);
+    }
 
-  void Increment() override { gauge_.Increment(); }
+    void Increment() override
+    {
+        gauge_.Increment();
+    }
 
-  double Value() { return gauge_.Value(); }
+    double Value()
+    {
+        return gauge_.Value();
+    }
 
-  cartographer_ros_msgs::Metric ToRosMessage() {
-    cartographer_ros_msgs::Metric msg = gauge_.ToRosMessage();
-    msg.type = cartographer_ros_msgs::Metric::TYPE_COUNTER;
-    return msg;
-  }
+    cartographer_ros_msgs::Metric ToRosMessage()
+    {
+        cartographer_ros_msgs::Metric msg = gauge_.ToRosMessage();
+        msg.type = cartographer_ros_msgs::Metric::TYPE_COUNTER;
+        return msg;
+    }
 
- private:
-  Gauge gauge_;
+  private:
+    Gauge gauge_;
 };
 
 }  // namespace metrics

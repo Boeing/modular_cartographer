@@ -23,27 +23,26 @@
 DEFINE_string(server_address, "localhost:50051",
               "gRPC server address to "
               "stream the sensor data to.");
-DEFINE_string(client_id, "",
-              "Cartographer client ID to use when connecting to the server.");
+DEFINE_string(client_id, "", "Cartographer client ID to use when connecting to the server.");
 
-int main(int argc, char** argv) {
-  google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+int main(int argc, char** argv)
+{
+    google::InitGoogleLogging(argv[0]);
+    google::ParseCommandLineFlags(&argc, &argv, true);
 
-  CHECK(!FLAGS_client_id.empty()) << "-client_id is missing.";
+    CHECK(!FLAGS_client_id.empty()) << "-client_id is missing.";
 
-  ::ros::init(argc, argv, "cartographer_grpc_offline_node");
-  ::ros::start();
+    ::ros::init(argc, argv, "cartographer_grpc_offline_node");
+    ::ros::start();
 
-  cartographer_ros::ScopedRosLogSink ros_log_sink;
+    cartographer_ros::ScopedRosLogSink ros_log_sink;
 
-  const cartographer_ros::MapBuilderFactory map_builder_factory =
-      [](const ::cartographer::mapping::proto::MapBuilderOptions&) {
-        return absl::make_unique< ::cartographer::cloud::MapBuilderStub>(
-            FLAGS_server_address, FLAGS_client_id);
-      };
+    const cartographer_ros::MapBuilderFactory map_builder_factory =
+        [](const ::cartographer::mapping::proto::MapBuilderOptions&) {
+            return absl::make_unique<::cartographer::cloud::MapBuilderStub>(FLAGS_server_address, FLAGS_client_id);
+        };
 
-  cartographer_ros::RunOfflineNode(map_builder_factory);
+    cartographer_ros::RunOfflineNode(map_builder_factory);
 
-  ::ros::shutdown();
+    ::ros::shutdown();
 }

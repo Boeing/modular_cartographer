@@ -20,7 +20,8 @@
 #include <string>
 #include <vector>
 
-namespace cartographer_ros {
+namespace cartographer_ros
+{
 
 // Default topic names; expected to be remapped as needed.
 constexpr char kLaserScanTopic[] = "scan";
@@ -50,8 +51,7 @@ constexpr int kInfiniteSubscriberQueueSize = 0;
 constexpr int kLatestOnlyPublisherQueueSize = 1;
 
 // For multiple topics adds numbers to the topic name and returns the list.
-std::vector<std::string> ComputeRepeatedTopicNames(const std::string& topic,
-                                                   int num_topics);
+std::vector<std::string> ComputeRepeatedTopicNames(const std::string& topic, int num_topics);
 
 }  // namespace cartographer_ros
 

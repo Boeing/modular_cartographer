@@ -20,7 +20,8 @@
 #include "cartographer/common/time.h"
 #include "ros/ros.h"
 
-namespace cartographer_ros {
+namespace cartographer_ros
+{
 
 ::ros::Time ToRos(::cartographer::common::Time time);
 

@@ -18,32 +18,34 @@
 
 #include "absl/strings/str_cat.h"
 
-namespace cartographer_ros {
+namespace cartographer_ros
+{
 
 void WritePgm(const ::cartographer::io::Image& image, const double resolution,
-              ::cartographer::io::FileWriter* file_writer) {
-  const std::string header =
-      absl::StrCat("P5\n# Cartographer map; ", resolution, " m/pixel\n",
-                   image.width(), " ", image.height(), "\n255\n");
-  file_writer->Write(header.data(), header.size());
-  for (int y = 0; y < image.height(); ++y) {
-    for (int x = 0; x < image.width(); ++x) {
-      const char color = image.GetPixel(x, y)[0];
-      file_writer->Write(&color, 1);
+              ::cartographer::io::FileWriter* file_writer)
+{
+    const std::string header = absl::StrCat("P5\n# Cartographer map; ", resolution, " m/pixel\n", image.width(), " ",
+                                            image.height(), "\n255\n");
+    file_writer->Write(header.data(), header.size());
+    for (int y = 0; y < image.height(); ++y)
+    {
+        for (int x = 0; x < image.width(); ++x)
+        {
+            const char color = image.GetPixel(x, y)[0];
+            file_writer->Write(&color, 1);
+        }
     }
-  }
 }
 
-void WriteYaml(const double resolution, const Eigen::Vector2d& origin,
-               const std::string& pgm_filename,
-               ::cartographer::io::FileWriter* file_writer) {
-  // Magic constants taken directly from ros map_saver code:
-  // https://github.com/ros-planning/navigation/blob/ac41d2480c4cf1602daf39a6e9629142731d92b0/map_server/src/map_saver.cpp#L114
-  const std::string output = absl::StrCat(
-      "image: ", pgm_filename, "\n", "resolution: ", resolution, "\n",
-      "origin: [", origin.x(), ", ", origin.y(),
-      ", 0.0]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n");
-  file_writer->Write(output.data(), output.size());
+void WriteYaml(const double resolution, const Eigen::Vector2d& origin, const std::string& pgm_filename,
+               ::cartographer::io::FileWriter* file_writer)
+{
+    // Magic constants taken directly from ros map_saver code:
+    // https://github.com/ros-planning/navigation/blob/ac41d2480c4cf1602daf39a6e9629142731d92b0/map_server/src/map_saver.cpp#L114
+    const std::string output =
+        absl::StrCat("image: ", pgm_filename, "\n", "resolution: ", resolution, "\n", "origin: [", origin.x(), ", ",
+                     origin.y(), ", 0.0]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n");
+    file_writer->Write(output.data(), output.size());
 }
 
 }  // namespace cartographer_ros

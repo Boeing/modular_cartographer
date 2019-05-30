@@ -24,7 +24,8 @@
 #include "cartographer/io/image.h"
 #include "cartographer/mapping/2d/map_limits.h"
 
-namespace cartographer_ros {
+namespace cartographer_ros
+{
 
 // Write 'image' as a pgm into 'file_writer'. The resolution is used in the
 // comment only'
@@ -32,8 +33,7 @@ void WritePgm(const ::cartographer::io::Image& image, const double resolution,
               ::cartographer::io::FileWriter* file_writer);
 
 // Write the corresponding yaml into 'file_writer'.
-void WriteYaml(const double resolution, const Eigen::Vector2d& origin,
-               const std::string& pgm_filename,
+void WriteYaml(const double resolution, const Eigen::Vector2d& origin, const std::string& pgm_filename,
                ::cartographer::io::FileWriter* file_writer);
 
 }  // namespace cartographer_ros

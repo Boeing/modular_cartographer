@@ -24,34 +24,36 @@
 #include "cartographer/metrics/histogram.h"
 #include "cartographer_ros_msgs/Metric.h"
 
-namespace cartographer_ros {
-namespace metrics {
+namespace cartographer_ros
+{
+namespace metrics
+{
 
 constexpr double kInfiniteBoundary = std::numeric_limits<double>::infinity();
 
 using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
 
-class Histogram : public ::cartographer::metrics::Histogram {
- public:
-  explicit Histogram(const std::map<std::string, std::string>& labels,
-                     const BucketBoundaries& bucket_boundaries);
+class Histogram : public ::cartographer::metrics::Histogram
+{
+  public:
+    explicit Histogram(const std::map<std::string, std::string>& labels, const BucketBoundaries& bucket_boundaries);
 
-  void Observe(double value) override;
+    void Observe(double value) override;
 
-  std::map<double, double> CountsByBucket();
+    std::map<double, double> CountsByBucket();
 
-  double Sum();
+    double Sum();
 
-  double CumulativeCount();
+    double CumulativeCount();
 
-  cartographer_ros_msgs::Metric ToRosMessage();
+    cartographer_ros_msgs::Metric ToRosMessage();
 
- private:
-  absl::Mutex mutex_;
-  const std::map<std::string, std::string> labels_;
-  const BucketBoundaries bucket_boundaries_;
-  std::vector<double> bucket_counts_ GUARDED_BY(mutex_);
-  double sum_ GUARDED_BY(mutex_);
+  private:
+    absl::Mutex mutex_;
+    const std::map<std::string, std::string> labels_;
+    const BucketBoundaries bucket_boundaries_;
+    std::vector<double> bucket_counts_ GUARDED_BY(mutex_);
+    double sum_ GUARDED_BY(mutex_);
 };
 
 }  // namespace metrics

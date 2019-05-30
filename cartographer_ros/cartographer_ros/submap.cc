@@ -23,33 +23,33 @@
 #include "cartographer_ros_msgs/StatusCode.h"
 #include "cartographer_ros_msgs/SubmapQuery.h"
 
-namespace cartographer_ros {
+namespace cartographer_ros
+{
 
-std::unique_ptr<::cartographer::io::SubmapTextures> FetchSubmapTextures(
-    const ::cartographer::mapping::SubmapId& submap_id,
-    ros::ServiceClient* client) {
-  ::cartographer_ros_msgs::SubmapQuery srv;
-  srv.request.trajectory_id = submap_id.trajectory_id;
-  srv.request.submap_index = submap_id.submap_index;
-  if (!client->call(srv) ||
-      srv.response.status.code != ::cartographer_ros_msgs::StatusCode::OK) {
-    return nullptr;
-  }
-  if (srv.response.textures.empty()) {
-    return nullptr;
-  }
-  auto response = absl::make_unique<::cartographer::io::SubmapTextures>();
-  response->version = srv.response.submap_version;
-  for (const auto& texture : srv.response.textures) {
-    const std::string compressed_cells(texture.cells.begin(),
-                                       texture.cells.end());
-    response->textures.emplace_back(::cartographer::io::SubmapTexture{
-        ::cartographer::io::UnpackTextureData(compressed_cells, texture.width,
-                                              texture.height),
-        texture.width, texture.height, texture.resolution,
-        ToRigid3d(texture.slice_pose)});
-  }
-  return response;
+std::unique_ptr<::cartographer::io::SubmapTextures>
+    FetchSubmapTextures(const ::cartographer::mapping::SubmapId& submap_id, ros::ServiceClient* client)
+{
+    ::cartographer_ros_msgs::SubmapQuery srv;
+    srv.request.trajectory_id = submap_id.trajectory_id;
+    srv.request.submap_index = submap_id.submap_index;
+    if (!client->call(srv) || srv.response.status.code != ::cartographer_ros_msgs::StatusCode::OK)
+    {
+        return nullptr;
+    }
+    if (srv.response.textures.empty())
+    {
+        return nullptr;
+    }
+    auto response = absl::make_unique<::cartographer::io::SubmapTextures>();
+    response->version = srv.response.submap_version;
+    for (const auto& texture : srv.response.textures)
+    {
+        const std::string compressed_cells(texture.cells.begin(), texture.cells.end());
+        response->textures.emplace_back(::cartographer::io::SubmapTexture{
+            ::cartographer::io::UnpackTextureData(compressed_cells, texture.width, texture.height), texture.width,
+            texture.height, texture.resolution, ToRigid3d(texture.slice_pose)});
+    }
+    return response;
 }
 
 }  // namespace cartographer_ros

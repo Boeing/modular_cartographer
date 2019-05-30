@@ -27,32 +27,31 @@
 #include "cartographer_ros/metrics/internal/histogram.h"
 #include "cartographer_ros_msgs/ReadMetrics.h"
 
-namespace cartographer_ros {
-namespace metrics {
+namespace cartographer_ros
+{
+namespace metrics
+{
 
 // Realizes the factory / registry interface for the metrics in libcartographer
 // and provides a wrapper to collect ROS messages from the metrics it owns.
-class FamilyFactory : public ::cartographer::metrics::FamilyFactory {
- public:
-  ::cartographer::metrics::Family<::cartographer::metrics::Counter>*
+class FamilyFactory : public ::cartographer::metrics::FamilyFactory
+{
+  public:
+    ::cartographer::metrics::Family<::cartographer::metrics::Counter>*
 
-  NewCounterFamily(const std::string& name,
-                   const std::string& description) override;
-  ::cartographer::metrics::Family<::cartographer::metrics::Gauge>*
-  NewGaugeFamily(const std::string& name,
-                 const std::string& description) override;
-  ::cartographer::metrics::Family<::cartographer::metrics::Histogram>*
-  NewHistogramFamily(const std::string& name, const std::string& description,
-                     const ::cartographer::metrics::Histogram::BucketBoundaries&
-                         boundaries) override;
+        NewCounterFamily(const std::string& name, const std::string& description) override;
+    ::cartographer::metrics::Family<::cartographer::metrics::Gauge>*
+        NewGaugeFamily(const std::string& name, const std::string& description) override;
+    ::cartographer::metrics::Family<::cartographer::metrics::Histogram>*
+        NewHistogramFamily(const std::string& name, const std::string& description,
+                           const ::cartographer::metrics::Histogram::BucketBoundaries& boundaries) override;
 
-  void ReadMetrics(
-      ::cartographer_ros_msgs::ReadMetrics::Response* response) const;
+    void ReadMetrics(::cartographer_ros_msgs::ReadMetrics::Response* response) const;
 
- private:
-  std::vector<std::unique_ptr<CounterFamily>> counter_families_;
-  std::vector<std::unique_ptr<GaugeFamily>> gauge_families_;
-  std::vector<std::unique_ptr<HistogramFamily>> histogram_families_;
+  private:
+    std::vector<std::unique_ptr<CounterFamily>> counter_families_;
+    std::vector<std::unique_ptr<GaugeFamily>> gauge_families_;
+    std::vector<std::unique_ptr<HistogramFamily>> histogram_families_;
 };
 
 }  // namespace metrics

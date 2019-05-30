@@ -18,51 +18,55 @@
 
 #include "absl/memory/memory.h"
 
-namespace cartographer_ros {
-namespace metrics {
+namespace cartographer_ros
+{
+namespace metrics
+{
 
 using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
 
 ::cartographer::metrics::Family<::cartographer::metrics::Counter>*
-FamilyFactory::NewCounterFamily(const std::string& name,
-                                const std::string& description) {
-  auto wrapper = absl::make_unique<CounterFamily>(name, description);
-  auto* ptr = wrapper.get();
-  counter_families_.emplace_back(std::move(wrapper));
-  return ptr;
+    FamilyFactory::NewCounterFamily(const std::string& name, const std::string& description)
+{
+    auto wrapper = absl::make_unique<CounterFamily>(name, description);
+    auto* ptr = wrapper.get();
+    counter_families_.emplace_back(std::move(wrapper));
+    return ptr;
 }
 
 ::cartographer::metrics::Family<::cartographer::metrics::Gauge>*
-FamilyFactory::NewGaugeFamily(const std::string& name,
-                              const std::string& description) {
-  auto wrapper = absl::make_unique<GaugeFamily>(name, description);
-  auto* ptr = wrapper.get();
-  gauge_families_.emplace_back(std::move(wrapper));
-  return ptr;
+    FamilyFactory::NewGaugeFamily(const std::string& name, const std::string& description)
+{
+    auto wrapper = absl::make_unique<GaugeFamily>(name, description);
+    auto* ptr = wrapper.get();
+    gauge_families_.emplace_back(std::move(wrapper));
+    return ptr;
 }
 
 ::cartographer::metrics::Family<::cartographer::metrics::Histogram>*
-FamilyFactory::NewHistogramFamily(const std::string& name,
-                                  const std::string& description,
-                                  const BucketBoundaries& boundaries) {
-  auto wrapper =
-      absl::make_unique<HistogramFamily>(name, description, boundaries);
-  auto* ptr = wrapper.get();
-  histogram_families_.emplace_back(std::move(wrapper));
-  return ptr;
+    FamilyFactory::NewHistogramFamily(const std::string& name, const std::string& description,
+                                      const BucketBoundaries& boundaries)
+{
+    auto wrapper = absl::make_unique<HistogramFamily>(name, description, boundaries);
+    auto* ptr = wrapper.get();
+    histogram_families_.emplace_back(std::move(wrapper));
+    return ptr;
 }
 
-void FamilyFactory::ReadMetrics(
-    ::cartographer_ros_msgs::ReadMetrics::Response* response) const {
-  for (const auto& counter_family : counter_families_) {
-    response->metric_families.push_back(counter_family->ToRosMessage());
-  }
-  for (const auto& gauge_family : gauge_families_) {
-    response->metric_families.push_back(gauge_family->ToRosMessage());
-  }
-  for (const auto& histogram_family : histogram_families_) {
-    response->metric_families.push_back(histogram_family->ToRosMessage());
-  }
+void FamilyFactory::ReadMetrics(::cartographer_ros_msgs::ReadMetrics::Response* response) const
+{
+    for (const auto& counter_family : counter_families_)
+    {
+        response->metric_families.push_back(counter_family->ToRosMessage());
+    }
+    for (const auto& gauge_family : gauge_families_)
+    {
+        response->metric_families.push_back(gauge_family->ToRosMessage());
+    }
+    for (const auto& histogram_family : histogram_families_)
+    {
+        response->metric_families.push_back(histogram_family->ToRosMessage());
+    }
 }
 
 }  // namespace metrics

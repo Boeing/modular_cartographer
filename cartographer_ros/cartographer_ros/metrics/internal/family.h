@@ -26,53 +26,58 @@
 #include "cartographer_ros/metrics/internal/histogram.h"
 #include "cartographer_ros_msgs/MetricFamily.h"
 
-namespace cartographer_ros {
-namespace metrics {
-class CounterFamily
-    : public ::cartographer::metrics::Family<::cartographer::metrics::Counter> {
- public:
-  CounterFamily(const std::string& name, const std::string& description)
-      : name_(name), description_(description) {}
-  Counter* Add(const std::map<std::string, std::string>& labels) override;
-  cartographer_ros_msgs::MetricFamily ToRosMessage();
+namespace cartographer_ros
+{
+namespace metrics
+{
+class CounterFamily : public ::cartographer::metrics::Family<::cartographer::metrics::Counter>
+{
+  public:
+    CounterFamily(const std::string& name, const std::string& description) : name_(name), description_(description)
+    {
+    }
+    Counter* Add(const std::map<std::string, std::string>& labels) override;
+    cartographer_ros_msgs::MetricFamily ToRosMessage();
 
- private:
-  std::string name_;
-  std::string description_;
-  std::vector<std::unique_ptr<Counter>> wrappers_;
+  private:
+    std::string name_;
+    std::string description_;
+    std::vector<std::unique_ptr<Counter>> wrappers_;
 };
 
-class GaugeFamily
-    : public ::cartographer::metrics::Family<::cartographer::metrics::Gauge> {
- public:
-  GaugeFamily(const std::string& name, const std::string& description)
-      : name_(name), description_(description) {}
-  Gauge* Add(const std::map<std::string, std::string>& labels) override;
+class GaugeFamily : public ::cartographer::metrics::Family<::cartographer::metrics::Gauge>
+{
+  public:
+    GaugeFamily(const std::string& name, const std::string& description) : name_(name), description_(description)
+    {
+    }
+    Gauge* Add(const std::map<std::string, std::string>& labels) override;
 
-  cartographer_ros_msgs::MetricFamily ToRosMessage();
+    cartographer_ros_msgs::MetricFamily ToRosMessage();
 
- private:
-  std::string name_;
-  std::string description_;
-  std::vector<std::unique_ptr<Gauge>> wrappers_;
+  private:
+    std::string name_;
+    std::string description_;
+    std::vector<std::unique_ptr<Gauge>> wrappers_;
 };
 
-class HistogramFamily : public ::cartographer::metrics::Family<
-                            ::cartographer::metrics::Histogram> {
- public:
-  HistogramFamily(const std::string& name, const std::string& description,
-                  const BucketBoundaries& boundaries)
-      : name_(name), description_(description), boundaries_(boundaries) {}
+class HistogramFamily : public ::cartographer::metrics::Family<::cartographer::metrics::Histogram>
+{
+  public:
+    HistogramFamily(const std::string& name, const std::string& description, const BucketBoundaries& boundaries)
+        : name_(name), description_(description), boundaries_(boundaries)
+    {
+    }
 
-  Histogram* Add(const std::map<std::string, std::string>& labels) override;
+    Histogram* Add(const std::map<std::string, std::string>& labels) override;
 
-  cartographer_ros_msgs::MetricFamily ToRosMessage();
+    cartographer_ros_msgs::MetricFamily ToRosMessage();
 
- private:
-  std::string name_;
-  std::string description_;
-  std::vector<std::unique_ptr<Histogram>> wrappers_;
-  const BucketBoundaries boundaries_;
+  private:
+    std::string name_;
+    std::string description_;
+    std::vector<std::unique_ptr<Histogram>> wrappers_;
+    const BucketBoundaries boundaries_;
 };
 
 }  // namespace metrics

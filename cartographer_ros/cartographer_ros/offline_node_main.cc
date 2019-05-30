@@ -20,23 +20,22 @@
 #include "gflags/gflags.h"
 #include "ros/ros.h"
 
-int main(int argc, char** argv) {
-  google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+int main(int argc, char** argv)
+{
+    google::InitGoogleLogging(argv[0]);
+    google::ParseCommandLineFlags(&argc, &argv, true);
 
-  ::ros::init(argc, argv, "cartographer_offline_node");
-  ::ros::start();
+    ::ros::init(argc, argv, "cartographer_offline_node");
+    ::ros::start();
 
-  cartographer_ros::ScopedRosLogSink ros_log_sink;
+    cartographer_ros::ScopedRosLogSink ros_log_sink;
 
-  const cartographer_ros::MapBuilderFactory map_builder_factory =
-      [](const ::cartographer::mapping::proto::MapBuilderOptions&
-             map_builder_options) {
-        return absl::make_unique< ::cartographer::mapping::MapBuilder>(
-            map_builder_options);
-      };
+    const cartographer_ros::MapBuilderFactory map_builder_factory =
+        [](const ::cartographer::mapping::proto::MapBuilderOptions& map_builder_options) {
+            return absl::make_unique<::cartographer::mapping::MapBuilder>(map_builder_options);
+        };
 
-  cartographer_ros::RunOfflineNode(map_builder_factory);
+    cartographer_ros::RunOfflineNode(map_builder_factory);
 
-  ::ros::shutdown();
+    ::ros::shutdown();
 }

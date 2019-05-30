@@ -21,61 +21,71 @@
 #include "cartographer_ros/metrics/internal/gauge.h"
 #include "cartographer_ros/metrics/internal/histogram.h"
 
-namespace cartographer_ros {
-namespace metrics {
+namespace cartographer_ros
+{
+namespace metrics
+{
 
 using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
 
-Counter* CounterFamily::Add(const std::map<std::string, std::string>& labels) {
-  auto wrapper = absl::make_unique<Counter>(labels);
-  auto* ptr = wrapper.get();
-  wrappers_.emplace_back(std::move(wrapper));
-  return ptr;
+Counter* CounterFamily::Add(const std::map<std::string, std::string>& labels)
+{
+    auto wrapper = absl::make_unique<Counter>(labels);
+    auto* ptr = wrapper.get();
+    wrappers_.emplace_back(std::move(wrapper));
+    return ptr;
 }
 
-cartographer_ros_msgs::MetricFamily CounterFamily::ToRosMessage() {
-  cartographer_ros_msgs::MetricFamily family_msg;
-  family_msg.name = name_;
-  family_msg.description = description_;
-  for (const auto& wrapper : wrappers_) {
-    family_msg.metrics.push_back(wrapper->ToRosMessage());
-  }
-  return family_msg;
+cartographer_ros_msgs::MetricFamily CounterFamily::ToRosMessage()
+{
+    cartographer_ros_msgs::MetricFamily family_msg;
+    family_msg.name = name_;
+    family_msg.description = description_;
+    for (const auto& wrapper : wrappers_)
+    {
+        family_msg.metrics.push_back(wrapper->ToRosMessage());
+    }
+    return family_msg;
 }
 
-Gauge* GaugeFamily::Add(const std::map<std::string, std::string>& labels) {
-  auto wrapper = absl::make_unique<Gauge>(labels);
-  auto* ptr = wrapper.get();
-  wrappers_.emplace_back(std::move(wrapper));
-  return ptr;
+Gauge* GaugeFamily::Add(const std::map<std::string, std::string>& labels)
+{
+    auto wrapper = absl::make_unique<Gauge>(labels);
+    auto* ptr = wrapper.get();
+    wrappers_.emplace_back(std::move(wrapper));
+    return ptr;
 }
 
-cartographer_ros_msgs::MetricFamily GaugeFamily::ToRosMessage() {
-  cartographer_ros_msgs::MetricFamily family_msg;
-  family_msg.name = name_;
-  family_msg.description = description_;
-  for (const auto& wrapper : wrappers_) {
-    family_msg.metrics.push_back(wrapper->ToRosMessage());
-  }
-  return family_msg;
+cartographer_ros_msgs::MetricFamily GaugeFamily::ToRosMessage()
+{
+    cartographer_ros_msgs::MetricFamily family_msg;
+    family_msg.name = name_;
+    family_msg.description = description_;
+    for (const auto& wrapper : wrappers_)
+    {
+        family_msg.metrics.push_back(wrapper->ToRosMessage());
+    }
+    return family_msg;
 }
 
-Histogram* HistogramFamily::Add(
-    const std::map<std::string, std::string>& labels) {
-  auto wrapper = absl::make_unique<Histogram>(labels, boundaries_);
-  auto* ptr = wrapper.get();
-  wrappers_.emplace_back(std::move(wrapper));
-  return ptr;
+Histogram* HistogramFamily::Add(const std::map<std::string, std::string>& labels)
+{
+    auto wrapper = absl::make_unique<Histogram>(labels, boundaries_);
+    auto* ptr = wrapper.get();
+    wrappers_.emplace_back(std::move(wrapper));
+    return ptr;
 }
 
-cartographer_ros_msgs::MetricFamily HistogramFamily::ToRosMessage() {
-  cartographer_ros_msgs::MetricFamily family_msg;
-  family_msg.name = name_;
-  family_msg.description = description_;
-  for (const auto& wrapper : wrappers_) {
-    family_msg.metrics.push_back(wrapper->ToRosMessage());
-  }
-  return family_msg;
+cartographer_ros_msgs::MetricFamily HistogramFamily::ToRosMessage()
+{
+    cartographer_ros_msgs::MetricFamily family_msg;
+    family_msg.name = name_;
+    family_msg.description = description_;
+    for (const auto& wrapper : wrappers_)
+    {
+        family_msg.metrics.push_back(wrapper->ToRosMessage());
+    }
+    return family_msg;
 }
 
 }  // namespace metrics
