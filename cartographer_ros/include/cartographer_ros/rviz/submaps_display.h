@@ -24,8 +24,8 @@
 
 #include "absl/synchronization/mutex.h"
 #include "cartographer/common/port.h"
-#include "cartographer_ros_msgs/SubmapList.h"
 #include "cartographer_ros/rviz/drawable_submap.h"
+#include "cartographer_ros_msgs/SubmapList.h"
 #include "rviz/message_filter_display.h"
 #include "rviz/properties/bool_property.h"
 #include "rviz/properties/float_property.h"

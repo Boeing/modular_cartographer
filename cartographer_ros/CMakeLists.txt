@@ -10,7 +10,7 @@ set(PROTOBUF_PROJECT_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PROTOBUF_PROJECT_NA
 set(PROTOBUF_INSTALL_DIR ${PROTOBUF_PROJECT_BUILD_DIR}/install)
 set(PROTOBUF_INCLUDE_DIRS ${PROTOBUF_INSTALL_DIR}/include)
 set(PROTOBUF_LIBRARIES ${PROTOBUF_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}protobuf${CMAKE_STATIC_LIBRARY_SUFFIX})
-ExternalProject_Add(${PROTOBUF_PROJECT_NAME}
+externalproject_add(${PROTOBUF_PROJECT_NAME}
     PREFIX ${PROTOBUF_PROJECT_NAME}
     URL ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/protobuf-3.4.1.tar.gz
     UPDATE_COMMAND ""
@@ -28,7 +28,7 @@ set(CARTOGRAPHER_PROJECT_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/${CARTOGRAPHER_PR
 set(CARTOGRAPHER_INSTALL_DIR ${CARTOGRAPHER_PROJECT_BUILD_DIR}/install)
 set(CARTOGRAPHER_INCLUDE_DIRS ${CARTOGRAPHER_INSTALL_DIR}/include)
 set(CARTOGRAPHER_LIBRARIES ${CARTOGRAPHER_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}cartographer${CMAKE_STATIC_LIBRARY_SUFFIX})
-ExternalProject_Add(${CARTOGRAPHER_PROJECT_NAME}
+externalproject_add(${CARTOGRAPHER_PROJECT_NAME}
     PREFIX ${CARTOGRAPHER_PROJECT_NAME}
     URL ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/bcd5486025df4f601c3977c44a5e00e9c80b4975.tar.gz
     UPDATE_COMMAND ""
@@ -41,7 +41,7 @@ ExternalProject_Add(${CARTOGRAPHER_PROJECT_NAME}
 )
 
 set(PACKAGE_DEPENDENCIES
-    cartographer_ros_msgs
+    ${PROJECT_NAME}_msgs
     eigen_conversions
     geometry_msgs
     message_runtime
@@ -50,6 +50,7 @@ set(PACKAGE_DEPENDENCIES
     rosbag
     roscpp
     roslib
+    rviz
     sensor_msgs
     std_msgs
     tf2
@@ -57,7 +58,6 @@ set(PACKAGE_DEPENDENCIES
     tf2_ros
     urdf
     visualization_msgs
-    rviz
 )
 
 enable_testing()
@@ -70,7 +70,6 @@ find_package(Abseil REQUIRED)
 find_package(LuaGoogle REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED COMPONENTS SuiteSparse)
-find_package(LuaGoogle REQUIRED)
 find_package(GMock REQUIRED)
 find_package(urdfdom_headers REQUIRED)
 if(DEFINED urdfdom_headers_VERSION)
@@ -79,9 +78,8 @@ if(DEFINED urdfdom_headers_VERSION)
     endif()
 endif()
 find_package(Qt5 ${rviz_QT_VERSION} EXACT REQUIRED Core Widgets)
-
-include(FindPkgConfig)
-PKG_SEARCH_MODULE(CAIRO REQUIRED cairo>=1.12.16)
+find_package(PkgConfig)
+pkg_search_module(CAIRO REQUIRED cairo>=1.12.16)
 
 set(GTEST_FOUND TRUE)
 set(GTEST_INCLUDE_DIRS ${GMOCK_INCLUDE_DIRS})
@@ -91,20 +89,19 @@ catkin_package(
     CATKIN_DEPENDS
         ${PACKAGE_DEPENDENCIES}
     DEPENDS
-        PCL
-        EIGEN3
-        Boost
-        urdfdom_headers
         ABSEIL
+        Boost
         CERES
+        EIGEN3
+        PCL
+        urdfdom_headers
     INCLUDE_DIRS
-        include
     LIBRARIES ${PROJECT_NAME}
 )
 
 include_directories(include)
 
-include_directories(SYSTEM PUBLIC
+include_directories(SYSTEM
     ${ABSEIL_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
@@ -164,7 +161,7 @@ add_executable(cartographer_occupancy_grid_node
     src/occupancy_grid_node_main.cc
 )
 
-add_executable(cartographer_rosbag_validate
+add_executable(${PROJECT_NAME}bag_validate
     src/rosbag_validate_main.cc
 )
 
@@ -193,22 +190,22 @@ target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_occupancy_grid_node PUBLIC ${PROJECT_NAME} ${LIBS})
-target_link_libraries(cartographer_rosbag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
+target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_map_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_rosbag_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_trajectory_comparison PUBLIC ${PROJECT_NAME} ${LIBS})
 
-set(BLACKLISTED_PCL_DEFINITIONS " -march=native -msse4.2 -mfpmath=sse ")
-foreach(DEFINITION ${PCL_DEFINITIONS})
-    list (FIND BLACKLISTED_PCL_DEFINITIONS "${DEFINITION}" DEFINITIONS_INDEX)
-    if (${DEFINITIONS_INDEX} GREATER -1)
-        continue()
-    endif()
-    set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${DEFINITION}")
-endforeach()
-set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
+#set(BLACKLISTED_PCL_DEFINITIONS " -march=native -msse4.2 -mfpmath=sse ")
+#foreach(DEFINITION ${PCL_DEFINITIONS})
+#    list (FIND BLACKLISTED_PCL_DEFINITIONS "${DEFINITION}" DEFINITIONS_INDEX)
+#    if (${DEFINITIONS_INDEX} GREATER -1)
+#        continue()
+#    endif()
+#    set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${DEFINITION}")
+#endforeach()
+#set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
 
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} cartographer)
 
@@ -224,7 +221,6 @@ if (CATKIN_ENABLE_TESTING)
 endif()
 
 install(TARGETS
-    ${PROJECT_NAME}
     cartographer_assets_writer
     cartographer_dev_pbstream_trajectories_to_rosbag
     cartographer_dev_rosbag_publisher
@@ -234,7 +230,8 @@ install(TARGETS
     cartographer_offline_node
     cartographer_pbstream_map_publisher
     cartographer_pbstream_to_ros_map
-    cartographer_rosbag_validate
+    ${PROJECT_NAME}
+    ${PROJECT_NAME}bag_validate
 
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
