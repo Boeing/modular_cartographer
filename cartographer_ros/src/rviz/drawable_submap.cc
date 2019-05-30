@@ -89,7 +89,7 @@ DrawableSubmap::~DrawableSubmap()
     display_context_->getSceneManager()->destroySceneNode(submap_id_text_node_);
 }
 
-void DrawableSubmap::Update(const ::std_msgs::Header& header, const ::cartographer_ros_msgs::SubmapEntry& metadata)
+void DrawableSubmap::Update(const ::std_msgs::Header&, const ::cartographer_ros_msgs::SubmapEntry& metadata)
 {
     absl::MutexLock locker(&mutex_);
     metadata_version_ = metadata.submap_version;

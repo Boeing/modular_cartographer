@@ -207,7 +207,7 @@ void SubmapsDisplay::processMessage(const ::cartographer_ros_msgs::SubmapList::C
     }
 }
 
-void SubmapsDisplay::update(const float wall_dt, const float ros_dt)
+void SubmapsDisplay::update(const float, const float)
 {
     absl::MutexLock locker(&mutex_);
     // Schedule fetching of new submap textures.

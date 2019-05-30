@@ -174,7 +174,7 @@ bool Node::HandleTrajectoryQuery(::cartographer_ros_msgs::TrajectoryQuery::Reque
     return true;
 }
 
-void Node::PublishSubmapList(const ::ros::WallTimerEvent& unused_timer_event)
+void Node::PublishSubmapList(const ::ros::WallTimerEvent&)
 {
     absl::MutexLock lock(&mutex_);
     submap_list_publisher_.publish(map_builder_bridge_.GetSubmapList());
@@ -202,7 +202,7 @@ void Node::AddSensorSamplers(const int trajectory_id, const TrajectoryOptions& o
                                                    options.landmarks_sampling_ratio));
 }
 
-void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event)
+void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent&)
 {
     absl::MutexLock lock(&mutex_);
     for (const auto& entry : map_builder_bridge_.GetLocalTrajectoryData())
@@ -285,7 +285,7 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event)
     }
 }
 
-void Node::PublishTrajectoryNodeList(const ::ros::WallTimerEvent& unused_timer_event)
+void Node::PublishTrajectoryNodeList(const ::ros::WallTimerEvent&)
 {
     if (trajectory_node_list_publisher_.getNumSubscribers() > 0)
     {
@@ -294,7 +294,7 @@ void Node::PublishTrajectoryNodeList(const ::ros::WallTimerEvent& unused_timer_e
     }
 }
 
-void Node::PublishLandmarkPosesList(const ::ros::WallTimerEvent& unused_timer_event)
+void Node::PublishLandmarkPosesList(const ::ros::WallTimerEvent&)
 {
     if (landmark_poses_list_publisher_.getNumSubscribers() > 0)
     {
@@ -303,7 +303,7 @@ void Node::PublishLandmarkPosesList(const ::ros::WallTimerEvent& unused_timer_ev
     }
 }
 
-void Node::PublishConstraintList(const ::ros::WallTimerEvent& unused_timer_event)
+void Node::PublishConstraintList(const ::ros::WallTimerEvent&)
 {
     if (constraint_list_publisher_.getNumSubscribers() > 0)
     {
@@ -618,7 +618,7 @@ int Node::AddOfflineTrajectory(
     return trajectory_id;
 }
 
-bool Node::HandleGetTrajectoryStates(::cartographer_ros_msgs::GetTrajectoryStates::Request& request,
+bool Node::HandleGetTrajectoryStates(::cartographer_ros_msgs::GetTrajectoryStates::Request&,
                                      ::cartographer_ros_msgs::GetTrajectoryStates::Response& response)
 {
     using TrajectoryState = ::cartographer::mapping::PoseGraphInterface::TrajectoryState;
@@ -676,7 +676,7 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
     return true;
 }
 
-bool Node::HandleReadMetrics(::cartographer_ros_msgs::ReadMetrics::Request& request,
+bool Node::HandleReadMetrics(::cartographer_ros_msgs::ReadMetrics::Request&,
                              ::cartographer_ros_msgs::ReadMetrics::Response& response)
 {
     absl::MutexLock lock(&mutex_);
@@ -834,7 +834,7 @@ void Node::LoadState(const std::string& state_filename, const bool load_frozen_s
     map_builder_bridge_.LoadState(state_filename, load_frozen_state);
 }
 
-void Node::MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent& unused_timer_event)
+void Node::MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent&)
 {
     ::ros::master::V_TopicInfo ros_topics;
     ::ros::master::getTopics(ros_topics);
