@@ -161,7 +161,7 @@ void Node::HandleSubmapList(const cartographer_ros_msgs::SubmapList::ConstPtr& m
     last_frame_id_ = msg->header.frame_id;
 }
 
-void Node::DrawAndPublish(const ::ros::WallTimerEvent& unused_timer_event)
+void Node::DrawAndPublish(const ::ros::WallTimerEvent&)
 {
     absl::MutexLock locker(&mutex_);
     if (submap_slices_.empty() || last_frame_id_.empty())

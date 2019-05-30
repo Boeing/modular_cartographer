@@ -37,6 +37,7 @@
     <depend>nav_msgs</depend>
     <depend>ninja-build</depend>
     <depend>pcl_conversions</depend>
+    <depend>pluginlib</depend>
     <depend>rosbag</depend>
     <depend>roscpp</depend>
     <depend>roslib</depend>

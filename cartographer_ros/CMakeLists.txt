@@ -50,6 +50,7 @@ set(PACKAGE_DEPENDENCIES
     message_runtime
     nav_msgs
     pcl_conversions
+    pluginlib
     rosbag
     roscpp
     roslib
@@ -122,13 +123,15 @@ set(CMAKE_AUTOMOC ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
 add_definitions(-DQT_NO_KEYWORDS)
 
-file(GLOB_RECURSE ALL_SRCS "src/*.cc" "src/*.h")
+file(GLOB_RECURSE ALL_SRCS "src/*.cc" "include/${PROJECT_NAME}/rviz/*.h")
 file(GLOB_RECURSE ALL_TESTS "src/*_test.cc")
 file(GLOB_RECURSE ALL_EXECUTABLES "src/*_main.cc")
 list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
 list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
 
-add_library(${PROJECT_NAME} STATIC ${ALL_SRCS})
+message(STATUS "ALL_SRCS: ${ALL_SRCS}")
+
+add_library(${PROJECT_NAME} ${ALL_SRCS})
 add_dependencies(${PROJECT_NAME} cartographer)
 
 set(LIBS
@@ -220,7 +223,7 @@ install(TARGETS
     cartographer_dev_trajectory_comparison
     cartographer_node
     cartographer_occupancy_grid_node
-    cartographer_offline_node
+    #cartographer_offline_node
     cartographer_pbstream_map_publisher
     cartographer_pbstream_to_ros_map
     ${PROJECT_NAME}

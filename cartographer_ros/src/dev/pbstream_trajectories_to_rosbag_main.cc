@@ -52,7 +52,7 @@ geometry_msgs::TransformStamped ToTransformStamped(int64_t timestamp_uts, const 
     return transform_stamped;
 }
 
-void pbstream_trajectories_to_bag(const std::string& pbstream_filename, const std::string& output_bag_filename,
+void pbstream_trajectories_to_bag(const std::string&, const std::string& output_bag_filename,
                                   const std::string& parent_frame_id)
 {
     const auto pose_graph = cartographer::io::DeserializePoseGraphFromFile(FLAGS_input);
