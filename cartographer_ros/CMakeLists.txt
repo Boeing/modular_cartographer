@@ -197,16 +197,6 @@ target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${
 target_link_libraries(cartographer_dev_rosbag_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_trajectory_comparison PUBLIC ${PROJECT_NAME} ${LIBS})
 
-#set(BLACKLISTED_PCL_DEFINITIONS " -march=native -msse4.2 -mfpmath=sse ")
-#foreach(DEFINITION ${PCL_DEFINITIONS})
-#    list (FIND BLACKLISTED_PCL_DEFINITIONS "${DEFINITION}" DEFINITIONS_INDEX)
-#    if (${DEFINITIONS_INDEX} GREATER -1)
-#        continue()
-#    endif()
-#    set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${DEFINITION}")
-#endforeach()
-#set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
-
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} cartographer)
 
 if (CATKIN_ENABLE_TESTING)
