@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer_rviz/ogre_slice.h"
+#include "cartographer_ros/rviz/ogre_slice.h"
 
 #include <string>
 #include <vector>

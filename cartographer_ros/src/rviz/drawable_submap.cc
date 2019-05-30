@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer_rviz/drawable_submap.h"
+#include "cartographer_ros/rviz/drawable_submap.h"
 
 #include <chrono>
 #include <future>

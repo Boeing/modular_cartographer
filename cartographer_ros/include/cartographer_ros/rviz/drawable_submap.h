@@ -31,7 +31,7 @@
 #include "cartographer_ros/submap.h"
 #include "cartographer_ros_msgs/SubmapEntry.h"
 #include "cartographer_ros_msgs/SubmapQuery.h"
-#include "cartographer_rviz/ogre_slice.h"
+#include "cartographer_ros/rviz/ogre_slice.h"
 #include "ros/ros.h"
 #include "rviz/display_context.h"
 #include "rviz/frame_manager.h"

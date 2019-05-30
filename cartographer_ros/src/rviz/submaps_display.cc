@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer_rviz/submaps_display.h"
+#include "cartographer_ros/rviz/submaps_display.h"
 
 #include "OgreResourceGroupManager.h"
 #include "absl/memory/memory.h"

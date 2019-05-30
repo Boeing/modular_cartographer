@@ -22,10 +22,8 @@
 
   <build_depend>git</build_depend>
   <build_depend>google-mock</build_depend>
-  <!--<build_depend>protobuf-dev</build_depend>-->
   <build_depend>python-sphinx</build_depend>
 
-  <!--<depend version_gte="1.0.0">cartographer</depend>-->
   <depend>cartographer_ros_msgs</depend>
   <depend>eigen_conversions</depend>
   <depend>geometry_msgs</depend>
@@ -40,6 +38,7 @@
   <depend>roscpp</depend>
   <depend>roslaunch</depend>
   <depend>roslib</depend>
+  <depend>rviz</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>tf2</depend>
@@ -47,7 +46,6 @@
   <depend>tf2_ros</depend>
   <depend>urdf</depend>
   <depend>visualization_msgs</depend>
-  <depend>rviz</depend>
 
   <test_depend>rosunit</test_depend>
 
