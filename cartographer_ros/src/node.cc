@@ -1,24 +1,9 @@
-/*
- * Copyright 2016 The Cartographer Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include "cartographer_ros/node.h"
 
 #include <chrono>
 #include <string>
 #include <vector>
+#include <png.h>
 
 #include "Eigen/Core"
 #include "absl/memory/memory.h"
@@ -27,6 +12,7 @@
 #include "cartographer/common/lua_parameter_dictionary.h"
 #include "cartographer/common/port.h"
 #include "cartographer/common/time.h"
+#include <cartographer/mapping/map_builder.h>
 #include "cartographer/mapping/pose_graph_interface.h"
 #include "cartographer/mapping/proto/submap_visualization.pb.h"
 #include "cartographer/metrics/register.h"
@@ -46,6 +32,10 @@
 #include "sensor_msgs/PointCloud2.h"
 #include "tf2_eigen/tf2_eigen.h"
 #include "visualization_msgs/MarkerArray.h"
+
+#include <boost/interprocess/streams/vectorstream.hpp>
+
+#include "cartographer_ros/proto_sstream.h"
 
 namespace cartographer_ros
 {
@@ -91,9 +81,13 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state)
 
 }  // namespace
 
-Node::Node(const NodeOptions& node_options, std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
+Node::Node(const NodeOptions& node_options,
+           const TrajectoryOptions& trajectory_options,
            tf2_ros::Buffer* const tf_buffer, const bool collect_metrics)
-    : node_options_(node_options), map_builder_bridge_(node_options_, std::move(map_builder), tf_buffer)
+    : node_options_(node_options),
+      trajectory_options_(trajectory_options),
+      map_builder_bridge_(node_options_, absl::make_unique<cartographer::mapping::MapBuilder>(node_options.map_builder_options), tf_buffer),
+      p_nh_("~")
 {
     absl::MutexLock lock(&mutex_);
     if (collect_metrics)
@@ -102,42 +96,33 @@ Node::Node(const NodeOptions& node_options, std::unique_ptr<cartographer::mappin
         carto::metrics::RegisterAllMetrics(metrics_registry_.get());
     }
 
-    submap_list_publisher_ =
-        node_handle_.advertise<::cartographer_ros_msgs::SubmapList>(kSubmapListTopic, kLatestOnlyPublisherQueueSize);
-    trajectory_node_list_publisher_ = node_handle_.advertise<::visualization_msgs::MarkerArray>(
-        kTrajectoryNodeListTopic, kLatestOnlyPublisherQueueSize);
-    landmark_poses_list_publisher_ = node_handle_.advertise<::visualization_msgs::MarkerArray>(
-        kLandmarkPosesListTopic, kLatestOnlyPublisherQueueSize);
-    constraint_list_publisher_ =
-        node_handle_.advertise<::visualization_msgs::MarkerArray>(kConstraintListTopic, kLatestOnlyPublisherQueueSize);
-    service_servers_.push_back(node_handle_.advertiseService(kSubmapQueryServiceName, &Node::HandleSubmapQuery, this));
-    service_servers_.push_back(
-        node_handle_.advertiseService(kTrajectoryQueryServiceName, &Node::HandleTrajectoryQuery, this));
-    service_servers_.push_back(
-        node_handle_.advertiseService(kStartTrajectoryServiceName, &Node::HandleStartTrajectory, this));
-    service_servers_.push_back(
-        node_handle_.advertiseService(kFinishTrajectoryServiceName, &Node::HandleFinishTrajectory, this));
-    service_servers_.push_back(node_handle_.advertiseService(kWriteStateServiceName, &Node::HandleWriteState, this));
-    service_servers_.push_back(
-        node_handle_.advertiseService(kGetTrajectoryStatesServiceName, &Node::HandleGetTrajectoryStates, this));
-    service_servers_.push_back(node_handle_.advertiseService(kReadMetricsServiceName, &Node::HandleReadMetrics, this));
+    submap_list_publisher_ = p_nh_.advertise<::cartographer_ros_msgs::SubmapList>(kSubmapListTopic, kLatestOnlyPublisherQueueSize);
+    trajectory_node_list_publisher_ = p_nh_.advertise<::visualization_msgs::MarkerArray>(kTrajectoryNodeListTopic, kLatestOnlyPublisherQueueSize);
+    landmark_poses_list_publisher_ = p_nh_.advertise<::visualization_msgs::MarkerArray>(kLandmarkPosesListTopic, kLatestOnlyPublisherQueueSize);
+    constraint_list_publisher_ = p_nh_.advertise<::visualization_msgs::MarkerArray>(kConstraintListTopic, kLatestOnlyPublisherQueueSize);
 
-    scan_matched_point_cloud_publisher_ =
-        node_handle_.advertise<sensor_msgs::PointCloud2>(kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
+    service_servers_.push_back(p_nh_.advertiseService(kSubmapQueryServiceName, &Node::HandleSubmapQuery, this));
+    service_servers_.push_back(p_nh_.advertiseService(kTrajectoryQueryServiceName, &Node::HandleTrajectoryQuery, this));
+    service_servers_.push_back(p_nh_.advertiseService(kStartLocalisationServiceName, &Node::HandleStartLocalisation, this));
+    service_servers_.push_back(p_nh_.advertiseService(kStartMappingServiceName, &Node::HandleStartMapping, this));
+    service_servers_.push_back(p_nh_.advertiseService(kLoadStateServiceName, &Node::HandleLoadState, this));
+    service_servers_.push_back(p_nh_.advertiseService(kFinishTrajectoryServiceName, &Node::HandleFinishTrajectory, this));
+    service_servers_.push_back(p_nh_.advertiseService(kWriteStateServiceName, &Node::HandleWriteState, this));
+    service_servers_.push_back(p_nh_.advertiseService(kGetTrajectoryStatesServiceName, &Node::HandleGetTrajectoryStates, this));
+    service_servers_.push_back(p_nh_.advertiseService(kReadMetricsServiceName, &Node::HandleReadMetrics, this));
 
-    wall_timers_.push_back(node_handle_.createWallTimer(::ros::WallDuration(node_options_.submap_publish_period_sec),
-                                                        &Node::PublishSubmapList, this));
+    map_data_subscriber_ = p_nh_.subscribe<std_msgs::UInt8MultiArray>(kMapDataTopic, kInfiniteSubscriberQueueSize, &Node::HandleMapData, this);
+
+    scan_matched_point_cloud_publisher_ = p_nh_.advertise<sensor_msgs::PointCloud2>(kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
+
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.submap_publish_period_sec), &Node::PublishSubmapList, this));
     if (node_options_.pose_publish_period_sec > 0)
     {
-        publish_local_trajectory_data_timer_ = node_handle_.createTimer(
-            ::ros::Duration(node_options_.pose_publish_period_sec), &Node::PublishLocalTrajectoryData, this);
+        publish_local_trajectory_data_timer_ = nh_.createTimer(::ros::Duration(node_options_.pose_publish_period_sec), &Node::PublishLocalTrajectoryData, this);
     }
-    wall_timers_.push_back(node_handle_.createWallTimer(
-        ::ros::WallDuration(node_options_.trajectory_publish_period_sec), &Node::PublishTrajectoryNodeList, this));
-    wall_timers_.push_back(node_handle_.createWallTimer(
-        ::ros::WallDuration(node_options_.trajectory_publish_period_sec), &Node::PublishLandmarkPosesList, this));
-    wall_timers_.push_back(node_handle_.createWallTimer(::ros::WallDuration(kConstraintPublishPeriodSec),
-                                                        &Node::PublishConstraintList, this));
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.trajectory_publish_period_sec), &Node::PublishTrajectoryNodeList, this));
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.trajectory_publish_period_sec), &Node::PublishLandmarkPosesList, this));
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(kConstraintPublishPeriodSec), &Node::PublishConstraintList, this));
 }
 
 Node::~Node()
@@ -147,7 +132,7 @@ Node::~Node()
 
 ::ros::NodeHandle* Node::node_handle()
 {
-    return &node_handle_;
+    return &nh_;
 }
 
 bool Node::HandleSubmapQuery(::cartographer_ros_msgs::SubmapQuery::Request& request,
@@ -220,7 +205,7 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent&)
                 // information.
                 carto::sensor::TimedPointCloud point_cloud;
                 point_cloud.reserve(trajectory_data.local_slam_data->range_data_in_local.returns.size());
-                for (const cartographer::sensor::RangefinderPoint point :
+                for (const cartographer::sensor::RangefinderPoint& point :
                      trajectory_data.local_slam_data->range_data_in_local.returns)
                 {
                     point_cloud.push_back(cartographer::sensor::ToTimedRangefinderPoint(point, 0.f /* time */));
@@ -366,7 +351,7 @@ int Node::AddTrajectory(const TrajectoryOptions& options)
     AddExtrapolator(trajectory_id, options);
     AddSensorSamplers(trajectory_id, options);
     LaunchSubscribers(options, trajectory_id);
-    wall_timers_.push_back(node_handle_.createWallTimer(::ros::WallDuration(kTopicMismatchCheckDelaySec),
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(kTopicMismatchCheckDelaySec),
                                                         &Node::MaybeWarnAboutTopicMismatch, this, /*oneshot=*/true));
     for (const auto& sensor_id : expected_sensor_ids)
     {
@@ -381,7 +366,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options, const int traject
     {
         subscribers_[trajectory_id].push_back(
             {SubscribeWithHandler<sensor_msgs::LaserScan>(&Node::HandleLaserScanMessage, trajectory_id, topic,
-                                                          &node_handle_, this),
+                                                          &nh_, this),
              topic});
     }
     for (const std::string& topic :
@@ -389,25 +374,24 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options, const int traject
     {
         subscribers_[trajectory_id].push_back(
             {SubscribeWithHandler<sensor_msgs::MultiEchoLaserScan>(&Node::HandleMultiEchoLaserScanMessage,
-                                                                   trajectory_id, topic, &node_handle_, this),
+                                                                   trajectory_id, topic, &nh_, this),
              topic});
     }
     for (const std::string& topic : ComputeRepeatedTopicNames(kPointCloud2Topic, options.num_point_clouds))
     {
         subscribers_[trajectory_id].push_back(
             {SubscribeWithHandler<sensor_msgs::PointCloud2>(&Node::HandlePointCloud2Message, trajectory_id, topic,
-                                                            &node_handle_, this),
+                                                            &nh_, this),
              topic});
     }
 
-    // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
-    // required.
+    // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is required
     if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
         (node_options_.map_builder_options.use_trajectory_builder_2d() &&
          options.trajectory_builder_options.trajectory_builder_2d_options().use_imu_data()))
     {
         subscribers_[trajectory_id].push_back(
-            {SubscribeWithHandler<sensor_msgs::Imu>(&Node::HandleImuMessage, trajectory_id, kImuTopic, &node_handle_,
+            {SubscribeWithHandler<sensor_msgs::Imu>(&Node::HandleImuMessage, trajectory_id, kImuTopic, &nh_,
                                                     this),
              kImuTopic});
     }
@@ -416,21 +400,21 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options, const int traject
     {
         subscribers_[trajectory_id].push_back(
             {SubscribeWithHandler<nav_msgs::Odometry>(&Node::HandleOdometryMessage, trajectory_id, kOdometryTopic,
-                                                      &node_handle_, this),
+                                                      &nh_, this),
              kOdometryTopic});
     }
     if (options.use_nav_sat)
     {
         subscribers_[trajectory_id].push_back(
             {SubscribeWithHandler<sensor_msgs::NavSatFix>(&Node::HandleNavSatFixMessage, trajectory_id, kNavSatFixTopic,
-                                                          &node_handle_, this),
+                                                          &nh_, this),
              kNavSatFixTopic});
     }
     if (options.use_landmarks)
     {
         subscribers_[trajectory_id].push_back(
             {SubscribeWithHandler<cartographer_ros_msgs::LandmarkList>(&Node::HandleLandmarkMessage, trajectory_id,
-                                                                       kLandmarkTopic, &node_handle_, this),
+                                                                       kLandmarkTopic, &nh_, this),
              kLandmarkTopic});
     }
 }
@@ -521,12 +505,13 @@ cartographer_ros_msgs::StatusResponse Node::FinishTrajectoryUnderLock(const int 
     return status_response;
 }
 
-bool Node::HandleStartTrajectory(::cartographer_ros_msgs::StartTrajectory::Request& request,
-                                 ::cartographer_ros_msgs::StartTrajectory::Response& response)
+bool Node::HandleStartLocalisation(cartographer_ros_msgs::StartLocalisation::Request& request,
+                                   cartographer_ros_msgs::StartLocalisation::Response& response)
 {
-    TrajectoryOptions trajectory_options;
-    std::tie(std::ignore, trajectory_options) =
-        LoadOptions(request.configuration_directory, request.configuration_basename);
+    TrajectoryOptions trajectory_options = trajectory_options_;
+
+    auto trimmer = trajectory_options.trajectory_builder_options.mutable_pure_localization_trimmer();
+    trimmer->set_max_submaps_to_keep(2);
 
     if (request.use_initial_pose)
     {
@@ -578,11 +563,46 @@ bool Node::HandleStartTrajectory(::cartographer_ros_msgs::StartTrajectory::Reque
     return true;
 }
 
-void Node::StartTrajectoryWithDefaultTopics(const TrajectoryOptions& options)
+bool Node::HandleStartMapping(cartographer_ros_msgs::StartMapping::Request& request,
+                              cartographer_ros_msgs::StartMapping::Response& response)
+{
+
+    if (!ValidateTrajectoryOptions(trajectory_options_))
+    {
+        response.status.message = "Invalid trajectory options.";
+        LOG(ERROR) << response.status.message;
+        response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
+    }
+    else if (!ValidateTopicNames(trajectory_options_))
+    {
+        response.status.message = "Topics are already used by another trajectory.";
+        LOG(ERROR) << response.status.message;
+        response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
+    }
+    else
+    {
+        response.status.message = "Success.";
+        response.trajectory_id = AddTrajectory(trajectory_options_);
+        response.status.code = cartographer_ros_msgs::StatusCode::OK;
+    }
+    return true;
+}
+
+bool Node::HandleLoadState(cartographer_ros_msgs::LoadState::Request& request,
+                           cartographer_ros_msgs::LoadState::Response& response)
 {
     absl::MutexLock lock(&mutex_);
-    CHECK(ValidateTrajectoryOptions(options));
-    AddTrajectory(options);
+
+    LOG(INFO) << "Loading state";
+
+    std::string s(reinterpret_cast<char*>(request.pbstream_data.data()), request.pbstream_data.size());
+    std::istringstream ss(s);
+
+    map_builder_bridge_.LoadState(ss, request.load_frozen_state);
+
+    response.status.code = cartographer_ros_msgs::StatusCode::OK;
+
+    return true;
 }
 
 std::vector<std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>>
@@ -663,15 +683,126 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
                             ::cartographer_ros_msgs::WriteState::Response& response)
 {
     absl::MutexLock lock(&mutex_);
-    if (map_builder_bridge_.SerializeState(request.filename, request.include_unfinished_submaps))
+
+    std::stringstream ss;
+    if (map_builder_bridge_.SerializeState(ss, request.include_unfinished_submaps))
     {
+        ss.seekp(0);
+        ss >> std::noskipws;
+        std::copy(std::istream_iterator<uint8_t>(ss), std::istream_iterator<uint8_t>(), std::back_inserter(response.pbstream_data));
+
+        auto submaps = map_builder_bridge_.GetSubmapList();
+        std::map<::cartographer::mapping::SubmapId, cartographer::io::SubmapSlice> submap_slices;
+        for (const auto& submap_msg : submaps.submap)
+        {
+            const cartographer::mapping::SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
+            cartographer::io::SubmapSlice& submap_slice = submap_slices[id];
+            submap_slice.pose = ToRigid3d(submap_msg.pose);
+            submap_slice.metadata_version = submap_msg.submap_version;
+            if (submap_slice.surface != nullptr && submap_slice.version == submap_msg.submap_version)
+            {
+                continue;
+            }
+
+            {
+                cartographer::mapping::proto::SubmapQuery::Response submap_proto;
+                const std::string error = map_builder_bridge_.map_builder()->SubmapToProto(id, &submap_proto);
+
+                // We use the first texture only
+                // By convention this is the highest resolution texture and that is the one we want to use to construct the map for ROS
+                const auto& texture_proto = submap_proto.textures()[0];
+
+                submap_slice.version = submap_proto.submap_version();
+
+                submap_slice.width = texture_proto.width();
+                submap_slice.height = texture_proto.height();
+                submap_slice.slice_pose = cartographer::transform::ToRigid3(texture_proto.slice_pose());
+                submap_slice.resolution = texture_proto.resolution();
+                submap_slice.cairo_data.clear();
+
+                const std::string compressed_cells(texture_proto.cells().begin(), texture_proto.cells().end());
+                auto submap_texture = cartographer::io::SubmapTexture{
+                        cartographer::io::UnpackTextureData(compressed_cells, texture_proto.width(), texture_proto.height()),
+                        texture_proto.width(),
+                        texture_proto.height(),
+                        texture_proto.resolution(),
+                        cartographer::transform::ToRigid3(texture_proto.slice_pose())
+                };
+
+                submap_slice.surface = cartographer::io::DrawTexture(submap_texture.pixels.intensity, submap_texture.pixels.alpha, submap_texture.width,
+                                                                     submap_texture.height, &submap_slice.cairo_data);
+            }
+        }
+
+        LOG(INFO) << "Generating combined map image from submap slices";
+        const auto painted_slices = ::cartographer::io::PaintSubmapSlices(submap_slices, request.resolution);
+        auto og_map = CreateOccupancyGridMsg(painted_slices, request.resolution, "map", ros::Time::now());
+
+        response.map_info = og_map->info;
+
+        {
+            response.occupancy_grid.format = "png";
+
+            png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+            png_infop info = png_create_info_struct(png);
+
+            if (setjmp(png_jmpbuf(png))) abort();
+
+            auto user_write_fn = [](png_structp png, png_bytep data, png_size_t length)
+            {
+                auto v = (sensor_msgs::CompressedImage::_data_type*)png_get_io_ptr(png);
+                for (unsigned int i=0; i < length; ++i)
+                {
+                    v->push_back(*data++);
+                }
+            };
+
+            png_set_write_fn(png, (void *)&response.occupancy_grid.data, user_write_fn, nullptr);
+
+            png_set_IHDR(
+                png,
+                info,
+                og_map->info.width, og_map->info.height,
+                8,
+                PNG_COLOR_TYPE_GRAY,
+                PNG_INTERLACE_NONE,
+                PNG_COMPRESSION_TYPE_DEFAULT,
+                PNG_FILTER_TYPE_DEFAULT
+            );
+
+            png_color_8 sig_bit;
+            sig_bit.gray = 8;
+            png_set_sBIT(png, info, &sig_bit);
+
+            png_write_info(png, info);
+
+            const int bytes_per_pixel = 1;
+
+            if (og_map->info.height > PNG_SIZE_MAX / (og_map->info.width * bytes_per_pixel))
+                png_error(png, "Image data buffer would be too large");
+
+            png_bytep row_pointers[og_map->info.height];
+
+            if (og_map->info.height > PNG_UINT_32_MAX / (sizeof (png_bytep)))
+                png_error(png, "Image is too tall to process in memory");
+
+            for (png_uint_32 k = 0; k < og_map->info.height; k++)
+                row_pointers[k] = reinterpret_cast<unsigned char*>(&og_map->data[0]) + k * og_map->info.width * bytes_per_pixel;
+
+            png_write_image(png, row_pointers);
+
+            png_write_end(png, info);
+
+            png_destroy_write_struct(&png, &info);
+        }
+
         response.status.code = cartographer_ros_msgs::StatusCode::OK;
-        response.status.message = absl::StrCat("State written to '", request.filename, "'.");
+        response.status.message = absl::StrCat("Success");
     }
     else
     {
         response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
-        response.status.message = absl::StrCat("Failed to write '", request.filename, "'.");
+        response.status.message = absl::StrCat("Failed");
     }
     return true;
 }
@@ -691,6 +822,18 @@ bool Node::HandleReadMetrics(::cartographer_ros_msgs::ReadMetrics::Request&,
     response.status.code = cartographer_ros_msgs::StatusCode::OK;
     response.status.message = "Successfully read metrics.";
     return true;
+}
+
+void Node::HandleMapData(const std_msgs::UInt8MultiArray::ConstPtr& msg)
+{
+    absl::MutexLock lock(&mutex_);
+
+    LOG(INFO) << "Loading incoming map data...";
+
+    std::string s(reinterpret_cast<const char*>(msg->data.data()), msg->data.size());
+    std::stringstream ss(s);
+
+    map_builder_bridge_.LoadState(ss, true);
 }
 
 void Node::FinishAllTrajectories()
@@ -825,13 +968,20 @@ void Node::HandlePointCloud2Message(const int trajectory_id, const std::string& 
 void Node::SerializeState(const std::string& filename, const bool include_unfinished_submaps)
 {
     absl::MutexLock lock(&mutex_);
-    CHECK(map_builder_bridge_.SerializeState(filename, include_unfinished_submaps)) << "Could not write state.";
+    std::ofstream file(filename);
+    CHECK(map_builder_bridge_.SerializeState(file, include_unfinished_submaps)) << "Could not write state.";
 }
 
 void Node::LoadState(const std::string& state_filename, const bool load_frozen_state)
 {
     absl::MutexLock lock(&mutex_);
-    map_builder_bridge_.LoadState(state_filename, load_frozen_state);
+
+    LOG(INFO) << "Loading map data...";
+
+    const std::string suffix = ".pbstream";
+    CHECK_EQ(state_filename.substr(std::max<int>(state_filename.size() - suffix.size(), 0)), suffix) << "The file containing the state to be loaded must be a .pbstream file.";
+    std::ifstream file(state_filename);
+    map_builder_bridge_.LoadState(file, load_frozen_state);
 }
 
 void Node::MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent&)
@@ -842,7 +992,7 @@ void Node::MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent&)
     std::stringstream published_topics_string;
     for (const auto& it : ros_topics)
     {
-        std::string resolved_topic = node_handle_.resolveName(it.name, false);
+        std::string resolved_topic = nh_.resolveName(it.name, false);
         published_topics.insert(resolved_topic);
         published_topics_string << resolved_topic << ",";
     }
@@ -852,7 +1002,7 @@ void Node::MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent&)
         int trajectory_id = entry.first;
         for (const auto& subscriber : entry.second)
         {
-            std::string resolved_topic = node_handle_.resolveName(subscriber.topic);
+            std::string resolved_topic = nh_.resolveName(subscriber.topic);
             if (published_topics.count(resolved_topic) == 0)
             {
                 LOG(WARNING) << "Expected topic \"" << subscriber.topic << "\" (trajectory " << trajectory_id << ")"

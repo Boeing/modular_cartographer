@@ -36,12 +36,14 @@
 #include "cartographer_ros_msgs/FinishTrajectory.h"
 #include "cartographer_ros_msgs/GetTrajectoryStates.h"
 #include "cartographer_ros_msgs/ReadMetrics.h"
-#include "cartographer_ros_msgs/StartTrajectory.h"
+#include "cartographer_ros_msgs/StartLocalisation.h"
+#include "cartographer_ros_msgs/StartMapping.h"
 #include "cartographer_ros_msgs/StatusResponse.h"
 #include "cartographer_ros_msgs/SubmapEntry.h"
 #include "cartographer_ros_msgs/SubmapList.h"
 #include "cartographer_ros_msgs/SubmapQuery.h"
 #include "cartographer_ros_msgs/WriteState.h"
+#include "cartographer_ros_msgs/LoadState.h"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
 #include "sensor_msgs/Imu.h"
@@ -50,6 +52,7 @@
 #include "sensor_msgs/NavSatFix.h"
 #include "sensor_msgs/PointCloud2.h"
 #include "tf2_ros/transform_broadcaster.h"
+#include <std_msgs/UInt8MultiArray.h>
 
 namespace cartographer_ros
 {
@@ -58,8 +61,10 @@ namespace cartographer_ros
 class Node
 {
   public:
-    Node(const NodeOptions& node_options, std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
-         tf2_ros::Buffer* tf_buffer, bool collect_metrics);
+    Node(const NodeOptions& node_options,
+         const TrajectoryOptions& trajectory_options,
+         tf2_ros::Buffer* tf_buffer,
+         bool collect_metrics);
     ~Node();
 
     Node(const Node&) = delete;
@@ -67,6 +72,7 @@ class Node
 
     // Finishes all yet active trajectories.
     void FinishAllTrajectories();
+
     // Finishes a single given trajectory. Returns false if the trajectory did not
     // exist or was already finished.
     bool FinishTrajectory(int trajectory_id);
@@ -74,11 +80,7 @@ class Node
     // Runs final optimization. All trajectories have to be finished when calling.
     void RunFinalOptimization();
 
-    // Starts the first trajectory with the default topics.
-    void StartTrajectoryWithDefaultTopics(const TrajectoryOptions& options);
-
-    // Returns unique SensorIds for multiple input bag files based on
-    // their TrajectoryOptions.
+    // Returns unique SensorIds for multiple input bag files based on their TrajectoryOptions.
     // 'SensorId::id' is the expected ROS topic name.
     std::vector<std::set<::cartographer::mapping::TrajectoryBuilderInterface::SensorId>>
         ComputeDefaultSensorIdsForMultipleBags(const std::vector<TrajectoryOptions>& bags_options) const;
@@ -125,10 +127,14 @@ class Node
 
     bool HandleSubmapQuery(cartographer_ros_msgs::SubmapQuery::Request& request,
                            cartographer_ros_msgs::SubmapQuery::Response& response);
-    bool HandleTrajectoryQuery(::cartographer_ros_msgs::TrajectoryQuery::Request& request,
-                               ::cartographer_ros_msgs::TrajectoryQuery::Response& response);
-    bool HandleStartTrajectory(cartographer_ros_msgs::StartTrajectory::Request& request,
-                               cartographer_ros_msgs::StartTrajectory::Response& response);
+    bool HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQuery::Request& request,
+                               cartographer_ros_msgs::TrajectoryQuery::Response& response);
+    bool HandleStartLocalisation(cartographer_ros_msgs::StartLocalisation::Request& request,
+                               cartographer_ros_msgs::StartLocalisation::Response& response);
+    bool HandleStartMapping(cartographer_ros_msgs::StartMapping::Request& request,
+                            cartographer_ros_msgs::StartMapping::Response& response);
+    bool HandleLoadState(cartographer_ros_msgs::LoadState::Request& request,
+                         cartographer_ros_msgs::LoadState::Response& response);
     bool HandleFinishTrajectory(cartographer_ros_msgs::FinishTrajectory::Request& request,
                                 cartographer_ros_msgs::FinishTrajectory::Response& response);
     bool HandleWriteState(cartographer_ros_msgs::WriteState::Request& request,
@@ -137,6 +143,8 @@ class Node
                                    ::cartographer_ros_msgs::GetTrajectoryStates::Response& response);
     bool HandleReadMetrics(cartographer_ros_msgs::ReadMetrics::Request& request,
                            cartographer_ros_msgs::ReadMetrics::Response& response);
+
+    void HandleMapData(const std_msgs::UInt8MultiArray::ConstPtr& msg);
 
     // Returns the set of SensorIds expected for a trajectory.
     // 'SensorId::id' is the expected ROS topic name.
@@ -157,9 +165,10 @@ class Node
     void MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent&);
 
     // Helper function for service handlers that need to check trajectory states.
-    cartographer_ros_msgs::StatusResponse TrajectoryStateToStatus(
-        int trajectory_id, const std::set<cartographer::mapping::PoseGraphInterface::TrajectoryState>& valid_states);
+    cartographer_ros_msgs::StatusResponse TrajectoryStateToStatus(int trajectory_id, const std::set<cartographer::mapping::PoseGraphInterface::TrajectoryState>& valid_states);
+
     const NodeOptions node_options_;
+    const TrajectoryOptions trajectory_options_;
 
     tf2_ros::TransformBroadcaster tf_broadcaster_;
 
@@ -167,14 +176,18 @@ class Node
     std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
     MapBuilderBridge map_builder_bridge_ GUARDED_BY(mutex_);
 
-    ::ros::NodeHandle node_handle_;
+    ::ros::NodeHandle nh_;
+    ::ros::NodeHandle p_nh_;
+
     ::ros::Publisher submap_list_publisher_;
     ::ros::Publisher trajectory_node_list_publisher_;
     ::ros::Publisher landmark_poses_list_publisher_;
     ::ros::Publisher constraint_list_publisher_;
+
     // These ros::ServiceServers need to live for the lifetime of the node.
     std::vector<::ros::ServiceServer> service_servers_;
     ::ros::Publisher scan_matched_point_cloud_publisher_;
+    ::ros::Subscriber map_data_subscriber_;
 
     struct TrajectorySensorSamplers
     {

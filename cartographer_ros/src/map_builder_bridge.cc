@@ -1,19 +1,3 @@
-/*
- * Copyright 2016 The Cartographer Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include "cartographer_ros/map_builder_bridge.h"
 
 #include "absl/memory/memory.h"
@@ -25,6 +9,7 @@
 #include "cartographer_ros/time_conversion.h"
 #include "cartographer_ros_msgs/StatusCode.h"
 #include "cartographer_ros_msgs/StatusResponse.h"
+#include "cartographer_ros/proto_sstream.h"
 
 namespace cartographer_ros
 {
@@ -107,16 +92,11 @@ MapBuilderBridge::MapBuilderBridge(const NodeOptions& node_options,
 {
 }
 
-void MapBuilderBridge::LoadState(const std::string& state_filename, bool load_frozen_state)
+void MapBuilderBridge::LoadState(std::istream& stream, bool load_frozen_state)
 {
-    // Check if suffix of the state file is ".pbstream".
-    const std::string suffix = ".pbstream";
-    CHECK_EQ(state_filename.substr(std::max<int>(state_filename.size() - suffix.size(), 0)), suffix)
-        << "The file containing the state to be loaded must be a "
-           ".pbstream file.";
-    LOG(INFO) << "Loading saved state '" << state_filename << "'...";
-    cartographer::io::ProtoStreamReader stream(state_filename);
-    map_builder_->LoadState(&stream, load_frozen_state);
+    LOG(INFO) << "Loading saved state...";
+    cartographer::io::ProtoSStreamReader _stream(stream);
+    map_builder_->LoadState(&_stream, load_frozen_state);
 }
 
 int MapBuilderBridge::AddTrajectory(
@@ -158,9 +138,11 @@ void MapBuilderBridge::RunFinalOptimization()
     map_builder_->pose_graph()->RunFinalOptimization();
 }
 
-bool MapBuilderBridge::SerializeState(const std::string& filename, const bool include_unfinished_submaps)
+bool MapBuilderBridge::SerializeState(std::ostream& stream, const bool include_unfinished_submaps)
 {
-    return map_builder_->SerializeStateToFile(include_unfinished_submaps, filename);
+    cartographer::io::ProtoSStreamWriter writer(stream);
+    map_builder_->SerializeState(include_unfinished_submaps, &writer);
+    return true;
 }
 
 void MapBuilderBridge::HandleSubmapQuery(cartographer_ros_msgs::SubmapQuery::Request& request,
@@ -210,7 +192,7 @@ cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList()
     cartographer_ros_msgs::SubmapList submap_list;
     submap_list.header.stamp = ::ros::Time::now();
     submap_list.header.frame_id = node_options_.map_frame;
-    for (const auto& submap_id_pose : map_builder_->pose_graph()->GetAllSubmapPoses())
+    for (const auto submap_id_pose : map_builder_->pose_graph()->GetAllSubmapPoses())
     {
         cartographer_ros_msgs::SubmapEntry submap_entry;
         submap_entry.is_frozen = map_builder_->pose_graph()->IsTrajectoryFrozen(submap_id_pose.id.trajectory_id);

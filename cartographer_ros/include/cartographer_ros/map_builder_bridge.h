@@ -75,13 +75,16 @@ class MapBuilderBridge
     MapBuilderBridge(const MapBuilderBridge&) = delete;
     MapBuilderBridge& operator=(const MapBuilderBridge&) = delete;
 
-    void LoadState(const std::string& state_filename, bool load_frozen_state);
+    void LoadState(std::istream& stream, bool load_frozen_state);
+
     int AddTrajectory(
         const std::set<::cartographer::mapping::TrajectoryBuilderInterface::SensorId>& expected_sensor_ids,
         const TrajectoryOptions& trajectory_options);
+
     void FinishTrajectory(int trajectory_id);
     void RunFinalOptimization();
-    bool SerializeState(const std::string& filename, const bool include_unfinished_submaps);
+
+    bool SerializeState(std::ostream& stream, const bool include_unfinished_submaps);
 
     void HandleSubmapQuery(cartographer_ros_msgs::SubmapQuery::Request& request,
                            cartographer_ros_msgs::SubmapQuery::Response& response);
@@ -97,6 +100,10 @@ class MapBuilderBridge
     visualization_msgs::MarkerArray GetConstraintList();
 
     SensorBridge* sensor_bridge(int trajectory_id);
+    cartographer::mapping::MapBuilderInterface* map_builder()
+    {
+        return map_builder_.get();
+    };
 
   private:
     void OnLocalSlamResult(const int trajectory_id, const ::cartographer::common::Time time,
@@ -105,8 +112,7 @@ class MapBuilderBridge
 
     absl::Mutex mutex_;
     const NodeOptions node_options_;
-    std::unordered_map<int, std::shared_ptr<const LocalTrajectoryData::LocalSlamData>>
-        local_slam_data_ GUARDED_BY(mutex_);
+    std::unordered_map<int, std::shared_ptr<const LocalTrajectoryData::LocalSlamData>> local_slam_data_ GUARDED_BY(mutex_);
     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder_;
     tf2_ros::Buffer* const tf_buffer_;
 
