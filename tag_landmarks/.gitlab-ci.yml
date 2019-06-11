@@ -1,0 +1,70 @@
+stages:
+  - lint
+  - build
+  - quality
+  - test
+
+variables:
+  CI_IMAGE: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
+
+clang_format:
+  stage: lint
+  image: registry.web.boeing.com/robotics/continuous_integration/clang_format
+  script:
+    - run_clang_format.sh
+  tags:
+    - docker-executor
+    - linux
+    - docker
+
+build:
+  stage: build
+  image: registry.web.boeing.com/robotics/continuous_integration/docker_builder
+  script:
+    - generate_dockerfile
+    - docker build -t ${CI_IMAGE} --build-arg PROJECT_NAME=${CI_PROJECT_NAME} --build-arg http_proxy=http://172.17.0.1:3128 --build-arg https_proxy=http://172.17.0.1:3128 .
+  tags:
+    - docker-executor
+    - linux
+    - docker
+
+catkin_lint:
+  stage: quality
+  image: ${CI_IMAGE}
+  variables:
+      GIT_STRATEGY: none
+  before_script:
+    - cd /root/ros
+  script:
+    - curl -s https://git.web.boeing.com/robotics/continuous_integration/raw/master/run_catkin_lint.sh | bash
+  tags:
+    - docker-executor
+    - linux
+    - docker
+
+cppcheck:
+  stage: quality
+  image: ${CI_IMAGE}
+  variables:
+      GIT_STRATEGY: none
+  before_script:
+    - cd /root/ros
+  script:
+    - curl -s https://git.web.boeing.com/robotics/continuous_integration/raw/master/run_cppcheck.sh | bash
+  tags:
+    - docker-executor
+    - linux
+    - docker
+
+test:
+  stage: test
+  image: ${CI_IMAGE}
+  before_script:
+    - cd /root/ros
+  script:
+    - xvfb-run -a --server-args='-screen 0, 1024x768x24' catkin run_tests -j1 -i
+    - catkin_test_results --all --verbose
+  tags:
+    - docker-executor
+    - linux
+    - docker

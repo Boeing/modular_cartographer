@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>tag_landmarks</name>
+    <version>0.1.0</version>
+    <description>tag_landmarks</description>
+    <maintainer email="phillip.haeusler@boeing.com">Phillip Haeusler</maintainer>
+    <author>Boeing</author>
+    <license>Boeing Proprietary</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <depend>tag_detection_aruco</depend>
+    <depend>roscpp</depend>
+    <depend>tf2_ros</depend>
+    <depend>camera_interface</depend>
+    <depend>cartographer_ros_msgs</depend>
+
+</package>
