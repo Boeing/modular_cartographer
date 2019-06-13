@@ -2,14 +2,13 @@ cmake_minimum_required(VERSION 2.8.3)
 
 project(cartographer_ros_msgs)
 
-set(PACKAGE_DEPENDENCIES
-    geometry_msgs
-    std_msgs
-    sensor_msgs
-    nav_msgs
+find_package(catkin REQUIRED COMPONENTS 
+  geometry_msgs
+  message_generation
+  nav_msgs
+  sensor_msgs
+  std_msgs
 )
-
-find_package(catkin REQUIRED COMPONENTS message_generation ${PACKAGE_DEPENDENCIES})
 
 add_message_files(
   DIRECTORY msg
@@ -18,9 +17,9 @@ add_message_files(
     HistogramBucket.msg
     LandmarkEntry.msg
     LandmarkList.msg
+    Metric.msg
     MetricFamily.msg
     MetricLabel.msg
-    Metric.msg
     StatusCode.msg
     StatusResponse.msg
     SubmapEntry.msg
@@ -45,11 +44,17 @@ add_service_files(
 
 generate_messages(
   DEPENDENCIES
-    ${PACKAGE_DEPENDENCIES}
+    geometry_msgs
+    nav_msgs
+    sensor_msgs
+    std_msgs
 )
 
 catkin_package(
   CATKIN_DEPENDS
-    ${PACKAGE_DEPENDENCIES}
+    geometry_msgs
     message_runtime
+    nav_msgs
+    sensor_msgs
+    std_msgs
 )

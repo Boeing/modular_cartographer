@@ -35,6 +35,7 @@
 #include "cartographer_ros/trajectory_options.h"
 #include "cartographer_ros_msgs/FinishTrajectory.h"
 #include "cartographer_ros_msgs/GetTrajectoryStates.h"
+#include "cartographer_ros_msgs/LoadState.h"
 #include "cartographer_ros_msgs/ReadMetrics.h"
 #include "cartographer_ros_msgs/StartLocalisation.h"
 #include "cartographer_ros_msgs/StartMapping.h"
@@ -43,7 +44,6 @@
 #include "cartographer_ros_msgs/SubmapList.h"
 #include "cartographer_ros_msgs/SubmapQuery.h"
 #include "cartographer_ros_msgs/WriteState.h"
-#include "cartographer_ros_msgs/LoadState.h"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
 #include "sensor_msgs/Imu.h"
@@ -61,9 +61,7 @@ namespace cartographer_ros
 class Node
 {
   public:
-    Node(const NodeOptions& node_options,
-         const TrajectoryOptions& trajectory_options,
-         tf2_ros::Buffer* tf_buffer,
+    Node(const NodeOptions& node_options, const TrajectoryOptions& trajectory_options, tf2_ros::Buffer* tf_buffer,
          bool collect_metrics);
     ~Node();
 
@@ -130,7 +128,7 @@ class Node
     bool HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQuery::Request& request,
                                cartographer_ros_msgs::TrajectoryQuery::Response& response);
     bool HandleStartLocalisation(cartographer_ros_msgs::StartLocalisation::Request& request,
-                               cartographer_ros_msgs::StartLocalisation::Response& response);
+                                 cartographer_ros_msgs::StartLocalisation::Response& response);
     bool HandleStartMapping(cartographer_ros_msgs::StartMapping::Request& request,
                             cartographer_ros_msgs::StartMapping::Response& response);
     bool HandleLoadState(cartographer_ros_msgs::LoadState::Request& request,
@@ -165,7 +163,8 @@ class Node
     void MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent&);
 
     // Helper function for service handlers that need to check trajectory states.
-    cartographer_ros_msgs::StatusResponse TrajectoryStateToStatus(int trajectory_id, const std::set<cartographer::mapping::PoseGraphInterface::TrajectoryState>& valid_states);
+    cartographer_ros_msgs::StatusResponse TrajectoryStateToStatus(
+        int trajectory_id, const std::set<cartographer::mapping::PoseGraphInterface::TrajectoryState>& valid_states);
 
     const NodeOptions node_options_;
     const TrajectoryOptions trajectory_options_;
