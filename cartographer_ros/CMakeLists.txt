@@ -151,7 +151,7 @@ set(LIBS
 )
 
 add_executable(cartographer_assets_writer
-    src/assets_writer_main.cc
+    src/dev/assets_writer_main.cc
     src/ros_map_writing_points_processor.cc
 )
 
@@ -159,24 +159,24 @@ add_executable(cartographer_node
     src/node_main.cc
 )
 
-add_executable(cartographer_offline_node
-    src/offline_node_main.cc
-)
+#add_executable(cartographer_offline_node
+#    src/dev/offline_node_main.cc
+#)
 
 add_executable(cartographer_occupancy_grid_node
-    src/occupancy_grid_node_main.cc
+    src/dev/occupancy_grid_node_main.cc
 )
 
 add_executable(${PROJECT_NAME}bag_validate
-    src/rosbag_validate_main.cc
+    src/dev/rosbag_validate_main.cc
 )
 
 add_executable(cartographer_pbstream_to_ros_map
-    src/pbstream_to_ros_map_main.cc
+    src/dev/pbstream_to_ros_map_main.cc
 )
 
 add_executable(cartographer_pbstream_map_publisher
-    src/pbstream_map_publisher_main.cc
+    src/dev/pbstream_map_publisher_main.cc
 )
 
 add_executable(cartographer_dev_pbstream_trajectories_to_rosbag
@@ -194,7 +194,7 @@ add_executable(cartographer_dev_trajectory_comparison
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
 target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_node PUBLIC ${PROJECT_NAME} ${LIBS})
-target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
+#target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_occupancy_grid_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} ${LIBS})
@@ -223,7 +223,7 @@ install(TARGETS
     cartographer_dev_trajectory_comparison
     cartographer_node
     cartographer_occupancy_grid_node
-    cartographer_offline_node
+#    cartographer_offline_node
     cartographer_pbstream_map_publisher
     cartographer_pbstream_to_ros_map
     ${PROJECT_NAME}

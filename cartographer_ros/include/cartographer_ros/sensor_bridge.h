@@ -45,7 +45,7 @@ class SensorBridge
 {
   public:
     explicit SensorBridge(int num_subdivisions_per_laser_scan, const std::string& tracking_frame,
-                          double lookup_transform_timeout_sec, tf2_ros::Buffer* tf_buffer,
+                          double lookup_transform_timeout_sec, const tf2_ros::Buffer* tf_buffer,
                           ::cartographer::mapping::TrajectoryBuilderInterface* trajectory_builder);
 
     SensorBridge(const SensorBridge&) = delete;

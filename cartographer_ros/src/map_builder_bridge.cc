@@ -11,6 +11,8 @@
 #include "cartographer_ros_msgs/StatusResponse.h"
 #include "cartographer_ros/proto_sstream.h"
 
+#include <cartographer_ros/msg_conversion.h>
+
 namespace cartographer_ros
 {
 namespace
@@ -86,24 +88,64 @@ void PushAndResetLineMarker(visualization_msgs::Marker* marker, std::vector<visu
 }  // namespace
 
 MapBuilderBridge::MapBuilderBridge(const NodeOptions& node_options,
-                                   std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
-                                   tf2_ros::Buffer* const tf_buffer)
-    : node_options_(node_options), map_builder_(std::move(map_builder)), tf_buffer_(tf_buffer)
+                                   const std::shared_ptr<const tf2_ros::Buffer>& tf_buffer)
+    : node_options_(node_options),
+      map_builder_(node_options.map_builder_options),
+      tf_buffer_(tf_buffer)
 {
+}
+
+MapBuilderBridge::~MapBuilderBridge()
+{
+    LOG(INFO) << "~MapBuilderBridge";
+
+//    map_builder_.pose_graph()->RunFinalOptimization();
+
+//    sensor_bridges_.clear();
+    for (const auto& entry : map_builder_.pose_graph()->GetTrajectoryStates())
+    {
+//        if (entry.second == cartographer::mapping::PoseGraphInterface::TrajectoryState::ACTIVE)
+        {
+//            map_builder_.FinishTrajectory(entry.first);
+        }
+        LOG(INFO) << "Trajectory: " << entry.first << " state: " << static_cast<int>(entry.second);
+    }
+//    map_builder_.pose_graph()->RunFinalOptimization();
+
+    LOG(INFO) << "Trajectory finished: " << map_builder_.pose_graph()->IsTrajectoryFinished(0);
+//    map_builder_.pose_graph()->DeleteTrajectory(0);
+//    LOG(INFO) << "Trajectory finished: " << map_builder_.pose_graph()->IsTrajectoryFinished(0);
+
+    LOG(INFO) << "~MapBuilderBridge DONE";
 }
 
 void MapBuilderBridge::LoadState(std::istream& stream, bool load_frozen_state)
 {
     LOG(INFO) << "Loading saved state...";
     cartographer::io::ProtoSStreamReader _stream(stream);
-    map_builder_->LoadState(&_stream, load_frozen_state);
+    map_builder_.LoadState(&_stream, load_frozen_state);
+
+    for (const auto& traj :  map_builder_.pose_graph()->GetTrajectoryStates())
+    {
+        LOG(INFO) << "LOADED: trajectory_id: " << traj.first << " state: " << static_cast<int>(traj.second);
+    }
+
+    for (const auto& sm : map_builder_.pose_graph()->GetAllSubmapPoses())
+    {
+        LOG(INFO) << "LOADED: submap: " << sm.id << " pose: " << sm.data.pose;
+    }
+
+    for (const auto& c : map_builder_.pose_graph()->constraints())
+    {
+        LOG(INFO) << "LOADED: constraint: submap_id: " << c.submap_id << " node_id: " << c.node_id;
+    }
 }
 
 int MapBuilderBridge::AddTrajectory(
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>& expected_sensor_ids,
     const TrajectoryOptions& trajectory_options)
 {
-    const int trajectory_id = map_builder_->AddTrajectoryBuilder(
+    const int trajectory_id = map_builder_.AddTrajectoryBuilder(
         expected_sensor_ids, trajectory_options.trajectory_builder_options,
         [this](const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose,
                ::cartographer::sensor::RangeData range_data_in_local,
@@ -116,7 +158,7 @@ int MapBuilderBridge::AddTrajectory(
     CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
     sensor_bridges_[trajectory_id] = absl::make_unique<SensorBridge>(
         trajectory_options.num_subdivisions_per_laser_scan, trajectory_options.tracking_frame,
-        node_options_.lookup_transform_timeout_sec, tf_buffer_, map_builder_->GetTrajectoryBuilder(trajectory_id));
+        node_options_.lookup_transform_timeout_sec, tf_buffer_.get(), map_builder_.GetTrajectoryBuilder(trajectory_id));
     auto emplace_result = trajectory_options_.emplace(trajectory_id, trajectory_options);
     CHECK(emplace_result.second == true);
     return trajectory_id;
@@ -128,20 +170,29 @@ void MapBuilderBridge::FinishTrajectory(const int trajectory_id)
 
     // Make sure there is a trajectory with 'trajectory_id'.
     CHECK(GetTrajectoryStates().count(trajectory_id));
-    map_builder_->FinishTrajectory(trajectory_id);
+    map_builder_.FinishTrajectory(trajectory_id);
     sensor_bridges_.erase(trajectory_id);
+}
+
+void MapBuilderBridge::DeleteTrajectory(int trajectory_id)
+{
+    LOG(INFO) << "Deleting trajectory with ID '" << trajectory_id << "'...";
+
+    // Make sure there is a trajectory with 'trajectory_id'.
+    CHECK(GetTrajectoryStates().count(trajectory_id));
+    map_builder_.pose_graph()->DeleteTrajectory(trajectory_id);
 }
 
 void MapBuilderBridge::RunFinalOptimization()
 {
     LOG(INFO) << "Running final trajectory optimization...";
-    map_builder_->pose_graph()->RunFinalOptimization();
+    map_builder_.pose_graph()->RunFinalOptimization();
 }
 
 bool MapBuilderBridge::SerializeState(std::ostream& stream, const bool include_unfinished_submaps)
 {
     cartographer::io::ProtoSStreamWriter writer(stream);
-    map_builder_->SerializeState(include_unfinished_submaps, &writer);
+    map_builder_.SerializeState(include_unfinished_submaps, &writer);
     return true;
 }
 
@@ -150,7 +201,7 @@ void MapBuilderBridge::HandleSubmapQuery(cartographer_ros_msgs::SubmapQuery::Req
 {
     cartographer::mapping::proto::SubmapQuery::Response response_proto;
     cartographer::mapping::SubmapId submap_id{request.trajectory_id, request.submap_index};
-    const std::string error = map_builder_->SubmapToProto(submap_id, &response_proto);
+    const std::string error = map_builder_.SubmapToProto(submap_id, &response_proto);
     if (!error.empty())
     {
         LOG(ERROR) << error;
@@ -176,7 +227,7 @@ void MapBuilderBridge::HandleSubmapQuery(cartographer_ros_msgs::SubmapQuery::Req
 
 std::map<int, ::cartographer::mapping::PoseGraphInterface::TrajectoryState> MapBuilderBridge::GetTrajectoryStates()
 {
-    auto trajectory_states = map_builder_->pose_graph()->GetTrajectoryStates();
+    auto trajectory_states = map_builder_.pose_graph()->GetTrajectoryStates();
     // Add active trajectories that are not yet in the pose graph, but are e.g.
     // waiting for input sensor data and thus already have a sensor bridge.
     for (const auto& sensor_bridge : sensor_bridges_)
@@ -192,10 +243,10 @@ cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList()
     cartographer_ros_msgs::SubmapList submap_list;
     submap_list.header.stamp = ::ros::Time::now();
     submap_list.header.frame_id = node_options_.map_frame;
-    for (const auto submap_id_pose : map_builder_->pose_graph()->GetAllSubmapPoses())
+    for (const auto submap_id_pose : map_builder_.pose_graph()->GetAllSubmapPoses())
     {
         cartographer_ros_msgs::SubmapEntry submap_entry;
-        submap_entry.is_frozen = map_builder_->pose_graph()->IsTrajectoryFrozen(submap_id_pose.id.trajectory_id);
+        submap_entry.is_frozen = map_builder_.pose_graph()->IsTrajectoryFrozen(submap_id_pose.id.trajectory_id);
         submap_entry.trajectory_id = submap_id_pose.id.trajectory_id;
         submap_entry.submap_index = submap_id_pose.id.submap_index;
         submap_entry.submap_version = submap_id_pose.data.version;
@@ -226,7 +277,8 @@ std::unordered_map<int, MapBuilderBridge::LocalTrajectoryData> MapBuilderBridge:
         // Make sure there is a trajectory with 'trajectory_id'.
         CHECK_EQ(trajectory_options_.count(trajectory_id), 1);
         local_trajectory_data[trajectory_id] = {
-            local_slam_data, map_builder_->pose_graph()->GetLocalToGlobalTransform(trajectory_id),
+            local_slam_data,
+            map_builder_.pose_graph()->GetLocalToGlobalTransform(trajectory_id),
             sensor_bridge.tf_bridge().LookupToTracking(local_slam_data->time,
                                                        trajectory_options_[trajectory_id].published_frame),
             trajectory_options_[trajectory_id]};
@@ -239,8 +291,8 @@ void MapBuilderBridge::HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQu
 {
     // This query is safe if the trajectory doesn't exist (returns 0 poses).
     // However, we can filter unwanted states at the higher level in the node.
-    const auto node_poses = map_builder_->pose_graph()->GetTrajectoryNodePoses();
-    for (const auto& node_id_data : node_poses.trajectory(request.trajectory_id))
+    const auto node_poses = map_builder_.pose_graph()->GetTrajectoryNodePoses();
+    for (const auto node_id_data : node_poses.trajectory(request.trajectory_id))
     {
         if (!node_id_data.data.constant_pose_data.has_value())
         {
@@ -260,7 +312,7 @@ void MapBuilderBridge::HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQu
 visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList()
 {
     visualization_msgs::MarkerArray trajectory_node_list;
-    const auto node_poses = map_builder_->pose_graph()->GetTrajectoryNodePoses();
+    const auto node_poses = map_builder_.pose_graph()->GetTrajectoryNodePoses();
     // Find the last node indices for each trajectory that have either
     // inter-submap or inter-trajectory constraints.
     std::map<int, int /* node_index */> trajectory_to_last_inter_submap_constrained_node;
@@ -270,7 +322,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList()
         trajectory_to_last_inter_submap_constrained_node[trajectory_id] = 0;
         trajectory_to_last_inter_trajectory_constrained_node[trajectory_id] = 0;
     }
-    const auto constraints = map_builder_->pose_graph()->constraints();
+    const auto constraints = map_builder_.pose_graph()->constraints();
     for (const auto& constraint : constraints)
     {
         if (constraint.tag == cartographer::mapping::PoseGraph::Constraint::INTER_SUBMAP)
@@ -302,7 +354,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList()
         last_inter_submap_constrained_node =
             std::max(last_inter_submap_constrained_node, last_inter_trajectory_constrained_node);
 
-        if (map_builder_->pose_graph()->IsTrajectoryFrozen(trajectory_id))
+        if (map_builder_.pose_graph()->IsTrajectoryFrozen(trajectory_id))
         {
             last_inter_submap_constrained_node = (--node_poses.trajectory(trajectory_id).end())->id.node_index;
             last_inter_trajectory_constrained_node = last_inter_submap_constrained_node;
@@ -363,7 +415,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList()
 visualization_msgs::MarkerArray MapBuilderBridge::GetLandmarkPosesList()
 {
     visualization_msgs::MarkerArray landmark_poses_list;
-    const std::map<std::string, Rigid3d> landmark_poses = map_builder_->pose_graph()->GetLandmarkPoses();
+    const std::map<std::string, Rigid3d> landmark_poses = map_builder_.pose_graph()->GetLandmarkPoses();
     for (const auto& id_to_pose : landmark_poses)
     {
         landmark_poses_list.markers.push_back(CreateLandmarkMarker(
@@ -413,9 +465,9 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList()
     residual_inter_diff_trajectory_marker.ns = "Inter residuals, different trajectories";
     residual_inter_diff_trajectory_marker.pose.position.z = 0.1;
 
-    const auto trajectory_node_poses = map_builder_->pose_graph()->GetTrajectoryNodePoses();
-    const auto submap_poses = map_builder_->pose_graph()->GetAllSubmapPoses();
-    const auto constraints = map_builder_->pose_graph()->constraints();
+    const auto trajectory_node_poses = map_builder_.pose_graph()->GetTrajectoryNodePoses();
+    const auto submap_poses = map_builder_.pose_graph()->GetAllSubmapPoses();
+    const auto constraints = map_builder_.pose_graph()->constraints();
 
     for (const auto& constraint : constraints)
     {
@@ -491,6 +543,49 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList()
     constraint_list.markers.push_back(constraint_inter_diff_trajectory_marker);
     constraint_list.markers.push_back(residual_inter_diff_trajectory_marker);
     return constraint_list;
+}
+
+nav_msgs::OccupancyGrid MapBuilderBridge::GetOccupancyGridMsg(const double resolution)
+{
+    std::map<::cartographer::mapping::SubmapId, cartographer::io::SubmapSlice> submap_slices;
+    for (const auto submap_entry : map_builder_.pose_graph()->GetAllSubmapPoses())
+    {
+        cartographer::io::SubmapSlice& submap_slice = submap_slices[submap_entry.id];
+        submap_slice.pose = submap_entry.data.pose;
+        submap_slice.metadata_version = submap_entry.data.version;
+
+        {
+            cartographer::mapping::proto::SubmapQuery::Response submap_proto;
+            const std::string error = map_builder_.SubmapToProto(submap_entry.id, &submap_proto);
+
+            // We use the first texture only
+            // By convention this is the highest resolution texture and that is the one we want to use to construct the map for ROS
+            const auto& texture_proto = submap_proto.textures()[0];
+
+            submap_slice.version = submap_proto.submap_version();
+
+            submap_slice.width = texture_proto.width();
+            submap_slice.height = texture_proto.height();
+            submap_slice.slice_pose = cartographer::transform::ToRigid3(texture_proto.slice_pose());
+            submap_slice.resolution = texture_proto.resolution();
+            submap_slice.cairo_data.clear();
+
+            const std::string compressed_cells(texture_proto.cells().begin(), texture_proto.cells().end());
+            auto submap_texture = cartographer::io::SubmapTexture{
+                    cartographer::io::UnpackTextureData(compressed_cells, texture_proto.width(), texture_proto.height()),
+                    texture_proto.width(),
+                    texture_proto.height(),
+                    texture_proto.resolution(),
+                    cartographer::transform::ToRigid3(texture_proto.slice_pose())
+            };
+
+            submap_slice.surface = cartographer::io::DrawTexture(submap_texture.pixels.intensity, submap_texture.pixels.alpha, submap_texture.width,
+                                                                 submap_texture.height, &submap_slice.cairo_data);
+        }
+    }
+
+    const auto painted_slices = ::cartographer::io::PaintSubmapSlices(submap_slices, resolution);
+    return *CreateOccupancyGridMsg(painted_slices, resolution, "map", ros::Time::now());
 }
 
 SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id)

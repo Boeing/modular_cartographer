@@ -37,8 +37,7 @@ class TfBridge
     TfBridge(const TfBridge&) = delete;
     TfBridge& operator=(const TfBridge&) = delete;
 
-    // Returns the transform for 'frame_id' to 'tracking_frame_' if it exists at
-    // 'time'.
+    // Returns the transform for 'frame_id' to 'tracking_frame_' if it exists at 'time'
     std::unique_ptr<::cartographer::transform::Rigid3d> LookupToTracking(::cartographer::common::Time time,
                                                                          const std::string& frame_id) const;
 

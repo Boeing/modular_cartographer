@@ -49,7 +49,7 @@ void ProtoSStreamWriter::WriteProto(const google::protobuf::Message& proto) {
   std::string uncompressed_data;
   proto.SerializeToString(&uncompressed_data);
   Write(uncompressed_data);
-  LOG(INFO) << "full data size: " << uncompressed_data.size();
+//  LOG(INFO) << "full data size: " << uncompressed_data.size();
 }
 
 bool ProtoSStreamWriter::Close() {
@@ -59,22 +59,29 @@ bool ProtoSStreamWriter::Close() {
 ProtoSStreamReader::ProtoSStreamReader(std::istream& stream)
     : in_(stream) {
   uint64 magic;
-  if (!ReadSizeAsLittleEndian(&in_, &magic) || magic != kMagic) {
+  if (!ReadSizeAsLittleEndian(&in_, &magic) || magic != kMagic)
+  {
     in_.setstate(std::ios::failbit);
   }
-  CHECK(in_.good()) << "Failed to open proto stream .";
+  if (!in_.good())
+  {
+      throw std::runtime_error("Failed to read pbstream");
+  }
 }
 
-bool ProtoSStreamReader::Read(std::string* decompressed_data) {
+bool ProtoSStreamReader::Read(std::string* decompressed_data)
+{
   uint64 compressed_size;
   if (!ReadSizeAsLittleEndian(&in_, &compressed_size)) {
     return false;
   }
   std::string compressed_data(compressed_size, '\0');
-  if (!in_.read(&compressed_data.front(), compressed_size)) {
+  if (!in_.read(&compressed_data.front(), compressed_size))
+  {
     return false;
   }
   common::FastGunzipString(compressed_data, decompressed_data);
+//  LOG(INFO) << "reading: " << compressed_size << " uncompressed: " << decompressed_data->size();
   return true;
 }
 

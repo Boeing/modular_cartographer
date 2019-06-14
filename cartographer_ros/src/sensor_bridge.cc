@@ -44,7 +44,7 @@ const std::string& CheckNoLeadingSlash(const std::string& frame_id)
 }  // namespace
 
 SensorBridge::SensorBridge(const int num_subdivisions_per_laser_scan, const std::string& tracking_frame,
-                           const double lookup_transform_timeout_sec, tf2_ros::Buffer* const tf_buffer,
+                           const double lookup_transform_timeout_sec, const tf2_ros::Buffer* const tf_buffer,
                            carto::mapping::TrajectoryBuilderInterface* const trajectory_builder)
     : num_subdivisions_per_laser_scan_(num_subdivisions_per_laser_scan),
       tf_bridge_(tracking_frame, lookup_transform_timeout_sec, tf_buffer), trajectory_builder_(trajectory_builder)
@@ -54,13 +54,13 @@ SensorBridge::SensorBridge(const int num_subdivisions_per_laser_scan, const std:
 std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(const nav_msgs::Odometry::ConstPtr& msg)
 {
     const carto::common::Time time = FromRos(msg->header.stamp);
-//    const auto sensor_to_tracking = tf_bridge_.LookupToTracking(time, CheckNoLeadingSlash(msg->child_frame_id));
-//    if (sensor_to_tracking == nullptr)
-//    {
-//        return nullptr;
-//    }
+    const auto sensor_to_tracking = tf_bridge_.LookupToTracking(time, CheckNoLeadingSlash(msg->child_frame_id));
+    if (sensor_to_tracking == nullptr)
+    {
+        return nullptr;
+    }
     return absl::make_unique<carto::sensor::OdometryData>(
-        carto::sensor::OdometryData{time, ToRigid3d(msg->pose.pose)}); // * sensor_to_tracking->inverse()});
+        carto::sensor::OdometryData{time, ToRigid3d(msg->pose.pose) * sensor_to_tracking->inverse()});
 }
 
 void SensorBridge::HandleOdometryMessage(const std::string& sensor_id, const nav_msgs::Odometry::ConstPtr& msg)
