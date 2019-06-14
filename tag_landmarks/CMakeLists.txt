@@ -4,11 +4,11 @@ project(tag_landmarks)
 add_definitions(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
-    tag_detection_aruco
-    roscpp
-    tf2_ros
     camera_interface
     cartographer_ros_msgs
+    roscpp
+    tag_detection_aruco
+    tf2_ros
 )
 
 find_package(OpenCV REQUIRED)
@@ -17,18 +17,16 @@ add_definitions(${EIGEN3_DEFINITIONS})
 
 catkin_package(
     CATKIN_DEPENDS
-        tag_detection_aruco
-        roscpp
-        tf2_ros
         camera_interface
         cartographer_ros_msgs
+        roscpp
+        tag_detection_aruco
+        tf2_ros
     INCLUDE_DIRS
     LIBRARIES
     DEPENDS
         EIGEN3
 )
-
-include_directories(include)
 
 include_directories(SYSTEM
     ${catkin_INCLUDE_DIRS}
