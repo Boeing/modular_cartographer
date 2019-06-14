@@ -1,32 +1,24 @@
 - git:
     local-name: tag_detection_aruco
     uri: https://git.web.boeing.com/robotics/ros/tag_detection_aruco.git
-    version: dev/boeing_release
 - git: 
     local-name: tag_interface
     uri: https://git.web.boeing.com/robotics/ros/tag_interface.git
-    version: dev/boeing_release
 - git:
     local-name: gazebo_no_physics_plugin
     uri: https://git.web.boeing.com/robotics/ros/gazebo_no_physics_plugin.git
-    version: dev/boeing_release
 - git:
     local-name: opencv_aruco
     uri: https://git.web.boeing.com/robotics/ros/opencv_aruco.git
-    version: dev/boeing_release
 - git:
     local-name: gazebo_ros_pkgs
     uri: 'https://git.web.boeing.com/robotics/ros/gazebo_ros_pkgs.git'
-    version: dev/boeing_release
 - git:
     local-name: gazebo_modular_camera_plugin
     uri: https://git.web.boeing.com/robotics/ros/gazebo_modular_camera_plugin.git
-    version: dev/boeing_release
 - git:
     local-name: camera_interface
     uri: https://git.web.boeing.com/robotics/ros/camera_interface.git
-    version: dev/boeing_release
 - git:
     local-name: math6d
     uri: 'https://git.web.boeing.com/robotics/ros/math6d.git'
-    version: dev/boeing_release
