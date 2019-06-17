@@ -7,7 +7,6 @@
 #include <unordered_map>
 
 #include "absl/synchronization/mutex.h"
-#include <cartographer/mapping/map_builder.h>
 #include "cartographer/mapping/map_builder_interface.h"
 #include "cartographer/mapping/pose_graph_interface.h"
 #include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
@@ -22,6 +21,7 @@
 #include "cartographer_ros_msgs/TrajectoryQuery.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "nav_msgs/OccupancyGrid.h"
+#include <cartographer/mapping/map_builder.h>
 
 // Abseil unfortunately pulls in winnt.h, which #defines DELETE.
 // Clean up to unbreak visualization_msgs::Marker::DELETE.
@@ -53,8 +53,7 @@ class MapBuilderBridge
         TrajectoryOptions trajectory_options;
     };
 
-    MapBuilderBridge(const NodeOptions& node_options,
-                     const std::shared_ptr<const tf2_ros::Buffer>& tf_buffer);
+    MapBuilderBridge(const NodeOptions& node_options, const std::shared_ptr<const tf2_ros::Buffer>& tf_buffer);
 
     ~MapBuilderBridge();
 
@@ -79,7 +78,8 @@ class MapBuilderBridge
     void HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQuery::Request& request,
                                cartographer_ros_msgs::TrajectoryQuery::Response& response);
 
-    std::map<int /* trajectory_id */, ::cartographer::mapping::PoseGraphInterface::TrajectoryState> GetTrajectoryStates();
+    std::map<int /* trajectory_id */, ::cartographer::mapping::PoseGraphInterface::TrajectoryState>
+        GetTrajectoryStates();
     cartographer_ros_msgs::SubmapList GetSubmapList();
     std::unordered_map<int, LocalTrajectoryData> GetLocalTrajectoryData() LOCKS_EXCLUDED(mutex_);
     visualization_msgs::MarkerArray GetTrajectoryNodeList();
@@ -101,7 +101,8 @@ class MapBuilderBridge
 
     absl::Mutex mutex_;
     const NodeOptions node_options_;
-    std::unordered_map<int, std::shared_ptr<const LocalTrajectoryData::LocalSlamData>> local_slam_data_ GUARDED_BY(mutex_);
+    std::unordered_map<int, std::shared_ptr<const LocalTrajectoryData::LocalSlamData>>
+        local_slam_data_ GUARDED_BY(mutex_);
     cartographer::mapping::MapBuilder map_builder_;
     const std::shared_ptr<const tf2_ros::Buffer> tf_buffer_;
 

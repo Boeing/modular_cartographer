@@ -44,8 +44,8 @@
 #include "cartographer_ros_msgs/SubmapList.h"
 #include "cartographer_ros_msgs/SubmapQuery.h"
 #include "cartographer_ros_msgs/WriteState.h"
-#include "nav_msgs/Odometry.h"
 #include "nav_msgs/OccupancyGrid.h"
+#include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/LaserScan.h"
@@ -64,10 +64,8 @@ namespace cartographer_ros
 class Node
 {
   public:
-    Node(const NodeOptions& node_options,
-         const TrajectoryOptions& trajectory_options,
-         const std::shared_ptr<tf2_ros::Buffer>& tf_buffer,
-         const bool collect_metrics);
+    Node(const NodeOptions& node_options, const TrajectoryOptions& trajectory_options,
+         const std::shared_ptr<tf2_ros::Buffer>& tf_buffer, const bool collect_metrics);
 
     ~Node();
 
@@ -154,7 +152,8 @@ class Node
     void MaybeWarnAboutTopicMismatch(const ::ros::WallTimerEvent&);
 
     // Helper function for service handlers that need to check trajectory states.
-    cartographer_ros_msgs::StatusResponse TrajectoryStateToStatus(int trajectory_id, const std::set<cartographer::mapping::PoseGraphInterface::TrajectoryState>& valid_states);
+    cartographer_ros_msgs::StatusResponse TrajectoryStateToStatus(
+        int trajectory_id, const std::set<cartographer::mapping::PoseGraphInterface::TrajectoryState>& valid_states);
 
     const NodeOptions node_options_;
     const TrajectoryOptions trajectory_options_;

@@ -21,7 +21,8 @@ std::vector<std::string> ComputeRepeatedTopicNames(const std::string& topic, con
     return topics;
 }
 
-std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> ComputeExpectedSensorIds(const TrajectoryOptions& trajectory_options, const NodeOptions& node_options)
+std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
+    ComputeExpectedSensorIds(const TrajectoryOptions& trajectory_options, const NodeOptions& node_options)
 {
     using SensorId = cartographer::mapping::TrajectoryBuilderInterface::SensorId;
     using SensorType = SensorId::SensorType;
@@ -31,7 +32,8 @@ std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> ComputeExp
     {
         expected_topics.insert(SensorId{SensorType::RANGE, topic});
     }
-    for (const std::string& topic : ComputeRepeatedTopicNames(kMultiEchoLaserScanTopic, trajectory_options.num_multi_echo_laser_scans))
+    for (const std::string& topic :
+         ComputeRepeatedTopicNames(kMultiEchoLaserScanTopic, trajectory_options.num_multi_echo_laser_scans))
     {
         expected_topics.insert(SensorId{SensorType::RANGE, topic});
     }

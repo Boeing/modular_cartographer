@@ -1,14 +1,14 @@
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_CONSTANTS_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_CONSTANTS_H
 
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
 
 #include <cartographer/mapping/trajectory_builder_interface.h>
 
-#include <cartographer_ros/trajectory_options.h>
 #include <cartographer_ros/node_options.h>
+#include <cartographer_ros/trajectory_options.h>
 
 namespace cartographer_ros
 {
@@ -44,7 +44,8 @@ constexpr int kLatestOnlyPublisherQueueSize = 1;
 // For multiple topics adds numbers to the topic name and returns the list.
 std::vector<std::string> ComputeRepeatedTopicNames(const std::string& topic, int num_topics);
 
-std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> ComputeExpectedSensorIds(const TrajectoryOptions& trajectory_options, const NodeOptions& node_options);
+std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
+    ComputeExpectedSensorIds(const TrajectoryOptions& trajectory_options, const NodeOptions& node_options);
 
 }  // namespace cartographer_ros
 

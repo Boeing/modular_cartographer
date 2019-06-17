@@ -47,9 +47,9 @@ ScopedRosLogSink::~ScopedRosLogSink()
     RemoveLogSink(this);
 }
 
-void ScopedRosLogSink::send(const ::google::LogSeverity severity, const char* const filename,
-                            const char* const, const int line, const struct std::tm* const tm_time,
-                            const char* const message, const size_t message_len)
+void ScopedRosLogSink::send(const ::google::LogSeverity severity, const char* const filename, const char* const,
+                            const int line, const struct std::tm* const tm_time, const char* const message,
+                            const size_t message_len)
 {
     const std::string message_string =
         ::google::LogSink::ToString(severity, GetBasename(filename), line, tm_time, message, message_len);

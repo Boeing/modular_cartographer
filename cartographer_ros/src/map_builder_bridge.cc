@@ -6,10 +6,10 @@
 #include "cartographer/io/proto_stream.h"
 #include "cartographer/mapping/pose_graph.h"
 #include "cartographer_ros/msg_conversion.h"
+#include "cartographer_ros/proto_sstream.h"
 #include "cartographer_ros/time_conversion.h"
 #include "cartographer_ros_msgs/StatusCode.h"
 #include "cartographer_ros_msgs/StatusResponse.h"
-#include "cartographer_ros/proto_sstream.h"
 
 #include <cartographer_ros/msg_conversion.h>
 
@@ -89,34 +89,12 @@ void PushAndResetLineMarker(visualization_msgs::Marker* marker, std::vector<visu
 
 MapBuilderBridge::MapBuilderBridge(const NodeOptions& node_options,
                                    const std::shared_ptr<const tf2_ros::Buffer>& tf_buffer)
-    : node_options_(node_options),
-      map_builder_(node_options.map_builder_options),
-      tf_buffer_(tf_buffer)
+    : node_options_(node_options), map_builder_(node_options.map_builder_options), tf_buffer_(tf_buffer)
 {
 }
 
 MapBuilderBridge::~MapBuilderBridge()
 {
-    LOG(INFO) << "~MapBuilderBridge";
-
-//    map_builder_.pose_graph()->RunFinalOptimization();
-
-//    sensor_bridges_.clear();
-    for (const auto& entry : map_builder_.pose_graph()->GetTrajectoryStates())
-    {
-//        if (entry.second == cartographer::mapping::PoseGraphInterface::TrajectoryState::ACTIVE)
-        {
-//            map_builder_.FinishTrajectory(entry.first);
-        }
-        LOG(INFO) << "Trajectory: " << entry.first << " state: " << static_cast<int>(entry.second);
-    }
-//    map_builder_.pose_graph()->RunFinalOptimization();
-
-    LOG(INFO) << "Trajectory finished: " << map_builder_.pose_graph()->IsTrajectoryFinished(0);
-//    map_builder_.pose_graph()->DeleteTrajectory(0);
-//    LOG(INFO) << "Trajectory finished: " << map_builder_.pose_graph()->IsTrajectoryFinished(0);
-
-    LOG(INFO) << "~MapBuilderBridge DONE";
 }
 
 void MapBuilderBridge::LoadState(std::istream& stream, bool load_frozen_state)
@@ -125,7 +103,7 @@ void MapBuilderBridge::LoadState(std::istream& stream, bool load_frozen_state)
     cartographer::io::ProtoSStreamReader _stream(stream);
     map_builder_.LoadState(&_stream, load_frozen_state);
 
-    for (const auto& traj :  map_builder_.pose_graph()->GetTrajectoryStates())
+    for (const auto& traj : map_builder_.pose_graph()->GetTrajectoryStates())
     {
         LOG(INFO) << "LOADED: trajectory_id: " << traj.first << " state: " << static_cast<int>(traj.second);
     }
@@ -277,8 +255,7 @@ std::unordered_map<int, MapBuilderBridge::LocalTrajectoryData> MapBuilderBridge:
         // Make sure there is a trajectory with 'trajectory_id'.
         CHECK_EQ(trajectory_options_.count(trajectory_id), 1);
         local_trajectory_data[trajectory_id] = {
-            local_slam_data,
-            map_builder_.pose_graph()->GetLocalToGlobalTransform(trajectory_id),
+            local_slam_data, map_builder_.pose_graph()->GetLocalToGlobalTransform(trajectory_id),
             sensor_bridge.tf_bridge().LookupToTracking(local_slam_data->time,
                                                        trajectory_options_[trajectory_id].published_frame),
             trajectory_options_[trajectory_id]};
@@ -559,7 +536,8 @@ nav_msgs::OccupancyGrid MapBuilderBridge::GetOccupancyGridMsg(const double resol
             const std::string error = map_builder_.SubmapToProto(submap_entry.id, &submap_proto);
 
             // We use the first texture only
-            // By convention this is the highest resolution texture and that is the one we want to use to construct the map for ROS
+            // By convention this is the highest resolution texture and that is the one we want to use to construct the
+            // map for ROS
             const auto& texture_proto = submap_proto.textures()[0];
 
             submap_slice.version = submap_proto.submap_version();
@@ -572,15 +550,13 @@ nav_msgs::OccupancyGrid MapBuilderBridge::GetOccupancyGridMsg(const double resol
 
             const std::string compressed_cells(texture_proto.cells().begin(), texture_proto.cells().end());
             auto submap_texture = cartographer::io::SubmapTexture{
-                    cartographer::io::UnpackTextureData(compressed_cells, texture_proto.width(), texture_proto.height()),
-                    texture_proto.width(),
-                    texture_proto.height(),
-                    texture_proto.resolution(),
-                    cartographer::transform::ToRigid3(texture_proto.slice_pose())
-            };
+                cartographer::io::UnpackTextureData(compressed_cells, texture_proto.width(), texture_proto.height()),
+                texture_proto.width(), texture_proto.height(), texture_proto.resolution(),
+                cartographer::transform::ToRigid3(texture_proto.slice_pose())};
 
-            submap_slice.surface = cartographer::io::DrawTexture(submap_texture.pixels.intensity, submap_texture.pixels.alpha, submap_texture.width,
-                                                                 submap_texture.height, &submap_slice.cairo_data);
+            submap_slice.surface =
+                cartographer::io::DrawTexture(submap_texture.pixels.intensity, submap_texture.pixels.alpha,
+                                              submap_texture.width, submap_texture.height, &submap_slice.cairo_data);
         }
     }
 

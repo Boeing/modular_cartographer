@@ -39,7 +39,6 @@ namespace
 {
 
 
-
 void Run()
 {
     const std::string configuration_directory = get_param_or_throw<std::string>("~configuration_directory");
