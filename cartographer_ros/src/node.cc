@@ -237,10 +237,11 @@ void Node::PublishSubmapList(const ::ros::WallTimerEvent&)
     absl::MutexLock lock(&mutex_);
 
     const auto submaps = map_builder_bridge_->GetSubmapList();
-    const nav_msgs::OccupancyGrid og_map = map_builder_bridge_->GetOccupancyGridMsg(0.1);
-
     submap_list_publisher_.publish(submaps);
-    occupancy_grid_publisher_.publish(og_map);
+
+    // This is very CPU intensive
+    //    const nav_msgs::OccupancyGrid og_map = map_builder_bridge_->GetOccupancyGridMsg(0.1);
+    //    occupancy_grid_publisher_.publish(og_map);
 }
 
 void Node::AddExtrapolator(const int trajectory_id, const TrajectoryOptions& options)
