@@ -49,7 +49,7 @@ std::unique_ptr<::cartographer::transform::Rigid3d> TfBridge::LookupToTracking(c
     }
     catch (const tf2::TransformException& ex)
     {
-        LOG(WARNING) << ex.what();
+        LOG(WARNING) << "Failed to lookup " << frame_id << " -> " << tracking_frame_ << " " << ex.what();
     }
     return nullptr;
 }

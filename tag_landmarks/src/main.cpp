@@ -118,8 +118,8 @@ class RosWrapper
                     throw std::runtime_error("Unknown detection type");
                 }
 
-                const geometry_msgs::TransformStamped tr =
-                    tf_buffer_.lookupTransform("base_link", "camera", ros::Time(0));
+                tf_buffer_.lookupTransform("base_link", res.image.header.frame_id, res.image.header.stamp,
+                                           ros::Duration(0.1));
                 const Eigen::Isometry3d tracking_to_camera = convert(tr.transform);
 
                 for (const tag_interface::Tag& tag : result.tags)
@@ -140,8 +140,8 @@ class RosWrapper
                     landmark.tracking_from_landmark_transform.orientation.y = qt.y();
                     landmark.tracking_from_landmark_transform.orientation.z = qt.z();
 
-                    landmark.translation_weight = 100;
-                    landmark.rotation_weight = 100;
+                    landmark.translation_weight = 1e3;
+                    landmark.rotation_weight = 1e3;
 
                     ls.landmarks.push_back(landmark);
                 }

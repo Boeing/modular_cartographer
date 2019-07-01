@@ -180,22 +180,49 @@ include_directories(SYSTEM
     ${PROTOBUF_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
     ${urdfdom_headers_INCLUDE_DIRS}
+    ${Qt5Widgets_INCLUDE_DIRS}
+    ${GTEST_INCLUDE_DIRS}
 )
 
-set(CMAKE_AUTOMOC ON)
-include_directories(${Qt5Widgets_INCLUDE_DIRS})
-add_definitions(-DQT_NO_KEYWORDS)
+set(SRC_FILES
+    src/metrics/internal/family.cc
+    src/metrics/internal/histogram.cc
+    src/metrics/internal/metrics_test.cc
+    src/metrics/family_factory.cc
 
-file(GLOB_RECURSE ALL_SRCS "src/*.cc" "include/${PROJECT_NAME}/rviz/*.h")
-file(GLOB_RECURSE ALL_TESTS "src/*_test.cc")
-file(GLOB_RECURSE ALL_EXECUTABLES "src/*_main.cc")
-list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
-list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
+    src/assets_writer.cc
+    src/map_builder_bridge.cc
+    src/msg_conversion.cc
+    src/node.cc
+    src/node_constants.cc
+    src/node_options.cc
+    src/playable_bag.cc
+    src/proto_sstream.cc
+    src/ros_log_sink.cc
+    src/ros_map.cc
+    src/ros_map_writing_points_processor.cc
+    src/sensor_bridge.cc
+    src/submap.cc
+    src/tf_bridge.cc
+    src/time_conversion.cc
+    src/trajectory_options.cc
+    src/urdf_reader.cc
+)
 
-message(STATUS "ALL_SRCS: ${ALL_SRCS}")
-
-add_library(${PROJECT_NAME} ${ALL_SRCS})
+add_library(${PROJECT_NAME} ${SRC_FILES})
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${CARTOGRAPHER_PROJECT_NAME})
+
+set(RVIZ_SRC_FILES
+    include/${PROJECT_NAME}/rviz/drawable_submap.h
+    include/${PROJECT_NAME}/rviz/ogre_slice.h
+    include/${PROJECT_NAME}/rviz/submaps_display.h
+    src/rviz/drawable_submap.cc
+    src/rviz/ogre_slice.cc
+    src/rviz/submaps_display.cc
+)
+
+qt5_wrap_cpp(RVIZ_SRC_FILES_MOC ${RVIZ_SRC_FILES})
+add_library(cartographer_rviz_plugin ${RVIZ_SRC_FILES_MOC} ${RVIZ_SRC_FILES})
 
 set(LIBS
     ${ABSEIL_LIBRARIES}
@@ -207,6 +234,7 @@ set(LIBS
     ${LUA_LIBRARIES}
     ${PCL_LIBRARIES}
     ${PROTOBUF_LIBRARIES}
+    ${GTEST_LIBRARIES}
     gflags
     glog
     Qt5::Core
@@ -214,7 +242,7 @@ set(LIBS
 )
 
 add_executable(cartographer_assets_writer
-    src/assets_writer_main.cc
+    src/dev/assets_writer_main.cc
     src/ros_map_writing_points_processor.cc
 )
 
@@ -222,24 +250,24 @@ add_executable(cartographer_node
     src/node_main.cc
 )
 
-add_executable(cartographer_offline_node
-    src/offline_node_main.cc
-)
+#add_executable(cartographer_offline_node
+#    src/dev/offline_node_main.cc
+#)
 
 add_executable(cartographer_occupancy_grid_node
-    src/occupancy_grid_node_main.cc
+    src/dev/occupancy_grid_node_main.cc
 )
 
 add_executable(${PROJECT_NAME}bag_validate
-    src/rosbag_validate_main.cc
+    src/dev/rosbag_validate_main.cc
 )
 
 add_executable(cartographer_pbstream_to_ros_map
-    src/pbstream_to_ros_map_main.cc
+    src/dev/pbstream_to_ros_map_main.cc
 )
 
 add_executable(cartographer_pbstream_map_publisher
-    src/pbstream_map_publisher_main.cc
+    src/dev/pbstream_map_publisher_main.cc
 )
 
 add_executable(cartographer_dev_pbstream_trajectories_to_rosbag
@@ -255,9 +283,10 @@ add_executable(cartographer_dev_trajectory_comparison
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
+target_link_libraries(cartographer_rviz_plugin PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_node PUBLIC ${PROJECT_NAME} ${LIBS})
-target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
+#target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_occupancy_grid_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} ${LIBS})
@@ -280,13 +309,14 @@ if (CATKIN_ENABLE_TESTING)
 endif()
 
 install(TARGETS
+    cartographer_rviz_plugin
     cartographer_assets_writer
     cartographer_dev_pbstream_trajectories_to_rosbag
     cartographer_dev_rosbag_publisher
     cartographer_dev_trajectory_comparison
     cartographer_node
     cartographer_occupancy_grid_node
-    cartographer_offline_node
+#    cartographer_offline_node
     cartographer_pbstream_map_publisher
     cartographer_pbstream_to_ros_map
     ${PROJECT_NAME}
@@ -304,4 +334,3 @@ install(FILES rviz_plugin_description.xml
 install(DIRECTORY ogre_media
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
-

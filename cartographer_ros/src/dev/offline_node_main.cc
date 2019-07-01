@@ -90,6 +90,28 @@ const ::ros::Duration kDelay = ::ros::Duration(1.0);
 using MapBuilderFactory = std::function<std::unique_ptr<::cartographer::mapping::MapBuilderInterface>(
     const ::cartographer::mapping::proto::MapBuilderOptions&)>;
 
+std::vector<std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>>
+    ComputeDefaultSensorIdsForMultipleBags(const std::vector<TrajectoryOptions>& bags_options)
+{
+    using SensorId = cartographer::mapping::TrajectoryBuilderInterface::SensorId;
+    std::vector<std::set<SensorId>> bags_sensor_ids;
+    for (size_t i = 0; i < bags_options.size(); ++i)
+    {
+        std::string prefix;
+        if (bags_options.size() > 1)
+        {
+            prefix = "bag_" + std::to_string(i + 1) + "_";
+        }
+        std::set<SensorId> unique_sensor_ids;
+        for (const auto& sensor_id : ComputeExpectedSensorIds(bags_options.at(i), node_options_))
+        {
+            unique_sensor_ids.insert(SensorId{sensor_id.type, prefix + sensor_id.id});
+        }
+        bags_sensor_ids.push_back(unique_sensor_ids);
+    }
+    return bags_sensor_ids;
+}
+
 void RunOfflineNode(const MapBuilderFactory& map_builder_factory)
 {
     CHECK(!FLAGS_configuration_directory.empty()) << "-configuration_directory is missing.";

@@ -1,4 +1,4 @@
-<library path="lib/libcartographer_ros">
+<library path="lib/libcartographer_rviz_plugin">
     <class name="Submaps"
            type="cartographer_rviz::SubmapsDisplay"
            base_class_type="rviz::Display">

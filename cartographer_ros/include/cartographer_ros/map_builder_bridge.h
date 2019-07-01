@@ -1,19 +1,3 @@
-/*
- * Copyright 2016 The Cartographer Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_MAP_BUILDER_BRIDGE_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_MAP_BUILDER_BRIDGE_H
 
@@ -37,6 +21,7 @@
 #include "cartographer_ros_msgs/TrajectoryQuery.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "nav_msgs/OccupancyGrid.h"
+#include <cartographer/mapping/map_builder.h>
 
 // Abseil unfortunately pulls in winnt.h, which #defines DELETE.
 // Clean up to unbreak visualization_msgs::Marker::DELETE.
@@ -68,9 +53,9 @@ class MapBuilderBridge
         TrajectoryOptions trajectory_options;
     };
 
-    MapBuilderBridge(const NodeOptions& node_options,
-                     std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder,
-                     tf2_ros::Buffer* tf_buffer);
+    MapBuilderBridge(const NodeOptions& node_options, const std::shared_ptr<const tf2_ros::Buffer>& tf_buffer);
+
+    ~MapBuilderBridge();
 
     MapBuilderBridge(const MapBuilderBridge&) = delete;
     MapBuilderBridge& operator=(const MapBuilderBridge&) = delete;
@@ -82,6 +67,8 @@ class MapBuilderBridge
         const TrajectoryOptions& trajectory_options);
 
     void FinishTrajectory(int trajectory_id);
+    void DeleteTrajectory(int trajectory_id);
+
     void RunFinalOptimization();
 
     bool SerializeState(std::ostream& stream, const bool include_unfinished_submaps);
@@ -99,10 +86,12 @@ class MapBuilderBridge
     visualization_msgs::MarkerArray GetLandmarkPosesList();
     visualization_msgs::MarkerArray GetConstraintList();
 
+    nav_msgs::OccupancyGrid GetOccupancyGridMsg(const double resolution);
+
     SensorBridge* sensor_bridge(int trajectory_id);
-    cartographer::mapping::MapBuilderInterface* map_builder()
+    cartographer::mapping::MapBuilder& map_builder()
     {
-        return map_builder_.get();
+        return map_builder_;
     };
 
   private:
@@ -114,8 +103,8 @@ class MapBuilderBridge
     const NodeOptions node_options_;
     std::unordered_map<int, std::shared_ptr<const LocalTrajectoryData::LocalSlamData>>
         local_slam_data_ GUARDED_BY(mutex_);
-    std::unique_ptr<cartographer::mapping::MapBuilderInterface> map_builder_;
-    tf2_ros::Buffer* const tf_buffer_;
+    cartographer::mapping::MapBuilder map_builder_;
+    const std::shared_ptr<const tf2_ros::Buffer> tf_buffer_;
 
     std::unordered_map<std::string /* landmark ID */, int> landmark_to_index_;
 
