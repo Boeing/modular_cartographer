@@ -118,8 +118,8 @@ class RosWrapper
                     throw std::runtime_error("Unknown detection type");
                 }
 
-                tf_buffer_.lookupTransform("base_link", res.image.header.frame_id, res.image.header.stamp,
-                                           ros::Duration(0.1));
+                const geometry_msgs::TransformStamped tr = tf_buffer_.lookupTransform(
+                    "base_link", res.image.header.frame_id, res.image.header.stamp, ros::Duration(0.1));
                 const Eigen::Isometry3d tracking_to_camera = convert(tr.transform);
 
                 for (const tag_interface::Tag& tag : result.tags)
