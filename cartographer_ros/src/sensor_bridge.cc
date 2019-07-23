@@ -59,8 +59,10 @@ std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(const 
     {
         return nullptr;
     }
-    return absl::make_unique<carto::sensor::OdometryData>(
-        carto::sensor::OdometryData{time, ToRigid3d(msg->pose.pose) * sensor_to_tracking->inverse()});
+    return absl::make_unique<carto::sensor::OdometryData>(carto::sensor::OdometryData{
+        time, ToRigid3d(msg->pose.pose) * sensor_to_tracking->inverse(),
+        Eigen::Vector3d(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z),
+        Eigen::Vector3d(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z)});
 }
 
 void SensorBridge::HandleOdometryMessage(const std::string& sensor_id, const nav_msgs::Odometry::ConstPtr& msg)
@@ -156,7 +158,7 @@ void SensorBridge::HandleImuMessage(const std::string& sensor_id, const sensor_m
 
 void SensorBridge::HandleLaserScanMessage(const std::string& sensor_id, const sensor_msgs::LaserScan::ConstPtr& msg)
 {
-    carto::sensor::PointCloudWithIntensities point_cloud;
+    carto::sensor::TimedPointCloud point_cloud;
     carto::common::Time time;
     std::tie(point_cloud, time) = ToPointCloudWithIntensities(*msg);
     HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
@@ -165,7 +167,7 @@ void SensorBridge::HandleLaserScanMessage(const std::string& sensor_id, const se
 void SensorBridge::HandleMultiEchoLaserScanMessage(const std::string& sensor_id,
                                                    const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg)
 {
-    carto::sensor::PointCloudWithIntensities point_cloud;
+    carto::sensor::TimedPointCloud point_cloud;
     carto::common::Time time;
     std::tie(point_cloud, time) = ToPointCloudWithIntensities(*msg);
     HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
@@ -173,10 +175,10 @@ void SensorBridge::HandleMultiEchoLaserScanMessage(const std::string& sensor_id,
 
 void SensorBridge::HandlePointCloud2Message(const std::string& sensor_id, const sensor_msgs::PointCloud2::ConstPtr& msg)
 {
-    carto::sensor::PointCloudWithIntensities point_cloud;
+    carto::sensor::TimedPointCloud point_cloud;
     carto::common::Time time;
     std::tie(point_cloud, time) = ToPointCloudWithIntensities(*msg);
-    HandleRangefinder(sensor_id, time, msg->header.frame_id, point_cloud.points);
+    HandleRangefinder(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
 const TfBridge& SensorBridge::tf_bridge() const
@@ -185,20 +187,19 @@ const TfBridge& SensorBridge::tf_bridge() const
 }
 
 void SensorBridge::HandleLaserScan(const std::string& sensor_id, const carto::common::Time time,
-                                   const std::string& frame_id, const carto::sensor::PointCloudWithIntensities& points)
+                                   const std::string& frame_id, const carto::sensor::TimedPointCloud& points)
 {
-    if (points.points.empty())
+    if (points.empty())
     {
         return;
     }
-    CHECK_LE(points.points.back().time, 0.f);
+    CHECK_LE(points.back().time, 0.f);
     // TODO(gaschler): Use per-point time instead of subdivisions.
     for (int i = 0; i != num_subdivisions_per_laser_scan_; ++i)
     {
-        const size_t start_index = points.points.size() * i / num_subdivisions_per_laser_scan_;
-        const size_t end_index = points.points.size() * (i + 1) / num_subdivisions_per_laser_scan_;
-        carto::sensor::TimedPointCloud subdivision(points.points.begin() + start_index,
-                                                   points.points.begin() + end_index);
+        const size_t start_index = points.size() * i / num_subdivisions_per_laser_scan_;
+        const size_t end_index = points.size() * (i + 1) / num_subdivisions_per_laser_scan_;
+        carto::sensor::TimedPointCloud subdivision(points.begin() + start_index, points.begin() + end_index);
         if (start_index == end_index)
         {
             continue;

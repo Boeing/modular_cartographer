@@ -35,10 +35,6 @@ NodeOptions CreateNodeOptions(::cartographer::common::LuaParameterDictionary* co
     options.submap_publish_period_sec = lua_parameter_dictionary->GetDouble("submap_publish_period_sec");
     options.pose_publish_period_sec = lua_parameter_dictionary->GetDouble("pose_publish_period_sec");
     options.trajectory_publish_period_sec = lua_parameter_dictionary->GetDouble("trajectory_publish_period_sec");
-    if (lua_parameter_dictionary->HasKey("use_pose_extrapolator"))
-    {
-        options.use_pose_extrapolator = lua_parameter_dictionary->GetBool("use_pose_extrapolator");
-    }
     return options;
 }
 

@@ -91,7 +91,9 @@ using MapBuilderFactory = std::function<std::unique_ptr<::cartographer::mapping:
     const ::cartographer::mapping::proto::MapBuilderOptions&)>;
 
 std::vector<std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>>
-    ComputeDefaultSensorIdsForMultipleBags(const std::vector<TrajectoryOptions>& bags_options)
+    ComputeDefaultSensorIdsForMultipleBags(
+        const std::vector<TrajectoryOptions>& bags_options,
+        const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>& expected_sensor_ids)
 {
     using SensorId = cartographer::mapping::TrajectoryBuilderInterface::SensorId;
     std::vector<std::set<SensorId>> bags_sensor_ids;
@@ -103,7 +105,7 @@ std::vector<std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId
             prefix = "bag_" + std::to_string(i + 1) + "_";
         }
         std::set<SensorId> unique_sensor_ids;
-        for (const auto& sensor_id : ComputeExpectedSensorIds(bags_options.at(i), node_options_))
+        for (const auto& sensor_id : expected_sensor_ids)
         {
             unique_sensor_ids.insert(SensorId{sensor_id.type, prefix + sensor_id.id});
         }
@@ -118,6 +120,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory)
     CHECK(!FLAGS_configuration_basenames.empty()) << "-configuration_basenames is missing.";
     CHECK(!(FLAGS_bag_filenames.empty() && FLAGS_load_state_filename.empty()))
         << "-bag_filenames and -load_state_filename cannot both be unspecified.";
+
     const std::vector<std::string> bag_filenames = absl::StrSplit(FLAGS_bag_filenames, ',', absl::SkipEmpty());
     cartographer_ros::NodeOptions node_options;
     const std::vector<std::string> configuration_basenames =
@@ -154,19 +157,19 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory)
 
     const std::chrono::time_point<std::chrono::steady_clock> start_time = std::chrono::steady_clock::now();
 
-    tf2_ros::Buffer tf_buffer;
+    auto tf_buffer = std::make_shared<tf2_ros::Buffer>();
 
     std::vector<geometry_msgs::TransformStamped> urdf_transforms;
     const std::vector<std::string> urdf_filenames = absl::StrSplit(FLAGS_urdf_filenames, ',', absl::SkipEmpty());
     for (const auto& urdf_filename : urdf_filenames)
     {
-        const auto current_urdf_transforms = ReadStaticTransformsFromUrdf(urdf_filename, &tf_buffer);
+        const auto current_urdf_transforms = ReadStaticTransformsFromUrdf(urdf_filename, tf_buffer.get());
         urdf_transforms.insert(urdf_transforms.end(), current_urdf_transforms.begin(), current_urdf_transforms.end());
     }
 
-    tf_buffer.setUsingDedicatedThread(true);
+    tf_buffer->setUsingDedicatedThread(true);
 
-    Node node(node_options, bag_trajectory_options.at(0), &tf_buffer, FLAGS_collect_metrics);
+    Node node(node_options, bag_trajectory_options.at(0), tf_buffer, FLAGS_collect_metrics);
     if (!FLAGS_load_state_filename.empty())
     {
         node.LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
@@ -194,15 +197,19 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory)
         false /* oneshot */, false /* autostart */);
 
     std::vector<std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>> bag_expected_sensor_ids;
+
     if (configuration_basenames.size() == 1)
     {
+        const auto node_options_expected_sensor_ids = ComputeExpectedSensorIds(bag_trajectory_options.front());
         const auto current_bag_expected_sensor_ids =
-            node.ComputeDefaultSensorIdsForMultipleBags({bag_trajectory_options.front()});
+            ComputeDefaultSensorIdsForMultipleBags({bag_trajectory_options.front()}, node_options_expected_sensor_ids);
         bag_expected_sensor_ids = {bag_filenames.size(), current_bag_expected_sensor_ids.front()};
     }
     else
     {
-        bag_expected_sensor_ids = node.ComputeDefaultSensorIdsForMultipleBags(bag_trajectory_options);
+        const auto node_options_expected_sensor_ids = ComputeExpectedSensorIds(bag_trajectory_options.front());
+        bag_expected_sensor_ids =
+            ComputeDefaultSensorIdsForMultipleBags(bag_trajectory_options, node_options_expected_sensor_ids);
     }
     CHECK_EQ(bag_expected_sensor_ids.size(), bag_filenames.size());
 
@@ -229,46 +236,47 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory)
             bag_topic_to_sensor_id[bag_resolved_topic] = expected_sensor_id;
         }
 
-        playable_bag_multiplexer.AddPlayableBag(PlayableBag(
-            bag_filename, current_bag_index, ros::TIME_MIN, ros::TIME_MAX, kDelay,
-            // PlayableBag::FilteringEarlyMessageHandler is used to get an early
-            // peek at the tf messages in the bag and insert them into 'tf_buffer'.
-            // When a message is retrieved by GetNextMessage() further below,
-            // we will have already inserted further 'kDelay' seconds worth of
-            // transforms into 'tf_buffer' via this lambda.
-            [&tf_publisher, &tf_buffer](const rosbag::MessageInstance& msg) {
-                if (msg.isType<tf2_msgs::TFMessage>())
-                {
-                    if (FLAGS_use_bag_transforms)
-                    {
-                        const auto tf_message = msg.instantiate<tf2_msgs::TFMessage>();
-                        tf_publisher.publish(tf_message);
+        playable_bag_multiplexer.AddPlayableBag(
+            PlayableBag(bag_filename, current_bag_index, ros::TIME_MIN, ros::TIME_MAX, kDelay,
+                        // PlayableBag::FilteringEarlyMessageHandler is used to get an early
+                        // peek at the tf messages in the bag and insert them into 'tf_buffer'.
+                        // When a message is retrieved by GetNextMessage() further below,
+                        // we will have already inserted further 'kDelay' seconds worth of
+                        // transforms into 'tf_buffer' via this lambda.
+                        [&tf_publisher, &tf_buffer](const rosbag::MessageInstance& msg) {
+                            if (msg.isType<tf2_msgs::TFMessage>())
+                            {
+                                if (FLAGS_use_bag_transforms)
+                                {
+                                    const auto tf_message = msg.instantiate<tf2_msgs::TFMessage>();
+                                    tf_publisher.publish(tf_message);
 
-                        for (const auto& transform : tf_message->transforms)
-                        {
-                            try
-                            {
-                                // We need to keep 'tf_buffer' small because it becomes very
-                                // inefficient otherwise. We make sure that tf_messages are
-                                // published before any data messages, so that tf lookups
-                                // always work.
-                                tf_buffer.setTransform(transform, "unused_authority", msg.getTopic() == kTfStaticTopic);
+                                    for (const auto& transform : tf_message->transforms)
+                                    {
+                                        try
+                                        {
+                                            // We need to keep 'tf_buffer' small because it becomes very
+                                            // inefficient otherwise. We make sure that tf_messages are
+                                            // published before any data messages, so that tf lookups
+                                            // always work.
+                                            tf_buffer->setTransform(transform, "unused_authority",
+                                                                    msg.getTopic() == kTfStaticTopic);
+                                        }
+                                        catch (const tf2::TransformException& ex)
+                                        {
+                                            LOG(WARNING) << ex.what();
+                                        }
+                                    }
+                                }
+                                // Tell 'PlayableBag' to filter the tf message since there is no
+                                // further use for it.
+                                return false;
                             }
-                            catch (const tf2::TransformException& ex)
+                            else
                             {
-                                LOG(WARNING) << ex.what();
+                                return true;
                             }
-                        }
-                    }
-                    // Tell 'PlayableBag' to filter the tf message since there is no
-                    // further use for it.
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            }));
+                        }));
     }
 
     std::set<std::string> bag_topics;

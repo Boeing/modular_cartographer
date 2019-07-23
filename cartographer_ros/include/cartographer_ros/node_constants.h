@@ -7,7 +7,6 @@
 
 #include <cartographer/mapping/trajectory_builder_interface.h>
 
-#include <cartographer_ros/node_options.h>
 #include <cartographer_ros/trajectory_options.h>
 
 namespace cartographer_ros
@@ -45,7 +44,7 @@ constexpr int kLatestOnlyPublisherQueueSize = 1;
 std::vector<std::string> ComputeRepeatedTopicNames(const std::string& topic, int num_topics);
 
 std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
-    ComputeExpectedSensorIds(const TrajectoryOptions& trajectory_options, const NodeOptions& node_options);
+    ComputeExpectedSensorIds(const TrajectoryOptions& trajectory_options);
 
 }  // namespace cartographer_ros
 

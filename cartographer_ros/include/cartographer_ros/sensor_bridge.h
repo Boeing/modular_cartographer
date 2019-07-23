@@ -67,7 +67,7 @@ class SensorBridge
 
   private:
     void HandleLaserScan(const std::string& sensor_id, ::cartographer::common::Time start_time,
-                         const std::string& frame_id, const ::cartographer::sensor::PointCloudWithIntensities& points);
+                         const std::string& frame_id, const ::cartographer::sensor::TimedPointCloud& points);
     void HandleRangefinder(const std::string& sensor_id, ::cartographer::common::Time time, const std::string& frame_id,
                            const ::cartographer::sensor::TimedPointCloud& ranges);
 

@@ -27,7 +27,6 @@
 #include "absl/synchronization/mutex.h"
 #include "cartographer/common/fixed_ratio_sampler.h"
 #include "cartographer/mapping/map_builder_interface.h"
-#include "cartographer/mapping/pose_extrapolator.h"
 #include "cartographer_ros/map_builder_bridge.h"
 #include "cartographer_ros/metrics/family_factory.h"
 #include "cartographer_ros/node_constants.h"
@@ -98,6 +97,10 @@ class Node
 
     ::ros::NodeHandle* node_handle();
 
+    int AddOfflineTrajectory(
+        const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>& expected_sensor_ids,
+        const TrajectoryOptions& options);
+
   private:
     struct Subscriber
     {
@@ -137,14 +140,12 @@ class Node
 
     void LaunchSubscribers(const TrajectoryOptions& options, int trajectory_id);
     void PublishSubmapList(const ::ros::WallTimerEvent& timer_event);
-    void AddExtrapolator(int trajectory_id, const TrajectoryOptions& options);
     void AddSensorSamplers(int trajectory_id, const TrajectoryOptions& options);
     void PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event);
     void PublishTrajectoryNodeList(const ::ros::WallTimerEvent& timer_event);
     void PublishLandmarkPosesList(const ::ros::WallTimerEvent& timer_event);
     void PublishConstraintList(const ::ros::WallTimerEvent& timer_event);
 
-    bool ValidateTrajectoryOptions(const TrajectoryOptions& options);
     bool ValidateTopicNames(const TrajectoryOptions& options);
 
     cartographer_ros_msgs::StatusResponse FinishTrajectoryUnderLock(int trajectory_id) EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -179,6 +180,8 @@ class Node
     // These ros::ServiceServers need to live for the lifetime of the node.
     std::vector<::ros::ServiceServer> service_servers_;
     ::ros::Publisher scan_matched_point_cloud_publisher_;
+    ::ros::Publisher scan_features_publisher_;
+    ::ros::Publisher submap_features_publisher_;
     ::ros::Subscriber map_data_subscriber_;
 
     struct TrajectorySensorSamplers
@@ -200,7 +203,6 @@ class Node
     };
 
     // These are keyed with 'trajectory_id'.
-    std::map<int, ::cartographer::mapping::PoseExtrapolator> extrapolators_;
     std::unordered_map<int, TrajectorySensorSamplers> sensor_samplers_;
     std::unordered_map<int, std::vector<Subscriber>> subscribers_;
     std::unordered_set<std::string> subscribed_topics_;

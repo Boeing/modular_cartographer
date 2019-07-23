@@ -216,7 +216,7 @@ class RangeDataChecker
                                  cartographer::common::Time* from, cartographer::common::Time* to)
     {
         auto point_cloud_time = ToPointCloudWithIntensities(message);
-        const cartographer::sensor::TimedPointCloud& point_cloud = std::get<0>(point_cloud_time).points;
+        const cartographer::sensor::TimedPointCloud& point_cloud = std::get<0>(point_cloud_time);
         *to = std::get<1>(point_cloud_time);
         *from = *to + cartographer::common::FromSeconds(point_cloud[0].time);
         Eigen::Vector4f points_sum = Eigen::Vector4f::Zero();

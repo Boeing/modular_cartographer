@@ -126,9 +126,8 @@ int MapBuilderBridge::AddTrajectory(
     const int trajectory_id = map_builder_.AddTrajectoryBuilder(
         expected_sensor_ids, trajectory_options.trajectory_builder_options,
         [this](const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose,
-               ::cartographer::sensor::RangeData range_data_in_local,
-               const std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult>) {
-            OnLocalSlamResult(trajectory_id, time, local_pose, range_data_in_local);
+               std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult> insertion) {
+            OnLocalSlamResult(trajectory_id, time, local_pose, std::move(insertion));
         });
     LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
 
@@ -569,13 +568,12 @@ SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id)
     return sensor_bridges_.at(trajectory_id).get();
 }
 
-void MapBuilderBridge::OnLocalSlamResult(const int trajectory_id, const ::cartographer::common::Time time,
-                                         const Rigid3d local_pose,
-                                         ::cartographer::sensor::RangeData range_data_in_local)
+void MapBuilderBridge::OnLocalSlamResult(
+    const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose,
+    const std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult> insertion_result)
 {
-    std::shared_ptr<const LocalTrajectoryData::LocalSlamData> local_slam_data =
-        std::make_shared<LocalTrajectoryData::LocalSlamData>(
-            LocalTrajectoryData::LocalSlamData{time, local_pose, std::move(range_data_in_local)});
+    auto local_slam_data = std::make_shared<LocalTrajectoryData::LocalSlamData>(
+        LocalTrajectoryData::LocalSlamData{time, local_pose, insertion_result->constant_data});
     absl::MutexLock lock(&mutex_);
     local_slam_data_[trajectory_id] = std::move(local_slam_data);
 }

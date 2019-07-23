@@ -91,15 +91,14 @@ set(CARTOGRAPHER_INCLUDE_DIRS ${CARTOGRAPHER_INSTALL_DIR}/include)
 set(CARTOGRAPHER_LIBRARIES ${CARTOGRAPHER_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}cartographer${CMAKE_STATIC_LIBRARY_SUFFIX})
 externalproject_add(${CARTOGRAPHER_PROJECT_NAME}
     PREFIX ${CARTOGRAPHER_PROJECT_NAME}
-    URL ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cartographer-bcd5486025df4f601c3977c44a5e00e9c80b4975.tar.gz
-    URL_MD5 9789954989b62d140e25e412fa48fd5e
+    GIT_REPOSITORY https://git.web.boeing.com/brta-robotics/cartographer.git
+    GIT_TAG master
     UPDATE_COMMAND ""
-    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-Pass-in-abseil-tar-path-or-libraries-and-includes.patch
     DEPENDS ${PROTOBUF_PROJECT_NAME} ${ABSEIL_PROJECT_NAME}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=install
     CMAKE_CACHE_ARGS
         "-DCMAKE_PREFIX_PATH:STRING=${PROTOBUF_INSTALL_DIR}"
-        "-DABSEIL_INCLUDE_DIRS:STRING=${ABSEIL_INCLUDE_DIRS}" 
+        "-DABSEIL_INCLUDE_DIRS:STRING=${ABSEIL_INCLUDE_DIRS}"
         "-DABSEIL_LIBRARIES:STRING=${ABSEIL_LIBRARIES}"
     CMAKE_GENERATOR "Ninja"
     BUILD_COMMAND "ninja"
@@ -250,9 +249,9 @@ add_executable(cartographer_node
     src/node_main.cc
 )
 
-#add_executable(cartographer_offline_node
-#    src/dev/offline_node_main.cc
-#)
+add_executable(cartographer_offline_node
+    src/dev/offline_node_main.cc
+)
 
 add_executable(cartographer_occupancy_grid_node
     src/dev/occupancy_grid_node_main.cc
@@ -286,7 +285,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
 target_link_libraries(cartographer_rviz_plugin PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_node PUBLIC ${PROJECT_NAME} ${LIBS})
-#target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
+target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_occupancy_grid_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} ${LIBS})
@@ -316,7 +315,7 @@ install(TARGETS
     cartographer_dev_trajectory_comparison
     cartographer_node
     cartographer_occupancy_grid_node
-#    cartographer_offline_node
+    cartographer_offline_node
     cartographer_pbstream_map_publisher
     cartographer_pbstream_to_ros_map
     ${PROJECT_NAME}

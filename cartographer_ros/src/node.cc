@@ -14,6 +14,7 @@
 #include "cartographer/common/lua_parameter_dictionary.h"
 #include "cartographer/common/port.h"
 #include "cartographer/common/time.h"
+#include "cartographer/mapping/2d/submap_2d.h"
 #include "cartographer/mapping/pose_graph_interface.h"
 #include "cartographer/mapping/proto/submap_visualization.pb.h"
 #include "cartographer/metrics/register.h"
@@ -131,6 +132,10 @@ Node::Node(const NodeOptions& node_options, const TrajectoryOptions& trajectory_
 
     scan_matched_point_cloud_publisher_ =
         p_nh_.advertise<sensor_msgs::PointCloud2>(kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
+    scan_features_publisher_ =
+        p_nh_.advertise<visualization_msgs::MarkerArray>("scan_features", kLatestOnlyPublisherQueueSize);
+    submap_features_publisher_ =
+        p_nh_.advertise<visualization_msgs::MarkerArray>("submap_features", kLatestOnlyPublisherQueueSize);
 }
 
 Node::~Node()
@@ -157,7 +162,6 @@ void Node::Reset()
     }
 
     wall_timers_.clear();
-    extrapolators_.clear();
     sensor_samplers_.clear();
     subscribers_.clear();
     subscribed_topics_.clear();
@@ -242,19 +246,49 @@ void Node::PublishSubmapList(const ::ros::WallTimerEvent&)
     // This is very CPU intensive
     //    const nav_msgs::OccupancyGrid og_map = map_builder_bridge_->GetOccupancyGridMsg(0.1);
     //    occupancy_grid_publisher_.publish(og_map);
-}
 
-void Node::AddExtrapolator(const int trajectory_id, const TrajectoryOptions& options)
-{
-    constexpr double kExtrapolationEstimationTimeSec = 0.001;  // 1 ms
-    CHECK(extrapolators_.count(trajectory_id) == 0);
-    const double gravity_time_constant =
-        node_options_.map_builder_options.use_trajectory_builder_3d()
-            ? options.trajectory_builder_options.trajectory_builder_3d_options().imu_gravity_time_constant()
-            : options.trajectory_builder_options.trajectory_builder_2d_options().imu_gravity_time_constant();
-    extrapolators_.emplace(std::piecewise_construct, std::forward_as_tuple(trajectory_id),
-                           std::forward_as_tuple(::cartographer::common::FromSeconds(kExtrapolationEstimationTimeSec),
-                                                 gravity_time_constant));
+    if (submap_features_publisher_.getNumSubscribers() > 0)
+    {
+        const auto submap_data = map_builder_bridge_->map_builder().pose_graph()->GetAllSubmapData();
+
+        auto MakeCylinder = [](ros::Time time, const double radius, const int index, const std::string& frame_id,
+                               const Eigen::Vector2f& position) {
+            visualization_msgs::Marker marker;
+            marker.ns = "Features";
+            marker.id = index;
+            marker.type = visualization_msgs::Marker::CYLINDER;
+            marker.header.stamp = time;
+            marker.header.frame_id = frame_id;
+            marker.scale.x = radius * 2.0;
+            marker.scale.y = radius * 2.0;
+            marker.scale.z = 0.6;
+            marker.color.b = 1.0;
+            marker.color.a = 1.0;
+            marker.pose.position.x = position.x();
+            marker.pose.position.y = position.y();
+            marker.pose.position.z = marker.scale.z / 2.0;
+            marker.pose.orientation.w = 1.0;
+            return marker;
+        };
+
+        visualization_msgs::MarkerArray feature_markers;
+        visualization_msgs::Marker delete_all;
+        delete_all.action = visualization_msgs::Marker::DELETEALL;
+        feature_markers.markers.push_back(delete_all);
+        const ros::Time feature_time = ros::Time::now();
+        for (const auto item : submap_data)
+        {
+            const auto& sm = dynamic_cast<const cartographer::mapping::Submap2D&>(*item.data.submap);
+            for (const auto& f : sm.CircleFeatures())
+            {
+                feature_markers.markers.push_back(MakeCylinder(feature_time, f.fdescriptor.radius,
+                                                               static_cast<int>(feature_markers.markers.size()),
+                                                               node_options_.map_frame, f.keypoint.position.head<2>()));
+            }
+        }
+
+        submap_features_publisher_.publish(feature_markers);
+    }
 }
 
 void Node::AddSensorSamplers(const int trajectory_id, const TrajectoryOptions& options)
@@ -269,44 +303,72 @@ void Node::AddSensorSamplers(const int trajectory_id, const TrajectoryOptions& o
 void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent&)
 {
     absl::MutexLock lock(&mutex_);
+
     for (const auto& entry : map_builder_bridge_->GetLocalTrajectoryData())
     {
         const auto& trajectory_data = entry.second;
 
-        auto& extrapolator = extrapolators_.at(entry.first);
-        // We only publish a point cloud if it has changed. It is not needed at high
-        // frequency, and republishing it would be computationally wasteful.
-        if (trajectory_data.local_slam_data->time != extrapolator.GetLastPoseTime())
+        if (scan_matched_point_cloud_publisher_.getNumSubscribers() > 0)
         {
-            if (scan_matched_point_cloud_publisher_.getNumSubscribers() > 0)
+            // TODO(gaschler): Consider using other message without time information
+            carto::sensor::TimedPointCloud point_cloud;
+            point_cloud.reserve(trajectory_data.local_slam_data->trajectory_node_data->range_data.returns.size());
+            for (const cartographer::sensor::RangefinderPoint& point :
+                 trajectory_data.local_slam_data->trajectory_node_data->range_data.returns)
             {
-                // TODO(gaschler): Consider using other message without time
-                // information.
-                carto::sensor::TimedPointCloud point_cloud;
-                point_cloud.reserve(trajectory_data.local_slam_data->range_data_in_local.returns.size());
-                for (const cartographer::sensor::RangefinderPoint& point :
-                     trajectory_data.local_slam_data->range_data_in_local.returns)
-                {
-                    point_cloud.push_back(cartographer::sensor::ToTimedRangefinderPoint(point, 0.f /* time */));
-                }
-                scan_matched_point_cloud_publisher_.publish(ToPointCloud2Message(
-                    carto::common::ToUniversal(trajectory_data.local_slam_data->time), node_options_.map_frame,
-                    carto::sensor::TransformTimedPointCloud(point_cloud, trajectory_data.local_to_map.cast<float>())));
+                point_cloud.push_back(cartographer::sensor::ToTimedRangefinderPoint(point, 0.f /* time */));
             }
-            extrapolator.AddPose(trajectory_data.local_slam_data->time, trajectory_data.local_slam_data->local_pose);
+            scan_matched_point_cloud_publisher_.publish(ToPointCloud2Message(
+                carto::common::ToUniversal(trajectory_data.local_slam_data->time),
+                trajectory_data.trajectory_options.tracking_frame,
+                carto::sensor::TransformTimedPointCloud(point_cloud, trajectory_data.local_to_map.cast<float>())));
+        }
+
+        if (scan_features_publisher_.getNumSubscribers() > 0)
+        {
+            auto MakeCylinder = [](ros::Time time, const double radius, const int index, const std::string& frame_id,
+                                   const Eigen::Vector2f& position) {
+                visualization_msgs::Marker marker;
+                marker.ns = "Features";
+                marker.id = index;
+                marker.type = visualization_msgs::Marker::CYLINDER;
+                marker.header.stamp = time;
+                marker.header.frame_id = frame_id;
+                marker.scale.x = radius * 2.0;
+                marker.scale.y = radius * 2.0;
+                marker.scale.z = 0.6;
+                marker.color.r = 1.0;
+                marker.color.a = 1.0;
+                marker.pose.position.x = position.x();
+                marker.pose.position.y = position.y();
+                marker.pose.position.z = marker.scale.z / 2.0;
+                marker.pose.orientation.w = 1.0;
+                return marker;
+            };
+
+            visualization_msgs::MarkerArray feature_markers;
+            visualization_msgs::Marker delete_all;
+            delete_all.action = visualization_msgs::Marker::DELETEALL;
+            feature_markers.markers.push_back(delete_all);
+            const ros::Time feature_time = ToRos(trajectory_data.local_slam_data->time);
+            for (const auto& feature : trajectory_data.local_slam_data->trajectory_node_data->circle_features)
+            {
+                feature_markers.markers.push_back(MakeCylinder(
+                    feature_time, feature.fdescriptor.radius, static_cast<int>(feature_markers.markers.size()),
+                    trajectory_data.trajectory_options.tracking_frame, feature.keypoint.position.head<2>()));
+            }
+
+            scan_features_publisher_.publish(feature_markers);
         }
 
         geometry_msgs::TransformStamped stamped_transform;
-        // If we do not publish a new point cloud, we still allow time of the published poses to advance
-        // If we already know a newer pose, we use its time instead
-        // Since tf knows how to interpolate, providing newer information is better
-        const ::cartographer::common::Time now =
-            std::max(FromRos(ros::Time::now()), extrapolator.GetLastExtrapolatedTime());
-        stamped_transform.header.stamp =
-            node_options_.use_pose_extrapolator ? ToRos(now) : ToRos(trajectory_data.local_slam_data->time);
-        const Rigid3d tracking_to_local_3d = node_options_.use_pose_extrapolator
-                                                 ? extrapolator.ExtrapolatePose(now)
-                                                 : trajectory_data.local_slam_data->local_pose;
+
+        stamped_transform.header.stamp = ros::Time::now();  // ToRos(trajectory_data.local_slam_data->time);
+
+        // TODO if all well and good then publish time
+        // if localisation is no good then don't publish
+
+        const Rigid3d tracking_to_local_3d = trajectory_data.local_slam_data->local_pose;
         const Rigid3d tracking_to_local = [&] {
             if (trajectory_data.trajectory_options.publish_frame_projected_to_2d)
             {
@@ -378,9 +440,8 @@ void Node::PublishConstraintList(const ::ros::WallTimerEvent&)
 int Node::AddTrajectory(const TrajectoryOptions& options)
 {
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> expected_sensor_ids =
-        ComputeExpectedSensorIds(options, node_options_);
+        ComputeExpectedSensorIds(options);
     const int trajectory_id = map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
-    AddExtrapolator(trajectory_id, options);
     AddSensorSamplers(trajectory_id, options);
     LaunchSubscribers(options, trajectory_id);
     wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(kTopicMismatchCheckDelaySec),
@@ -389,6 +450,16 @@ int Node::AddTrajectory(const TrajectoryOptions& options)
     {
         subscribed_topics_.insert(sensor_id.id);
     }
+    return trajectory_id;
+}
+
+int Node::AddOfflineTrajectory(
+    const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>& expected_sensor_ids,
+    const TrajectoryOptions& options)
+{
+    absl::MutexLock lock(&mutex_);
+    const int trajectory_id = map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
+    AddSensorSamplers(trajectory_id, options);
     return trajectory_id;
 }
 
@@ -416,9 +487,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options, const int traject
     }
 
     // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is required
-    if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
-        (node_options_.map_builder_options.use_trajectory_builder_2d() &&
-         options.trajectory_builder_options.trajectory_builder_2d_options().use_imu_data()))
+    if (options.trajectory_builder_options.trajectory_builder_2d_options().use_imu_data())
     {
         subscribers_[trajectory_id].push_back(
             {SubscribeWithHandler<sensor_msgs::Imu>(&Node::HandleImuMessage, trajectory_id, kImuTopic, &nh_, this),
@@ -448,22 +517,9 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options, const int traject
     }
 }
 
-bool Node::ValidateTrajectoryOptions(const TrajectoryOptions& options)
-{
-    if (node_options_.map_builder_options.use_trajectory_builder_2d())
-    {
-        return options.trajectory_builder_options.has_trajectory_builder_2d_options();
-    }
-    if (node_options_.map_builder_options.use_trajectory_builder_3d())
-    {
-        return options.trajectory_builder_options.has_trajectory_builder_3d_options();
-    }
-    return false;
-}
-
 bool Node::ValidateTopicNames(const TrajectoryOptions& options)
 {
-    for (const auto& sensor_id : ComputeExpectedSensorIds(options, node_options_))
+    for (const auto& sensor_id : ComputeExpectedSensorIds(options))
     {
         const std::string& topic = sensor_id.id;
         if (subscribed_topics_.count(topic) > 0)
@@ -623,7 +679,7 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
     response.map_info = og_map.info;
 
     std::stringstream ss;
-    if (map_builder_bridge_->SerializeState(ss, true))
+    if (map_builder_bridge_->SerializeState(ss, false))
     {
         ss.seekp(0);
         ss >> std::noskipws;
@@ -751,7 +807,7 @@ bool Node::HandleStartLocalisation(cartographer_ros_msgs::StartLocalisation::Req
     TrajectoryOptions trajectory_options = trajectory_options_;
 
     auto trimmer = trajectory_options.trajectory_builder_options.mutable_pure_localization_trimmer();
-    trimmer->set_max_submaps_to_keep(2);
+    trimmer->set_max_submaps_to_keep(4);
 
     if (request.use_initial_pose)
     {
@@ -782,13 +838,7 @@ bool Node::HandleStartLocalisation(cartographer_ros_msgs::StartLocalisation::Req
         *trajectory_options.trajectory_builder_options.mutable_initial_trajectory_pose() = initial_trajectory_pose;
     }
 
-    if (!ValidateTrajectoryOptions(trajectory_options))
-    {
-        response.status.message = "Invalid trajectory options.";
-        LOG(ERROR) << response.status.message;
-        response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
-    }
-    else if (!ValidateTopicNames(trajectory_options))
+    if (!ValidateTopicNames(trajectory_options))
     {
         response.status.message = "Topics are already used by another trajectory.";
         LOG(ERROR) << response.status.message;
@@ -828,13 +878,7 @@ bool Node::HandleStartMapping(cartographer_ros_msgs::StartMapping::Request& requ
 
     Reset();
 
-    if (!ValidateTrajectoryOptions(trajectory_options_))
-    {
-        response.status.message = "Invalid trajectory options.";
-        LOG(ERROR) << response.status.message;
-        response.status.code = cartographer_ros_msgs::StatusCode::INVALID_ARGUMENT;
-    }
-    else if (!ValidateTopicNames(trajectory_options_))
+    if (!ValidateTopicNames(trajectory_options_))
     {
         response.status.message = "Topics are already used by another trajectory.";
         LOG(ERROR) << response.status.message;
@@ -876,7 +920,7 @@ void Node::HandleMapData(const std_msgs::UInt8MultiArray::ConstPtr& msg)
     // auto start localising
     TrajectoryOptions trajectory_options = trajectory_options_;
     auto trimmer = trajectory_options.trajectory_builder_options.mutable_pure_localization_trimmer();
-    trimmer->set_max_submaps_to_keep(2);
+    trimmer->set_max_submaps_to_keep(4);
     AddTrajectory(trajectory_options);
     StartTimerCallbacks();
 }
@@ -931,10 +975,6 @@ void Node::HandleOdometryMessage(const int trajectory_id, const std::string& sen
     }
     auto sensor_bridge_ptr = map_builder_bridge_->sensor_bridge(trajectory_id);
     auto odometry_data_ptr = sensor_bridge_ptr->ToOdometryData(msg);
-    if (odometry_data_ptr != nullptr)
-    {
-        extrapolators_.at(trajectory_id).AddOdometryData(*odometry_data_ptr);
-    }
     sensor_bridge_ptr->HandleOdometryMessage(sensor_id, msg);
 }
 
@@ -971,10 +1011,6 @@ void Node::HandleImuMessage(const int trajectory_id, const std::string& sensor_i
     }
     auto sensor_bridge_ptr = map_builder_bridge_->sensor_bridge(trajectory_id);
     auto imu_data_ptr = sensor_bridge_ptr->ToImuData(msg);
-    if (imu_data_ptr != nullptr)
-    {
-        extrapolators_.at(trajectory_id).AddImuData(*imu_data_ptr);
-    }
     sensor_bridge_ptr->HandleImuMessage(sensor_id, msg);
 }
 

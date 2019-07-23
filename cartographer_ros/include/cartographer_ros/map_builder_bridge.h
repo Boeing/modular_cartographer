@@ -45,7 +45,7 @@ class MapBuilderBridge
         {
             ::cartographer::common::Time time;
             ::cartographer::transform::Rigid3d local_pose;
-            ::cartographer::sensor::RangeData range_data_in_local;
+            std::shared_ptr<const ::cartographer::mapping::TrajectoryNode::Data> trajectory_node_data;
         };
         std::shared_ptr<const LocalSlamData> local_slam_data;
         cartographer::transform::Rigid3d local_to_map;
@@ -95,9 +95,11 @@ class MapBuilderBridge
     };
 
   private:
-    void OnLocalSlamResult(const int trajectory_id, const ::cartographer::common::Time time,
-                           const ::cartographer::transform::Rigid3d local_pose,
-                           ::cartographer::sensor::RangeData range_data_in_local) LOCKS_EXCLUDED(mutex_);
+    void OnLocalSlamResult(
+        const int trajectory_id, const ::cartographer::common::Time time,
+        const ::cartographer::transform::Rigid3d local_pose,
+        const std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult>
+            insertion_result) LOCKS_EXCLUDED(mutex_);
 
     absl::Mutex mutex_;
     const NodeOptions node_options_;
