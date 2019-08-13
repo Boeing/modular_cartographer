@@ -157,7 +157,7 @@ void Node::Reset()
         if (entry.second == TrajectoryState::ACTIVE)
         {
             const int trajectory_id = entry.first;
-            FinishTrajectoryUnderLock(trajectory_id).code == cartographer_ros_msgs::StatusCode::OK;
+            FinishTrajectoryUnderLock(trajectory_id);
         }
     }
 
