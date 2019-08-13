@@ -74,6 +74,7 @@ void ScopedRosLogSink::send(const ::google::LogSeverity severity, const char* co
     }
 }
 
+// cppcheck-suppress unusedFunction
 void ScopedRosLogSink::WaitTillSent()
 {
     if (will_die_)

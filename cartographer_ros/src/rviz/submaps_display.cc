@@ -114,6 +114,7 @@ void SubmapsDisplay::reset()
     CreateClient();
 }
 
+// cppcheck-suppress unusedFunction
 void SubmapsDisplay::processMessage(const ::cartographer_ros_msgs::SubmapList::ConstPtr& msg)
 {
     absl::MutexLock locker(&mutex_);
@@ -207,6 +208,7 @@ void SubmapsDisplay::processMessage(const ::cartographer_ros_msgs::SubmapList::C
     }
 }
 
+// cppcheck-suppress unusedFunction
 void SubmapsDisplay::update(const float, const float)
 {
     absl::MutexLock locker(&mutex_);

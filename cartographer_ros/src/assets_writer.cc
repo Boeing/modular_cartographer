@@ -58,7 +58,7 @@ namespace carto = ::cartographer;
 
 std::unique_ptr<carto::io::PointsProcessorPipelineBuilder>
     CreatePipelineBuilder(const std::vector<carto::mapping::proto::Trajectory>& trajectories,
-                          const std::string file_prefix)
+                          const std::string& file_prefix)
 {
     const auto file_writer_factory = AssetsWriter::CreateFileWriterFactory(file_prefix);
     auto builder = absl::make_unique<carto::io::PointsProcessorPipelineBuilder>();
@@ -142,6 +142,7 @@ AssetsWriter::AssetsWriter(const std::string& pose_graph_filename, const std::ve
     point_pipeline_builder_ = CreatePipelineBuilder(all_trajectories_, file_prefix);
 }
 
+// cppcheck-suppress unusedFunction
 void AssetsWriter::RegisterPointsProcessor(const std::string& name,
                                            cartographer::io::PointsProcessorPipelineBuilder::FactoryFunction factory)
 {

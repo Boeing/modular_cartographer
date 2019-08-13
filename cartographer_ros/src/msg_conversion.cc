@@ -60,6 +60,7 @@ struct PointXYZIT
     PCL_ADD_POINT4D;
     float intensity;
     float time;
+    // cppcheck-suppress unusedStructMember
     float unused_padding[2];
 };
 
@@ -208,6 +209,7 @@ bool PointCloud2HasField(const sensor_msgs::PointCloud2& pc2, const std::string&
 
 }  // namespace
 
+// cppcheck-suppress unusedFunction
 sensor_msgs::PointCloud2 ToPointCloud2Message(const int64_t timestamp, const std::string& frame_id,
                                               const ::cartographer::sensor::TimedPointCloud& point_cloud)
 {

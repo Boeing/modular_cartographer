@@ -26,6 +26,7 @@ namespace metrics
 using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
 
 ::cartographer::metrics::Family<::cartographer::metrics::Counter>*
+    // cppcheck-suppress unusedFunction
     FamilyFactory::NewCounterFamily(const std::string& name, const std::string& description)
 {
     auto wrapper = absl::make_unique<CounterFamily>(name, description);
@@ -35,6 +36,7 @@ using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
 }
 
 ::cartographer::metrics::Family<::cartographer::metrics::Gauge>*
+    // cppcheck-suppress unusedFunction
     FamilyFactory::NewGaugeFamily(const std::string& name, const std::string& description)
 {
     auto wrapper = absl::make_unique<GaugeFamily>(name, description);
@@ -53,6 +55,7 @@ using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
     return ptr;
 }
 
+// cppcheck-suppress unusedFunction
 void FamilyFactory::ReadMetrics(::cartographer_ros_msgs::ReadMetrics::Response* response) const
 {
     for (const auto& counter_family : counter_families_)

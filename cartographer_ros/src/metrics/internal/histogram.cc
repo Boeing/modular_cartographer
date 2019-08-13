@@ -35,6 +35,7 @@ Histogram::Histogram(const std::map<std::string, std::string>& labels, const Buc
     CHECK(std::is_sorted(std::begin(bucket_boundaries_), std::end(bucket_boundaries_)));
 }
 
+// cppcheck-suppress unusedFunction
 void Histogram::Observe(double value)
 {
     auto bucket_index = std::distance(bucket_boundaries_.begin(),
@@ -58,12 +59,14 @@ std::map<double, double> Histogram::CountsByBucket()
     return counts_by_bucket;
 }
 
+// cppcheck-suppress unusedFunction
 double Histogram::Sum()
 {
     absl::MutexLock lock(&mutex_);
     return sum_;
 }
 
+// cppcheck-suppress unusedFunction
 double Histogram::CumulativeCount()
 {
     absl::MutexLock lock(&mutex_);

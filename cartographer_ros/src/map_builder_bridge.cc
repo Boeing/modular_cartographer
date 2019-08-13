@@ -173,6 +173,7 @@ bool MapBuilderBridge::SerializeState(std::ostream& stream, const bool include_u
     return true;
 }
 
+// cppcheck-suppress unusedFunction
 void MapBuilderBridge::HandleSubmapQuery(cartographer_ros_msgs::SubmapQuery::Request& request,
                                          cartographer_ros_msgs::SubmapQuery::Response& response)
 {
@@ -215,6 +216,7 @@ std::map<int, ::cartographer::mapping::PoseGraphInterface::TrajectoryState> MapB
     return trajectory_states;
 }
 
+// cppcheck-suppress unusedFunction
 cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList()
 {
     cartographer_ros_msgs::SubmapList submap_list;
@@ -262,6 +264,7 @@ std::unordered_map<int, MapBuilderBridge::LocalTrajectoryData> MapBuilderBridge:
     return local_trajectory_data;
 }
 
+// cppcheck-suppress unusedFunction
 void MapBuilderBridge::HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQuery::Request& request,
                                              cartographer_ros_msgs::TrajectoryQuery::Response& response)
 {
@@ -285,6 +288,7 @@ void MapBuilderBridge::HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQu
                                            " trajectory nodes from trajectory ", request.trajectory_id, ".");
 }
 
+// cppcheck-suppress unusedFunction
 visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList()
 {
     visualization_msgs::MarkerArray trajectory_node_list;
@@ -388,6 +392,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList()
     return trajectory_node_list;
 }
 
+// cppcheck-suppress unusedFunction
 visualization_msgs::MarkerArray MapBuilderBridge::GetLandmarkPosesList()
 {
     visualization_msgs::MarkerArray landmark_poses_list;
@@ -400,6 +405,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetLandmarkPosesList()
     return landmark_poses_list;
 }
 
+// cppcheck-suppress unusedFunction
 visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList()
 {
     visualization_msgs::MarkerArray constraint_list;
@@ -521,6 +527,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList()
     return constraint_list;
 }
 
+// cppcheck-suppress unusedFunction
 nav_msgs::OccupancyGrid MapBuilderBridge::GetOccupancyGridMsg(const double resolution)
 {
     std::map<::cartographer::mapping::SubmapId, cartographer::io::SubmapSlice> submap_slices;
@@ -532,7 +539,7 @@ nav_msgs::OccupancyGrid MapBuilderBridge::GetOccupancyGridMsg(const double resol
 
         {
             cartographer::mapping::proto::SubmapQuery::Response submap_proto;
-            const std::string error = map_builder_.SubmapToProto(submap_entry.id, &submap_proto);
+            map_builder_.SubmapToProto(submap_entry.id, &submap_proto);
 
             // We use the first texture only
             // By convention this is the highest resolution texture and that is the one we want to use to construct the
@@ -563,6 +570,7 @@ nav_msgs::OccupancyGrid MapBuilderBridge::GetOccupancyGridMsg(const double resol
     return *CreateOccupancyGridMsg(painted_slices, resolution, "map", ros::Time::now());
 }
 
+// cppcheck-suppress unusedFunction
 SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id)
 {
     return sensor_bridges_.at(trajectory_id).get();

@@ -46,6 +46,7 @@ ros::Time PlayableBag::PeekMessageTime() const
     return buffered_messages_.front().getTime();
 }
 
+// cppcheck-suppress unusedFunction
 std::tuple<ros::Time, ros::Time> PlayableBag::GetBeginEndTime() const
 {
     return std::make_tuple(view_->getBeginTime(), view_->getEndTime());

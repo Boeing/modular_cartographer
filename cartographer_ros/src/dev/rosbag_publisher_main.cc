@@ -42,6 +42,7 @@ void PublishWithModifiedTimestamp(MessagePtrType message, const ros::Publisher& 
 }
 
 template <>
+// cppcheck-suppress unusedFunction
 void PublishWithModifiedTimestamp<tf2_msgs::TFMessage::Ptr>(tf2_msgs::TFMessage::Ptr message,
                                                             const ros::Publisher& publisher,
                                                             ros::Duration bag_to_current)

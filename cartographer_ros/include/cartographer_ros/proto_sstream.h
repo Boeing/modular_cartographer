@@ -16,7 +16,7 @@ namespace io
 class ProtoSStreamWriter : public ProtoStreamWriterInterface
 {
   public:
-    ProtoSStreamWriter(std::ostream& stream);
+    explicit ProtoSStreamWriter(std::ostream& stream);
     ~ProtoSStreamWriter() = default;
 
     ProtoSStreamWriter(const ProtoSStreamWriter&) = delete;

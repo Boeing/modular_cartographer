@@ -53,6 +53,7 @@ void ProtoSStreamWriter::Write(const std::string& uncompressed_data)
     out_.write(compressed_data.data(), compressed_data.size());
 }
 
+// cppcheck-suppress unusedFunction
 void ProtoSStreamWriter::WriteProto(const google::protobuf::Message& proto)
 {
     std::string uncompressed_data;
@@ -96,6 +97,7 @@ bool ProtoSStreamReader::Read(std::string* decompressed_data)
     return true;
 }
 
+// cppcheck-suppress unusedFunction
 bool ProtoSStreamReader::ReadProto(google::protobuf::Message* proto)
 {
     std::string decompressed_data;
