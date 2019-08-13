@@ -63,13 +63,12 @@ class RosWrapper
                const tag_detection_aruco::DetectorType detection_type, const int rows, const int cols,
                const double unit_size, const double marker_size)
         : dictionary_(dictionary), detector_params_(detector_params), detection_type_(detection_type),
-          marker_size_(marker_size), board_rows_(rows), board_cols_(cols), board_unit_size_(unit_size), running_(false),
+          marker_size_(marker_size), board_rows_(rows), board_cols_(cols), board_unit_size_(unit_size), running_(true),
           nh_("~"), tf_listener_(tf_buffer_)
     {
         get_image_srv_ = nh_.serviceClient<camera_interface::GetImage>("/camera/get_image");
         landmark_publisher_ = nh_.advertise<cartographer_ros_msgs::LandmarkList>("/landmark", 1);
 
-        running_ = true;
         run_thread_ = std::thread(&RosWrapper::run, this);
     }
 
