@@ -197,19 +197,12 @@ std::tuple<TimedPointCloud, ::cartographer::common::Time>
 
 bool PointCloud2HasField(const sensor_msgs::PointCloud2& pc2, const std::string& field_name)
 {
-    for (const auto& field : pc2.fields)
-    {
-        if (field.name == field_name)
-        {
-            return true;
-        }
-    }
-    return false;
+    return std::any_of(pc2.fields.begin(), pc2.fields.end(),
+                       [&field_name](const auto& field) { return (field.name == field_name); });
 }
 
 }  // namespace
 
-// cppcheck-suppress unusedFunction
 sensor_msgs::PointCloud2 ToPointCloud2Message(const int64_t timestamp, const std::string& frame_id,
                                               const ::cartographer::sensor::TimedPointCloud& point_cloud)
 {
@@ -250,20 +243,22 @@ std::tuple<::cartographer::sensor::TimedPointCloud, ::cartographer::common::Time
             pcl::PointCloud<PointXYZIT> pcl_point_cloud;
             pcl::fromROSMsg(msg, pcl_point_cloud);
             point_cloud.reserve(pcl_point_cloud.size());
-            for (const auto& point : pcl_point_cloud)
-            {
-                point_cloud.push_back({Eigen::Vector3f{point.x, point.y, point.z}, point.time, point.intensity});
-            }
+            std::transform(pcl_point_cloud.begin(), pcl_point_cloud.end(), std::back_inserter(point_cloud),
+                           [](const auto& point) {
+                               return cartographer::sensor::TimedRangefinderPoint{
+                                   Eigen::Vector3f{point.x, point.y, point.z}, point.time, point.intensity};
+                           });
         }
         else
         {
             pcl::PointCloud<pcl::PointXYZI> pcl_point_cloud;
             pcl::fromROSMsg(msg, pcl_point_cloud);
             point_cloud.reserve(pcl_point_cloud.size());
-            for (const auto& point : pcl_point_cloud)
-            {
-                point_cloud.push_back({Eigen::Vector3f{point.x, point.y, point.z}, 0.f, point.intensity});
-            }
+            std::transform(pcl_point_cloud.begin(), pcl_point_cloud.end(), std::back_inserter(point_cloud),
+                           [](const auto& point) {
+                               return cartographer::sensor::TimedRangefinderPoint{
+                                   Eigen::Vector3f{point.x, point.y, point.z}, 0.f, point.intensity};
+                           });
         }
     }
     else
@@ -274,20 +269,22 @@ std::tuple<::cartographer::sensor::TimedPointCloud, ::cartographer::common::Time
             pcl::PointCloud<PointXYZT> pcl_point_cloud;
             pcl::fromROSMsg(msg, pcl_point_cloud);
             point_cloud.reserve(pcl_point_cloud.size());
-            for (const auto& point : pcl_point_cloud)
-            {
-                point_cloud.push_back({Eigen::Vector3f{point.x, point.y, point.z}, point.time, 0.0f});
-            }
+            std::transform(pcl_point_cloud.begin(), pcl_point_cloud.end(), std::back_inserter(point_cloud),
+                           [](const auto& point) {
+                               return cartographer::sensor::TimedRangefinderPoint{
+                                   Eigen::Vector3f{point.x, point.y, point.z}, point.time, 0.f};
+                           });
         }
         else
         {
             pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
             pcl::fromROSMsg(msg, pcl_point_cloud);
             point_cloud.reserve(pcl_point_cloud.size());
-            for (const auto& point : pcl_point_cloud)
-            {
-                point_cloud.push_back({Eigen::Vector3f{point.x, point.y, point.z}, 0.f, 0.f});
-            }
+            std::transform(pcl_point_cloud.begin(), pcl_point_cloud.end(), std::back_inserter(point_cloud),
+                           [](const auto& point) {
+                               return cartographer::sensor::TimedRangefinderPoint{
+                                   Eigen::Vector3f{point.x, point.y, point.z}, 0.f, 0.f};
+                           });
         }
     }
     ::cartographer::common::Time timestamp = FromRos(msg.header.stamp);

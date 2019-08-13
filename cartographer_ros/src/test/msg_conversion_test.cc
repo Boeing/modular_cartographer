@@ -39,6 +39,7 @@ using ::testing::Field;
 
 constexpr double kEps = 1e-6;
 
+// cppcheck-suppress syntaxError
 TEST(MsgConversion, LaserScanToPointCloud)
 {
     sensor_msgs::LaserScan laser_scan;

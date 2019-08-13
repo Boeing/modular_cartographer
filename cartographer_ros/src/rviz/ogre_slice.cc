@@ -60,10 +60,11 @@ OgreSlice::OgreSlice(const ::cartographer::mapping::SubmapId& id, int slice_id, 
     : id_(id), slice_id_(slice_id), scene_manager_(scene_manager), submap_node_(submap_node),
       slice_node_(submap_node_->createChildSceneNode()),
       manual_object_(
-          scene_manager_->createManualObject(absl::StrCat(kManualObjectPrefix, GetSliceIdentifier(id, slice_id))))
+          scene_manager_->createManualObject(absl::StrCat(kManualObjectPrefix, GetSliceIdentifier(id, slice_id)))),
+      material_(Ogre::MaterialManager::getSingleton()
+                    .getByName(kSubmapSourceMaterialName)
+                    ->clone(absl::StrCat(kSubmapMaterialPrefix, GetSliceIdentifier(id_, slice_id_))))
 {
-    material_ = Ogre::MaterialManager::getSingleton().getByName(kSubmapSourceMaterialName);
-    material_ = material_->clone(absl::StrCat(kSubmapMaterialPrefix, GetSliceIdentifier(id_, slice_id_)));
     material_->setReceiveShadows(false);
     material_->getTechnique(0)->setLightingEnabled(false);
     material_->setCullingMode(Ogre::CULL_NONE);

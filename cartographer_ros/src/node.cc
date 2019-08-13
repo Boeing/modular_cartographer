@@ -313,11 +313,11 @@ void Node::PublishLocalTrajectoryData(const ::ros::TimerEvent&)
             // TODO(gaschler): Consider using other message without time information
             carto::sensor::TimedPointCloud point_cloud;
             point_cloud.reserve(trajectory_data.local_slam_data->trajectory_node_data->range_data.returns.size());
-            for (const cartographer::sensor::RangefinderPoint& point :
-                 trajectory_data.local_slam_data->trajectory_node_data->range_data.returns)
-            {
-                point_cloud.push_back(cartographer::sensor::ToTimedRangefinderPoint(point, 0.f /* time */));
-            }
+            std::transform(trajectory_data.local_slam_data->trajectory_node_data->range_data.returns.begin(),
+                           trajectory_data.local_slam_data->trajectory_node_data->range_data.returns.end(),
+                           std::back_inserter(point_cloud), [](const cartographer::sensor::RangefinderPoint& point) {
+                               return cartographer::sensor::ToTimedRangefinderPoint(point, 0.f /* time */);
+                           });
             scan_matched_point_cloud_publisher_.publish(ToPointCloud2Message(
                 carto::common::ToUniversal(trajectory_data.local_slam_data->time),
                 trajectory_data.trajectory_options.tracking_frame,
@@ -749,12 +749,12 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
     {
         cartographer::mapping::MapBuilder mb(node_options_.map_builder_options);
         std::string s(reinterpret_cast<const char*>(response.pbstream_data.data()), response.pbstream_data.size());
-        auto ss = std::stringstream(s);
-        ss.seekp(0);
-        ss >> std::noskipws;
+        auto r_ss = std::stringstream(s);
+        r_ss.seekp(0);
+        r_ss >> std::noskipws;
 
         LOG(INFO) << "Reading serialised data...";
-        cartographer::io::ProtoSStreamReader _stream(ss);
+        cartographer::io::ProtoSStreamReader _stream(r_ss);
         mb.LoadState(&_stream, true);
 
         for (const auto& traj : mb.pose_graph()->GetTrajectoryStates())
@@ -974,7 +974,6 @@ void Node::HandleOdometryMessage(const int trajectory_id, const std::string& sen
         return;
     }
     auto sensor_bridge_ptr = map_builder_bridge_->sensor_bridge(trajectory_id);
-    auto odometry_data_ptr = sensor_bridge_ptr->ToOdometryData(msg);
     sensor_bridge_ptr->HandleOdometryMessage(sensor_id, msg);
 }
 
@@ -1010,7 +1009,6 @@ void Node::HandleImuMessage(const int trajectory_id, const std::string& sensor_i
         return;
     }
     auto sensor_bridge_ptr = map_builder_bridge_->sensor_bridge(trajectory_id);
-    auto imu_data_ptr = sensor_bridge_ptr->ToImuData(msg);
     sensor_bridge_ptr->HandleImuMessage(sensor_id, msg);
 }
 

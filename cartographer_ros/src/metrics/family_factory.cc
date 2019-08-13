@@ -46,6 +46,7 @@ using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
 }
 
 ::cartographer::metrics::Family<::cartographer::metrics::Histogram>*
+    // cppcheck-suppress unusedFunction
     FamilyFactory::NewHistogramFamily(const std::string& name, const std::string& description,
                                       const BucketBoundaries& boundaries)
 {
@@ -55,7 +56,6 @@ using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
     return ptr;
 }
 
-// cppcheck-suppress unusedFunction
 void FamilyFactory::ReadMetrics(::cartographer_ros_msgs::ReadMetrics::Response* response) const
 {
     for (const auto& counter_family : counter_families_)

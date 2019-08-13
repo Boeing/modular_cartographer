@@ -30,6 +30,7 @@ class ConfigurationFilesTest : public ::testing::TestWithParam<const char*>
 {
 };
 
+// cppcheck-suppress syntaxError
 TEST_P(ConfigurationFilesTest, ValidateNodeOptions)
 {
     EXPECT_NO_FATAL_FAILURE(

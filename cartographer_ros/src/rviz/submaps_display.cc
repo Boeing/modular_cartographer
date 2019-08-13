@@ -159,11 +159,12 @@ void SubmapsDisplay::processMessage(const ::cartographer_ros_msgs::SubmapList::C
                                                   trajectories_category_),
                                               pose_markers_all_enabled_->getBool())));
         }
-        auto& trajectory_visibility = trajectories_[id.trajectory_id]->visibility;
         auto& trajectory_submaps = trajectories_[id.trajectory_id]->submaps;
-        auto& pose_markers_visibility = trajectories_[id.trajectory_id]->pose_markers_visibility;
         if (trajectory_submaps.count(id.submap_index) == 0)
         {
+            auto& trajectory_visibility = trajectories_[id.trajectory_id]->visibility;
+            auto& pose_markers_visibility = trajectories_[id.trajectory_id]->pose_markers_visibility;
+
             // TODO(ojura): Add RViz properties for adjusting submap pose axes
             constexpr float kSubmapPoseAxesLength = 0.3f;
             constexpr float kSubmapPoseAxesRadius = 0.06f;
@@ -215,14 +216,10 @@ void SubmapsDisplay::update(const float, const float)
     // Schedule fetching of new submap textures.
     for (const auto& trajectory_by_id : trajectories_)
     {
-        int num_ongoing_requests = 0;
-        for (const auto& submap_entry : trajectory_by_id.second->submaps)
-        {
-            if (submap_entry.second->QueryInProgress())
-            {
-                ++num_ongoing_requests;
-            }
-        }
+        int num_ongoing_requests =
+            std::count_if(trajectory_by_id.second->submaps.begin(), trajectory_by_id.second->submaps.end(),
+                          [](const auto& submap_entry) { return submap_entry.second->QueryInProgress(); });
+
         for (auto it = trajectory_by_id.second->submaps.rbegin();
              it != trajectory_by_id.second->submaps.rend() && num_ongoing_requests < kMaxOnGoingRequestsPerTrajectory;
              ++it)

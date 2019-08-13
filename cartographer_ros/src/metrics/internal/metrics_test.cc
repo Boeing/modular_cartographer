@@ -43,6 +43,7 @@ TEST(Metrics, GaugeTest)
     EXPECT_EQ(gauge.Value(), -1.);
 }
 
+// cppcheck-suppress syntaxError
 TEST(Metrics, CounterTest)
 {
     Counter counter({});
