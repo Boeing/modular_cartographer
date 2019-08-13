@@ -157,7 +157,7 @@ void Node::Reset()
         if (entry.second == TrajectoryState::ACTIVE)
         {
             const int trajectory_id = entry.first;
-            bool success = FinishTrajectoryUnderLock(trajectory_id).code == cartographer_ros_msgs::StatusCode::OK;
+            FinishTrajectoryUnderLock(trajectory_id).code == cartographer_ros_msgs::StatusCode::OK;
         }
     }
 
@@ -856,7 +856,7 @@ bool Node::HandleStartLocalisation(cartographer_ros_msgs::StartLocalisation::Req
     return true;
 }
 
-bool Node::HandleStopLocalisation(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res)
+bool Node::HandleStopLocalisation(std_srvs::TriggerRequest&, std_srvs::TriggerResponse&)
 {
     absl::MutexLock lock(&mutex_);
 
@@ -867,7 +867,7 @@ bool Node::HandleStopLocalisation(std_srvs::TriggerRequest& req, std_srvs::Trigg
     return true;
 }
 
-bool Node::HandleStartMapping(cartographer_ros_msgs::StartMapping::Request& request,
+bool Node::HandleStartMapping(cartographer_ros_msgs::StartMapping::Request&,
                               cartographer_ros_msgs::StartMapping::Response& response)
 {
     absl::MutexLock lock(&mutex_);
@@ -896,7 +896,7 @@ bool Node::HandleStartMapping(cartographer_ros_msgs::StartMapping::Request& requ
     return true;
 }
 
-bool Node::HandleStopMapping(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res)
+bool Node::HandleStopMapping(std_srvs::TriggerRequest&, std_srvs::TriggerResponse&)
 {
     absl::MutexLock lock(&mutex_);
 
