@@ -184,13 +184,12 @@ include_directories(SYSTEM
 )
 
 set(SRC_FILES
+    src/assets_writer.cc
+    src/map_builder_bridge.cc
+    src/metrics/family_factory.cc
     src/metrics/internal/family.cc
     src/metrics/internal/histogram.cc
     src/metrics/internal/metrics_test.cc
-    src/metrics/family_factory.cc
-
-    src/assets_writer.cc
-    src/map_builder_bridge.cc
     src/msg_conversion.cc
     src/node.cc
     src/node_constants.cc
@@ -308,7 +307,6 @@ if (CATKIN_ENABLE_TESTING)
 endif()
 
 install(TARGETS
-    cartographer_rviz_plugin
     cartographer_assets_writer
     cartographer_dev_pbstream_trajectories_to_rosbag
     cartographer_dev_rosbag_publisher
@@ -320,6 +318,7 @@ install(TARGETS
     cartographer_pbstream_to_ros_map
     ${PROJECT_NAME}
     ${PROJECT_NAME}bag_validate
+    cartographer_rviz_plugin
 
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
