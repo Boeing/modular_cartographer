@@ -76,7 +76,7 @@ class Node
 
     void FinishAllTrajectories();
     bool FinishTrajectory(int trajectory_id);
-    void RunFinalOptimization();
+    void RunFinalOptimization() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
     void HandleOdometryMessage(int trajectory_id, const std::string& sensor_id,
                                const nav_msgs::Odometry::ConstPtr& msg);
