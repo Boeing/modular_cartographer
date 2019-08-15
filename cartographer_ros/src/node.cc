@@ -744,33 +744,23 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
         response.status.message = absl::StrCat("Failed");
     }
 
-    LOG(INFO) << "Saved bytes: " << response.pbstream_data.size();
 
+    for (const auto& entry : map_builder_bridge_->GetLocalTrajectoryData())
     {
-        cartographer::mapping::MapBuilder mb(node_options_.map_builder_options);
-        std::string s(reinterpret_cast<const char*>(response.pbstream_data.data()), response.pbstream_data.size());
-        auto r_ss = std::stringstream(s);
-        r_ss.seekp(0);
-        r_ss >> std::noskipws;
+        const auto& trajectory_data = entry.second;
+        const Rigid3d tracking_to_local_3d = trajectory_data.local_slam_data->local_pose;
+        const Rigid3d tracking_to_local = [&] {
+            if (trajectory_data.trajectory_options.publish_frame_projected_to_2d)
+            {
+                return carto::transform::Embed3D(carto::transform::Project2D(tracking_to_local_3d));
+            }
+            return tracking_to_local_3d;
+        }();
+        const Rigid3d tracking_to_map = trajectory_data.local_to_map * tracking_to_local;
+        const Rigid3d map_to_odom = tracking_to_map * (*trajectory_data.published_to_tracking);
 
-        LOG(INFO) << "Reading serialised data...";
-        cartographer::io::ProtoSStreamReader _stream(r_ss);
-        mb.LoadState(&_stream, true);
-
-        for (const auto& traj : mb.pose_graph()->GetTrajectoryStates())
-        {
-            LOG(INFO) << "LOADED: trajectory_id: " << traj.first << " state: " << static_cast<int>(traj.second);
-        }
-
-        for (const auto& sm : mb.pose_graph()->GetAllSubmapPoses())
-        {
-            LOG(INFO) << "LOADED: submap: " << sm.id << " pose: " << sm.data.pose;
-        }
-
-        for (const auto& c : mb.pose_graph()->constraints())
-        {
-            LOG(INFO) << "LOADED: constraint: submap_id: " << c.submap_id << " node_id: " << c.node_id;
-        }
+        response.trajectory_id.push_back(entry.first);
+        response.pose.push_back(ToGeometryMsgPose(map_to_odom));
     }
 
     Reset();
