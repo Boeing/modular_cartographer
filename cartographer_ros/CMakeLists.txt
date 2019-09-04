@@ -280,6 +280,10 @@ add_executable(cartographer_dev_trajectory_comparison
     src/dev/trajectory_comparison_main.cc
 )
 
+add_executable(occupancy_grid_to_pbstream
+    src/dev/occupancy_grid_to_pbstream.cc
+)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
 target_link_libraries(cartographer_rviz_plugin PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} ${LIBS})
@@ -292,6 +296,7 @@ target_link_libraries(cartographer_pbstream_map_publisher PUBLIC ${PROJECT_NAME}
 target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_rosbag_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_trajectory_comparison PUBLIC ${PROJECT_NAME} ${LIBS})
+target_link_libraries(occupancy_grid_to_pbstream PUBLIC ${PROJECT_NAME} ${LIBS})
 
 # add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${CARTOGRAPHER_PROJECT_NAME})
 
@@ -319,6 +324,7 @@ install(TARGETS
     ${PROJECT_NAME}
     ${PROJECT_NAME}bag_validate
     cartographer_rviz_plugin
+    occupancy_grid_to_pbstream
 
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
