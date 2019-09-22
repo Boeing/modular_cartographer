@@ -477,19 +477,29 @@ int main(int argc, char** argv)
             submap.SetCircleFeatures(cf);
             submap.Finish();
 
-            cartographer::mapping::proto::Submap submap_proto = submap.ToProto(true);
-            submap_proto.mutable_submap_id()->set_trajectory_id(0);
-            submap_proto.mutable_submap_id()->set_submap_index(static_cast<int>(i));
-
             cartographer::transform::Rigid3d global_submap_pose(
                 cartographer::transform::Rigid3d::Vector(static_cast<double>(origin.x()),
                                                          static_cast<double>(origin.y()), 0),
                 cartographer::transform::Rigid3d::Quaternion(1, 0, 0, 0));
+
+            LOG(INFO) << "Adding Submap " << i << " at " << global_submap_pose;
+
+            cartographer::mapping::proto::Node node;
+            node.mutable_node_id()->set_trajectory_id(0);
+            node.mutable_node_id()->set_node_index(static_cast<int>(i));
+            *node.mutable_node_data()->mutable_local_pose() = cartographer::transform::ToProto(global_submap_pose);
+
+            cartographer::mapping::proto::Submap submap_proto = submap.ToProto(true);
+            submap_proto.mutable_submap_id()->set_trajectory_id(0);
+            submap_proto.mutable_submap_id()->set_submap_index(static_cast<int>(i));
+
             pose_graph.AddSubmapFromProto(global_submap_pose, submap_proto);
-            pose_graph.FinishTrajectory(0);
-            pose_graph.RunFinalOptimization();
-            pose_graph.FreezeTrajectory(0);
+            pose_graph.AddNodeFromProto(global_submap_pose, node);
         }
+
+        pose_graph.FinishTrajectory(0);
+        pose_graph.FreezeTrajectory(0);
+        pose_graph.RunFinalOptimization();
 
         cartographer::mapping::proto::TrajectoryBuilderOptionsWithSensorIds t_opt;
         *t_opt.mutable_trajectory_builder_options() = trajectory_builder_options;

@@ -15,6 +15,7 @@
 #include "cartographer/common/port.h"
 #include "cartographer/common/time.h"
 #include "cartographer/mapping/2d/submap_2d.h"
+#include "cartographer/mapping/id.h"
 #include "cartographer/mapping/pose_graph_interface.h"
 #include "cartographer/mapping/proto/submap_visualization.pb.h"
 #include "cartographer/metrics/register.h"
@@ -279,11 +280,16 @@ void Node::PublishSubmapList(const ::ros::WallTimerEvent&)
         for (const auto item : submap_data)
         {
             const auto& sm = dynamic_cast<const cartographer::mapping::Submap2D&>(*item.data.submap);
+
+            const cartographer::transform::Rigid3d gp =
+                map_builder_bridge_->map_builder().pose_graph()->GetLocalToGlobalTransform(item.id.trajectory_id);
+
             for (const auto& f : sm.CircleFeatures())
             {
+                const cartographer::transform::Rigid3d::Vector p = gp * f.keypoint.position.cast<double>();
                 feature_markers.markers.push_back(MakeCylinder(feature_time, f.fdescriptor.radius,
                                                                static_cast<int>(feature_markers.markers.size()),
-                                                               node_options_.map_frame, f.keypoint.position.head<2>()));
+                                                               node_options_.map_frame, p.head<2>().cast<float>()));
             }
         }
 
@@ -820,11 +826,13 @@ bool Node::HandleStartLocalisation(cartographer_ros_msgs::StartLocalisation::Req
             return true;
         }
 
+        const auto& node = map_builder_bridge_->map_builder().pose_graph()->GetTrajectoryNodes().at(
+            cartographer::mapping::NodeId{request.relative_to_trajectory_id, 0});
+
         ::cartographer::mapping::proto::InitialTrajectoryPose initial_trajectory_pose;
         initial_trajectory_pose.set_to_trajectory_id(request.relative_to_trajectory_id);
         *initial_trajectory_pose.mutable_relative_pose() = cartographer::transform::ToProto(pose);
-        initial_trajectory_pose.set_timestamp(
-            cartographer::common::ToUniversal(::cartographer_ros::FromRos(ros::Time(0))));
+        initial_trajectory_pose.set_timestamp(cartographer::common::ToUniversal(node.time()));
         *trajectory_options.trajectory_builder_options.mutable_initial_trajectory_pose() = initial_trajectory_pose;
     }
 
@@ -908,11 +916,11 @@ void Node::HandleMapData(const std_msgs::UInt8MultiArray::ConstPtr& msg)
     LOG(INFO) << "Loading incoming map data (" << msg->data.size() << ")...";
 
     // auto start localising
-    TrajectoryOptions trajectory_options = trajectory_options_;
-    auto trimmer = trajectory_options.trajectory_builder_options.mutable_pure_localization_trimmer();
-    trimmer->set_max_submaps_to_keep(4);
-    AddTrajectory(trajectory_options);
-    StartTimerCallbacks();
+    //    TrajectoryOptions trajectory_options = trajectory_options_;
+    //    auto trimmer = trajectory_options.trajectory_builder_options.mutable_pure_localization_trimmer();
+    //    trimmer->set_max_submaps_to_keep(4);
+    //    AddTrajectory(trajectory_options);
+    //    StartTimerCallbacks();
 }
 
 void Node::FinishAllTrajectories()
