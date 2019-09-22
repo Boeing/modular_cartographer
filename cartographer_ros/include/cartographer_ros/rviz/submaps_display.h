@@ -82,6 +82,7 @@ class SubmapsDisplay : public ::rviz::MessageFilterDisplay<::cartographer_ros_ms
 
     // These are called by RViz and therefore do not adhere to the style guide.
     void onInitialize() override;
+    // cppcheck-suppress virtualCallInConstructor
     void reset() override;
     void processMessage(const ::cartographer_ros_msgs::SubmapList::ConstPtr& msg) override;
     void update(float wall_dt, float ros_dt) override;

@@ -103,12 +103,19 @@ void MapBuilderBridge::LoadState(std::istream& stream, bool load_frozen_state)
     cartographer::io::ProtoSStreamReader _stream(stream);
     map_builder_.LoadState(&_stream, load_frozen_state);
 
+    const auto td = map_builder_.pose_graph()->GetTrajectoryData();
+    for (const auto& traj : td)
+    {
+        LOG(INFO) << "LOADED: trajectory_id: " << traj.first << " fixed_frame_origin_in_map: "
+                  << traj.second.fixed_frame_origin_in_map.value_or(cartographer::transform::Rigid3d{});
+    }
+
     for (const auto& traj : map_builder_.pose_graph()->GetTrajectoryStates())
     {
         LOG(INFO) << "LOADED: trajectory_id: " << traj.first << " state: " << static_cast<int>(traj.second);
     }
 
-    for (const auto& sm : map_builder_.pose_graph()->GetAllSubmapPoses())
+    for (const auto sm : map_builder_.pose_graph()->GetAllSubmapPoses())
     {
         LOG(INFO) << "LOADED: submap: " << sm.id << " pose: " << sm.data.pose;
     }
