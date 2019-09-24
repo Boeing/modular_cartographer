@@ -7,16 +7,11 @@
         and mapping (SLAM) in 2D and 3D across multiple platforms and sensor
         configurations. This package provides Cartographer's ROS integration.
     </description>
-    <maintainer email="cartographer-owners@googlegroups.com">
-        The Cartographer Authors
-    </maintainer>
-    <license>Apache 2.0</license>
+    <maintainer email="phillip.haeusler@boeing.com">Phillip Haeusler</maintainer>
+    <author>Phillip Haeusler</author>
+    <license>Boeing Proprietary</license>
 
     <url>https://github.com/googlecartographer/cartographer_ros</url>
-
-    <author email="google-cartographer@googlegroups.com">
-        The Cartographer Authors
-    </author>
 
     <buildtool_depend>catkin</buildtool_depend>
     <buildtool_depend>ninja-build</buildtool_depend>
@@ -28,6 +23,7 @@
     <depend>cartographer_ros_msgs</depend>
     <depend>eigen_conversions</depend>
     <depend>geometry_msgs</depend>
+    <depend>googletest</depend>
     <depend>libcairo2-dev</depend>
     <depend>libceres-dev</depend>
     <depend>libgflags-dev</depend>

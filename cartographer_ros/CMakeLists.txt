@@ -54,8 +54,8 @@ externalproject_add(${ABSEIL_PROJECT_NAME}
     PREFIX ${ABSEIL_PROJECT_NAME}
     URL ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/abseil-cpp-7b46e1d31a6b08b1c6da2a13e7b151a20446fa07.tar.gz
     URL_MD5 86b452e655610381675a09742244b307
-    INSTALL_COMMAND  ""
-    BUILD_COMMAND    ${CMAKE_COMMAND} --build "${ABSEIL_PROJECT_BUILD_DIR}"
+    INSTALL_COMMAND ""
+    BUILD_COMMAND ${CMAKE_COMMAND} --build "${ABSEIL_PROJECT_BUILD_DIR}"
     CMAKE_CACHE_ARGS 
         "-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON"
         "-DBUILD_TESTING:BOOL=OFF"
@@ -110,6 +110,7 @@ set(PACKAGE_DEPENDENCIES
     ${PROJECT_NAME}_msgs
     eigen_conversions
     geometry_msgs
+    googletest
     message_runtime
     nav_msgs
     pcl_conversions
@@ -136,7 +137,6 @@ find_package(PCL REQUIRED COMPONENTS common)
 find_package(LuaGoogle REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED COMPONENTS SuiteSparse)
-find_package(GMock REQUIRED)
 find_package(urdfdom_headers REQUIRED)
 if(DEFINED urdfdom_headers_VERSION)
     if(${urdfdom_headers_VERSION} GREATER 0.4.1)
@@ -146,10 +146,6 @@ endif()
 find_package(Qt5 ${rviz_QT_VERSION} EXACT REQUIRED Core Widgets)
 find_package(PkgConfig)
 pkg_search_module(CAIRO REQUIRED cairo>=1.12.16)
-
-set(GTEST_FOUND TRUE)
-set(GTEST_INCLUDE_DIRS ${GMOCK_INCLUDE_DIRS})
-set(GTEST_LIBRARIES ${GMOCK_LIBRARIES})
 
 catkin_package(
     CATKIN_DEPENDS
@@ -180,7 +176,6 @@ include_directories(SYSTEM
     ${catkin_INCLUDE_DIRS}
     ${urdfdom_headers_INCLUDE_DIRS}
     ${Qt5Widgets_INCLUDE_DIRS}
-    ${GTEST_INCLUDE_DIRS}
 )
 
 set(SRC_FILES
@@ -232,7 +227,6 @@ set(LIBS
     ${LUA_LIBRARIES}
     ${PCL_LIBRARIES}
     ${PROTOBUF_LIBRARIES}
-    ${GTEST_LIBRARIES}
     gflags
     glog
     Qt5::Core
@@ -297,8 +291,6 @@ target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${
 target_link_libraries(cartographer_dev_rosbag_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_trajectory_comparison PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(sdf_to_pbstream PUBLIC ${PROJECT_NAME} ${LIBS})
-
-# add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${CARTOGRAPHER_PROJECT_NAME})
 
 if (CATKIN_ENABLE_TESTING)
     foreach(TEST_SOURCE_FILENAME ${ALL_TESTS})
