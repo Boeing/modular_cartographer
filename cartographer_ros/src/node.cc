@@ -653,6 +653,24 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
     nav_msgs::OccupancyGrid og_map = map_builder_bridge_->GetOccupancyGridMsg(request.resolution);
 
     LOG(INFO) << "og_map: " << og_map.data.size();
+    
+    for (const auto& entry : map_builder_bridge_->GetLocalTrajectoryData())
+    {
+        const auto& trajectory_data = entry.second;
+        const Rigid3d tracking_to_local_3d = trajectory_data.local_slam_data->local_pose;
+        const Rigid3d tracking_to_local = [&] {
+            if (trajectory_data.trajectory_options.publish_frame_projected_to_2d)
+            {
+                return carto::transform::Embed3D(carto::transform::Project2D(tracking_to_local_3d));
+            }
+            return tracking_to_local_3d;
+        }();
+        const Rigid3d tracking_to_map = trajectory_data.local_to_map * tracking_to_local;
+        const Rigid3d map_to_odom = tracking_to_map * (*trajectory_data.published_to_tracking);
+
+        response.trajectory_id.push_back(entry.first);
+        response.pose.push_back(ToGeometryMsgPose(map_to_odom));
+    }
 
     for (const auto& entry : map_builder_bridge_->GetTrajectoryStates())
     {
@@ -748,25 +766,6 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
     {
         response.status.code = cartographer_ros_msgs::StatusCode::CANCELLED;
         response.status.message = absl::StrCat("Failed");
-    }
-
-
-    for (const auto& entry : map_builder_bridge_->GetLocalTrajectoryData())
-    {
-        const auto& trajectory_data = entry.second;
-        const Rigid3d tracking_to_local_3d = trajectory_data.local_slam_data->local_pose;
-        const Rigid3d tracking_to_local = [&] {
-            if (trajectory_data.trajectory_options.publish_frame_projected_to_2d)
-            {
-                return carto::transform::Embed3D(carto::transform::Project2D(tracking_to_local_3d));
-            }
-            return tracking_to_local_3d;
-        }();
-        const Rigid3d tracking_to_map = trajectory_data.local_to_map * tracking_to_local;
-        const Rigid3d map_to_odom = tracking_to_map * (*trajectory_data.published_to_tracking);
-
-        response.trajectory_id.push_back(entry.first);
-        response.pose.push_back(ToGeometryMsgPose(map_to_odom));
     }
 
     Reset();
@@ -894,14 +893,15 @@ bool Node::HandleStartMapping(cartographer_ros_msgs::StartMapping::Request&,
     return true;
 }
 
-bool Node::HandleStopMapping(std_srvs::TriggerRequest&, std_srvs::TriggerResponse&)
+bool Node::HandleStopMapping(std_srvs::TriggerRequest&, std_srvs::TriggerResponse& response)
 {
     absl::MutexLock lock(&mutex_);
 
     LOG(INFO) << "Request to stop mapping";
 
     Reset();
-
+    response.success = true;
+    response.message = "Mapping stopped.";
     return true;
 }
 

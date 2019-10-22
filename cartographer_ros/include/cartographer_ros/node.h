@@ -17,6 +17,9 @@
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_H
 
+#include <std_msgs/UInt8MultiArray.h>
+#include <std_srvs/Trigger.h>
+
 #include <map>
 #include <memory>
 #include <set>
@@ -52,9 +55,6 @@
 #include "sensor_msgs/NavSatFix.h"
 #include "sensor_msgs/PointCloud2.h"
 #include "tf2_ros/transform_broadcaster.h"
-
-#include <std_msgs/UInt8MultiArray.h>
-#include <std_srvs/Trigger.h>
 
 namespace cartographer_ros
 {
