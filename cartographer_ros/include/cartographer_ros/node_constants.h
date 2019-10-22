@@ -1,13 +1,12 @@
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_CONSTANTS_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_CONSTANTS_H
 
+#include <cartographer/mapping/trajectory_builder_interface.h>
+#include <cartographer_ros/trajectory_options.h>
+
 #include <set>
 #include <string>
 #include <vector>
-
-#include <cartographer/mapping/trajectory_builder_interface.h>
-
-#include <cartographer_ros/trajectory_options.h>
 
 namespace cartographer_ros
 {
