@@ -894,14 +894,15 @@ bool Node::HandleStartMapping(cartographer_ros_msgs::StartMapping::Request&,
     return true;
 }
 
-bool Node::HandleStopMapping(std_srvs::TriggerRequest&, std_srvs::TriggerResponse&)
+bool Node::HandleStopMapping(std_srvs::TriggerRequest&, std_srvs::TriggerResponse& response)
 {
     absl::MutexLock lock(&mutex_);
 
     LOG(INFO) << "Request to stop mapping";
 
     Reset();
-
+    response.success = true;
+    response.message = "Mapping stopped.";
     return true;
 }
 
