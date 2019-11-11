@@ -37,21 +37,19 @@ namespace cartographer_ros
 class MapBuilderBridge
 {
   public:
-    struct LocalTrajectoryData
+    struct LocalSLAMData
     {
-        // Contains the trajectory data received from local SLAM, after
-        // it had processed accumulated 'range_data_in_local' and estimated
-        // current 'local_pose' at 'time'.
-        struct LocalSlamData
-        {
-            ::cartographer::common::Time time;
-            ::cartographer::transform::Rigid3d local_pose;
-            std::shared_ptr<const ::cartographer::mapping::TrajectoryNode::Data> trajectory_node_data;
-        };
-        std::shared_ptr<const LocalSlamData> local_slam_data;
-        cartographer::transform::Rigid3d local_to_map;
-        std::unique_ptr<cartographer::transform::Rigid3d> published_to_tracking;
-        TrajectoryOptions trajectory_options;
+        ::cartographer::common::Time time;
+        ::cartographer::transform::Rigid3d local_to_tracking;
+        std::shared_ptr<cartographer::transform::Rigid3d> tracking_to_odom;
+        std::shared_ptr<const ::cartographer::mapping::TrajectoryNode::Data> trajectory_node_data;
+    };
+
+    struct GlobalSLAMData
+    {
+        long unsigned int count = 0;
+        ::cartographer::common::Time time;
+        std::unordered_map<int, cartographer::transform::Rigid3d> local_to_global;
     };
 
     MapBuilderBridge(const NodeOptions& node_options, const std::shared_ptr<const tf2_ros::Buffer>& tf_buffer);
@@ -82,7 +80,10 @@ class MapBuilderBridge
     std::map<int /* trajectory_id */, ::cartographer::mapping::PoseGraphInterface::TrajectoryState>
         GetTrajectoryStates();
     cartographer_ros_msgs::SubmapList GetSubmapList();
-    std::unordered_map<int, LocalTrajectoryData> GetLocalTrajectoryData() LOCKS_EXCLUDED(mutex_);
+
+    std::unordered_map<int, LocalSLAMData> GetLocalSLAMData() const LOCKS_EXCLUDED(mutex_);
+    GlobalSLAMData GetGlobalSLAMData() const LOCKS_EXCLUDED(mutex_);
+
     visualization_msgs::MarkerArray GetTrajectoryNodeList();
     visualization_msgs::MarkerArray GetLandmarkPosesList();
     visualization_msgs::MarkerArray GetConstraintList();
@@ -102,10 +103,16 @@ class MapBuilderBridge
         const std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult>
             insertion_result) LOCKS_EXCLUDED(mutex_);
 
-    absl::Mutex mutex_;
+    void OnGlobalSlamOptimization(const std::map<int, ::cartographer::mapping::SubmapId>& submap,
+                                  const std::map<int, ::cartographer::mapping::NodeId>& node) LOCKS_EXCLUDED(mutex_);
+
+    mutable absl::Mutex mutex_;
     const NodeOptions node_options_;
-    std::unordered_map<int, std::shared_ptr<const LocalTrajectoryData::LocalSlamData>>
-        local_slam_data_ GUARDED_BY(mutex_);
+
+    // SLAM Data
+    std::unordered_map<int, LocalSLAMData> local_slam_data_ GUARDED_BY(mutex_);
+    GlobalSLAMData global_slam_data_ GUARDED_BY(mutex_);
+
     cartographer::mapping::MapBuilder map_builder_;
     const std::shared_ptr<const tf2_ros::Buffer> tf_buffer_;
 

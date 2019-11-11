@@ -102,28 +102,6 @@ void MapBuilderBridge::LoadState(std::istream& stream, bool load_frozen_state)
     LOG(INFO) << "Loading saved state...";
     cartographer::io::ProtoSStreamReader _stream(stream);
     map_builder_.LoadState(&_stream, load_frozen_state);
-
-    const auto td = map_builder_.pose_graph()->GetTrajectoryData();
-    for (const auto& traj : td)
-    {
-        LOG(INFO) << "LOADED: trajectory_id: " << traj.first << " fixed_frame_origin_in_map: "
-                  << traj.second.fixed_frame_origin_in_map.value_or(cartographer::transform::Rigid3d{});
-    }
-
-    for (const auto& traj : map_builder_.pose_graph()->GetTrajectoryStates())
-    {
-        LOG(INFO) << "LOADED: trajectory_id: " << traj.first << " state: " << static_cast<int>(traj.second);
-    }
-
-    for (const auto sm : map_builder_.pose_graph()->GetAllSubmapPoses())
-    {
-        LOG(INFO) << "LOADED: submap: " << sm.id << " pose: " << sm.data.pose;
-    }
-
-    for (const auto& c : map_builder_.pose_graph()->constraints())
-    {
-        LOG(INFO) << "LOADED: constraint: submap_id: " << c.submap_id << " node_id: " << c.node_id;
-    }
 }
 
 int MapBuilderBridge::AddTrajectory(
@@ -137,6 +115,12 @@ int MapBuilderBridge::AddTrajectory(
             OnLocalSlamResult(trajectory_id, time, local_pose, std::move(insertion));
         });
     LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
+
+    map_builder_.pose_graph()->SetGlobalSlamOptimizationCallback(
+                [this](const std::map<int /* trajectory_id */, ::cartographer::mapping::SubmapId>& submap,
+                       const std::map<int /* trajectory_id */, ::cartographer::mapping::NodeId>& node){
+        OnGlobalSlamOptimization(submap, node);
+    });
 
     // Make sure there is no trajectory with 'trajectory_id' yet.
     CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
@@ -240,33 +224,16 @@ cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList()
     return submap_list;
 }
 
-std::unordered_map<int, MapBuilderBridge::LocalTrajectoryData> MapBuilderBridge::GetLocalTrajectoryData()
+std::unordered_map<int, MapBuilderBridge::LocalSLAMData> MapBuilderBridge::GetLocalSLAMData() const
 {
-    std::unordered_map<int, LocalTrajectoryData> local_trajectory_data;
-    for (const auto& entry : sensor_bridges_)
-    {
-        const int trajectory_id = entry.first;
-        const SensorBridge& sensor_bridge = *entry.second;
+    absl::MutexLock lock(&mutex_);
+    return local_slam_data_;
+}
 
-        std::shared_ptr<const LocalTrajectoryData::LocalSlamData> local_slam_data;
-        {
-            absl::MutexLock lock(&mutex_);
-            if (local_slam_data_.count(trajectory_id) == 0)
-            {
-                continue;
-            }
-            local_slam_data = local_slam_data_.at(trajectory_id);
-        }
-
-        // Make sure there is a trajectory with 'trajectory_id'.
-        CHECK_EQ(trajectory_options_.count(trajectory_id), 1);
-        local_trajectory_data[trajectory_id] = {
-            local_slam_data, map_builder_.pose_graph()->GetLocalToGlobalTransform(trajectory_id),
-            sensor_bridge.tf_bridge().LookupToTracking(local_slam_data->time,
-                                                       trajectory_options_[trajectory_id].published_frame),
-            trajectory_options_[trajectory_id]};
-    }
-    return local_trajectory_data;
+MapBuilderBridge::GlobalSLAMData MapBuilderBridge::GetGlobalSLAMData() const
+{
+    absl::MutexLock lock(&mutex_);
+    return global_slam_data_;
 }
 
 void MapBuilderBridge::HandleTrajectoryQuery(cartographer_ros_msgs::TrajectoryQuery::Request& request,
@@ -344,7 +311,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList()
         }
 
         marker.color.a = 1.0;
-        for (const auto& node_id_data : node_poses.trajectory(trajectory_id))
+        for (const auto node_id_data : node_poses.trajectory(trajectory_id))
         {
             if (!node_id_data.data.constant_pose_data.has_value())
             {
@@ -579,10 +546,27 @@ void MapBuilderBridge::OnLocalSlamResult(
     const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose,
     const std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult> insertion_result)
 {
-    auto local_slam_data = std::make_shared<LocalTrajectoryData::LocalSlamData>(
-        LocalTrajectoryData::LocalSlamData{time, local_pose, insertion_result->constant_data});
     absl::MutexLock lock(&mutex_);
-    local_slam_data_[trajectory_id] = std::move(local_slam_data);
+    const SensorBridge& sensor_bridge = *sensor_bridges_.at(trajectory_id);
+    CHECK_EQ(trajectory_options_.count(trajectory_id), 1);
+    local_slam_data_[trajectory_id] = {
+        time,
+        local_pose,
+        sensor_bridge.tf_bridge().LookupToTracking(time, trajectory_options_[trajectory_id].odom_frame),
+        insertion_result->constant_data,
+    };
+}
+
+void MapBuilderBridge::OnGlobalSlamOptimization(
+        const std::map<int, ::cartographer::mapping::SubmapId>&,
+        const std::map<int, ::cartographer::mapping::NodeId>&)
+{
+    absl::MutexLock lock(&mutex_);
+    global_slam_data_.count++;
+    for (const auto& entry : sensor_bridges_)
+    {
+        global_slam_data_.local_to_global[entry.first] = map_builder_.pose_graph()->GetLocalToGlobalTransform(entry.first);
+    }
 }
 
 }  // namespace cartographer_ros

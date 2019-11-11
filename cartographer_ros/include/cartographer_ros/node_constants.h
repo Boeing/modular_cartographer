@@ -37,7 +37,6 @@ constexpr double kConstraintPublishPeriodSec = 0.5;
 constexpr double kTopicMismatchCheckDelaySec = 3.0;
 
 constexpr int kInfiniteSubscriberQueueSize = 0;
-constexpr int kLatestOnlyPublisherQueueSize = 1;
 
 // For multiple topics adds numbers to the topic name and returns the list.
 std::vector<std::string> ComputeRepeatedTopicNames(const std::string& topic, int num_topics);
