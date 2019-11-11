@@ -144,6 +144,7 @@ std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(const sensor_msg
                                sensor_to_tracking->rotation() * ToEigen(msg->angular_velocity)});
 }
 
+// cppcheck-suppress unusedFunction
 void SensorBridge::HandleImuMessage(const std::string& sensor_id, const sensor_msgs::Imu::ConstPtr& msg)
 {
     std::unique_ptr<carto::sensor::ImuData> imu_data = ToImuData(msg);

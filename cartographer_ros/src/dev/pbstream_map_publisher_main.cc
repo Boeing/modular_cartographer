@@ -66,8 +66,7 @@ void Run(const std::string& pbstream_filename, const std::string& map_topic, con
     std::unique_ptr<nav_msgs::OccupancyGrid> msg_ptr = LoadOccupancyGridMsg(pbstream_filename, resolution);
 
     ::ros::NodeHandle node_handle("");
-    ::ros::Publisher pub =
-        node_handle.advertise<nav_msgs::OccupancyGrid>(map_topic, kLatestOnlyPublisherQueueSize, true /*latched */);
+    ::ros::Publisher pub = node_handle.advertise<nav_msgs::OccupancyGrid>(map_topic, 1, true /*latched */);
 
     LOG(INFO) << "Publishing occupancy grid topic " << map_topic << " (frame_id: " << map_frame_id
               << ", resolution:" << std::to_string(resolution) << ").";

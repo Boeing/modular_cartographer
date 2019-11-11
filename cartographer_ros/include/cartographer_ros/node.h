@@ -45,11 +45,11 @@
 #include "cartographer_ros_msgs/SubmapEntry.h"
 #include "cartographer_ros_msgs/SubmapList.h"
 #include "cartographer_ros_msgs/SubmapQuery.h"
+#include "cartographer_ros_msgs/SystemState.h"
 #include "cartographer_ros_msgs/WriteState.h"
 #include "nav_msgs/OccupancyGrid.h"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
-#include "sensor_msgs/Imu.h"
 #include "sensor_msgs/LaserScan.h"
 #include "sensor_msgs/MultiEchoLaserScan.h"
 #include "sensor_msgs/NavSatFix.h"
@@ -71,10 +71,10 @@ class Node
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
-    void Reset();
+    void Reset() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
     void StartTimerCallbacks();
 
-    void FinishAllTrajectories();
+    void FinishAllTrajectories() LOCKS_EXCLUDED(mutex_);
     bool FinishTrajectory(int trajectory_id);
     void RunFinalOptimization() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -84,7 +84,6 @@ class Node
                                 const sensor_msgs::NavSatFix::ConstPtr& msg);
     void HandleLandmarkMessage(int trajectory_id, const std::string& sensor_id,
                                const cartographer_ros_msgs::LandmarkList::ConstPtr& msg);
-    void HandleImuMessage(int trajectory_id, const std::string& sensor_id, const sensor_msgs::Imu::ConstPtr& msg);
     void HandleLaserScanMessage(int trajectory_id, const std::string& sensor_id,
                                 const sensor_msgs::LaserScan::ConstPtr& msg);
     void HandleMultiEchoLaserScanMessage(int trajectory_id, const std::string& sensor_id,
@@ -127,26 +126,27 @@ class Node
                            cartographer_ros_msgs::ReadMetrics::Response& response);
 
     bool HandleStartLocalisation(cartographer_ros_msgs::StartLocalisation::Request& request,
-                                 cartographer_ros_msgs::StartLocalisation::Response& response);
-    bool HandleStopLocalisation(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res);
+                                 cartographer_ros_msgs::StartLocalisation::Response& response) LOCKS_EXCLUDED(mutex_);
+    bool HandleStopLocalisation(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res) LOCKS_EXCLUDED(mutex_);
+
+    bool HandlePauseLocalisation(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res) LOCKS_EXCLUDED(mutex_);
+    bool HandleResumeLocalisation(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res) LOCKS_EXCLUDED(mutex_);
 
     bool HandleStartMapping(cartographer_ros_msgs::StartMapping::Request& request,
-                            cartographer_ros_msgs::StartMapping::Response& response);
-    bool HandleStopMapping(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res);
+                            cartographer_ros_msgs::StartMapping::Response& response) LOCKS_EXCLUDED(mutex_);
+    bool HandleStopMapping(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res) LOCKS_EXCLUDED(mutex_);
 
-    void HandleMapData(const std_msgs::UInt8MultiArray::ConstPtr& msg);
+    void HandleMapData(const std_msgs::UInt8MultiArray::ConstPtr& msg) LOCKS_EXCLUDED(mutex_);
 
     int AddTrajectory(const TrajectoryOptions& options);
 
-    void LaunchSubscribers(const TrajectoryOptions& options, int trajectory_id);
     void PublishSubmapList(const ::ros::WallTimerEvent& timer_event);
-    void AddSensorSamplers(int trajectory_id, const TrajectoryOptions& options);
-    void PublishLocalTrajectoryData(const ::ros::TimerEvent& timer_event);
+    void PublishLocalTrajectoryData(const ::ros::WallTimerEvent& timer_event) LOCKS_EXCLUDED(mutex_);
     void PublishTrajectoryNodeList(const ::ros::WallTimerEvent& timer_event);
     void PublishLandmarkPosesList(const ::ros::WallTimerEvent& timer_event);
     void PublishConstraintList(const ::ros::WallTimerEvent& timer_event);
 
-    bool ValidateTopicNames(const TrajectoryOptions& options);
+    void PausedTimer(const ::ros::WallTimerEvent&);
 
     cartographer_ros_msgs::StatusResponse FinishTrajectoryUnderLock(int trajectory_id) EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -166,7 +166,12 @@ class Node
     const std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::unique_ptr<MapBuilderBridge> map_builder_bridge_ GUARDED_BY(mutex_);
 
-    std::string map_data_;
+    std::string map_data_ GUARDED_BY(mutex_);
+    cartographer_ros_msgs::SystemState system_state_ GUARDED_BY(mutex_);
+
+    ::cartographer::transform::Rigid3d paused_tracking_in_global_ GUARDED_BY(mutex_);
+    ::cartographer::transform::Rigid3d paused_global_to_odom_ GUARDED_BY(mutex_);
+    ::ros::WallTimer paused_timer_;
 
     ::ros::NodeHandle nh_;
     ::ros::NodeHandle p_nh_;
@@ -177,45 +182,35 @@ class Node
     ::ros::Publisher constraint_list_publisher_;
     ::ros::Publisher occupancy_grid_publisher_;
 
-    // These ros::ServiceServers need to live for the lifetime of the node.
     std::vector<::ros::ServiceServer> service_servers_;
     ::ros::Publisher scan_matched_point_cloud_publisher_;
     ::ros::Publisher scan_features_publisher_;
     ::ros::Publisher submap_features_publisher_;
+    ::ros::Publisher system_state_publisher_;
     ::ros::Subscriber map_data_subscriber_;
 
     struct TrajectorySensorSamplers
     {
         TrajectorySensorSamplers(const double rangefinder_sampling_ratio, const double odometry_sampling_ratio,
-                                 const double fixed_frame_pose_sampling_ratio, const double imu_sampling_ratio,
-                                 const double landmark_sampling_ratio)
+                                 const double fixed_frame_pose_sampling_ratio, const double landmark_sampling_ratio)
             : rangefinder_sampler(rangefinder_sampling_ratio), odometry_sampler(odometry_sampling_ratio),
-              fixed_frame_pose_sampler(fixed_frame_pose_sampling_ratio), imu_sampler(imu_sampling_ratio),
-              landmark_sampler(landmark_sampling_ratio)
+              fixed_frame_pose_sampler(fixed_frame_pose_sampling_ratio), landmark_sampler(landmark_sampling_ratio)
         {
         }
 
         ::cartographer::common::FixedRatioSampler rangefinder_sampler;
         ::cartographer::common::FixedRatioSampler odometry_sampler;
         ::cartographer::common::FixedRatioSampler fixed_frame_pose_sampler;
-        ::cartographer::common::FixedRatioSampler imu_sampler;
         ::cartographer::common::FixedRatioSampler landmark_sampler;
     };
 
     // These are keyed with 'trajectory_id'.
     std::unordered_map<int, TrajectorySensorSamplers> sensor_samplers_;
     std::unordered_map<int, std::vector<Subscriber>> subscribers_;
-    std::unordered_set<std::string> subscribed_topics_;
     std::unordered_set<int> trajectories_scheduled_for_finish_;
 
     // We have to keep the timer handles of ::ros::WallTimers around, otherwise they do not fire
     std::vector<::ros::WallTimer> wall_timers_;
-
-    // The timer for publishing local trajectory data (i.e. pose transforms and
-    // range data point clouds) is a regular timer which is not triggered when
-    // simulation time is standing still. This prevents overflowing the transform
-    // listener buffer by publishing the same transforms over and over again.
-    ::ros::Timer publish_local_trajectory_data_timer_;
 };
 
 }  // namespace cartographer_ros

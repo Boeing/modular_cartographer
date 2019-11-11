@@ -176,12 +176,12 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory)
     }
 
     ::ros::Publisher tf_publisher =
-        node.node_handle()->advertise<tf2_msgs::TFMessage>(kTfTopic, kLatestOnlyPublisherQueueSize);
+        node.node_handle()->advertise<tf2_msgs::TFMessage>(kTfTopic, 1);
 
     ::tf2_ros::StaticTransformBroadcaster static_tf_broadcaster;
 
     ::ros::Publisher clock_publisher =
-        node.node_handle()->advertise<rosgraph_msgs::Clock>(kClockTopic, kLatestOnlyPublisherQueueSize);
+        node.node_handle()->advertise<rosgraph_msgs::Clock>(kClockTopic, 1);
 
     if (urdf_transforms.size() > 0)
     {
@@ -359,10 +359,6 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory)
             if (msg.isType<sensor_msgs::PointCloud2>())
             {
                 node.HandlePointCloud2Message(trajectory_id, sensor_id, msg.instantiate<sensor_msgs::PointCloud2>());
-            }
-            if (msg.isType<sensor_msgs::Imu>())
-            {
-                node.HandleImuMessage(trajectory_id, sensor_id, msg.instantiate<sensor_msgs::Imu>());
             }
             if (msg.isType<nav_msgs::Odometry>())
             {
