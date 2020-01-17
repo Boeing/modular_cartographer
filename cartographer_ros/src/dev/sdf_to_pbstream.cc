@@ -459,7 +459,9 @@ int main(int argc, char** argv)
 
             const Eigen::Vector2f origin = {static_cast<float>(submap_center_x + map_origin.x()),
                                             static_cast<float>(submap_center_y + map_origin.y())};
-            cartographer::mapping::Submap2D submap(origin, std::move(grid), &conversion_tables);
+             cartographer::mapping::Submap2D submap(
+                origin, std::move(grid), &conversion_tables,
+                trajectory_builder_options.trajectory_builder_2d_options().submaps_options());
             std::vector<cartographer::mapping::CircleFeature> cf;
             for (const Pole& p : world.poles)
             {
