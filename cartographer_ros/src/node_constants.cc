@@ -41,11 +41,6 @@ std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>
     {
         expected_topics.insert(SensorId{SensorType::RANGE, topic});
     }
-    // Imu is optional.
-    if (trajectory_options.trajectory_builder_options.trajectory_builder_2d_options().use_imu_data())
-    {
-        expected_topics.insert(SensorId{SensorType::IMU, kImuTopic});
-    }
     // Odometry is optional.
     if (trajectory_options.use_odometry)
     {
