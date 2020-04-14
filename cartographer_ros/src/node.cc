@@ -194,8 +194,6 @@ void Node::Reset()
 
     map_builder_bridge_->RunFinalOptimization();
 
-    LOG(INFO) << "Reset complete";
-
     map_builder_bridge_ = std::make_unique<MapBuilderBridge>(node_options_, tf_buffer_);
 
     if (!map_data_.empty())
@@ -210,6 +208,8 @@ void Node::Reset()
             LOG(ERROR) << "Failed to load map data: " << e.what();
         }
     }
+
+    LOG(INFO) << "Reset complete";
 }
 
 void Node::StartTimerCallbacks()
