@@ -313,6 +313,7 @@ int main(int argc, char** argv)
     std::string map_png;
     std::string map_origin_arg = "0,0";
     std::string map_size_arg = "64,64";
+    double map_free_space_size = 10.0;
     std::string world_sdf;
     double map_resolution = 0.02;
 
@@ -327,6 +328,7 @@ int main(int argc, char** argv)
         ("map_png", po::value<std::string>(&map_png), "Map PNG destination")
         ("map_origin", po::value<std::string>(&map_origin_arg), "Map origin in meters 'x,y'")
         ("map_size", po::value<std::string>(&map_size_arg), "Map size in meters 'x,y'")
+        ("map_free_space_size", po::value<double>(&map_free_space_size), "Maximum radial free space size in meters")
         ("world_sdf", po::value<std::string>(&world_sdf)->required(), "World SDF file")
         ("map_resolution", po::value<double>(&map_resolution), "Map resolution")
         ("submap_location", po::value<std::vector<std::string>>()->multitoken()->required(), "Cartographer Submap Location");
@@ -445,11 +447,14 @@ int main(int argc, char** argv)
                     CHECK(mirrored_x >= 0 && mirrored_x < submap_cells_x);
                     CHECK(mirrored_y >= 0 && mirrored_y < submap_cells_y);
 
+                    const double distance_from_center = std::sqrt(std::pow(submap_x - submap_cells_x/2.0, 2.0) + std::pow(submap_y - submap_cells_y/2.0, 2.0));
+                    const double max_dist = map_free_space_size / map_resolution;
+
                     if (px == 100)
                     {
                         grid->SetProbability({mirrored_y, mirrored_x}, 1.f);
                     }
-                    else if (px < 100)
+                    else if (px < 100 && distance_from_center < max_dist)
                     {
                         grid->SetProbability({mirrored_y, mirrored_x}, 0.f);
                     }
