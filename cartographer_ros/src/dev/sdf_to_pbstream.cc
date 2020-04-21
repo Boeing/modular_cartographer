@@ -290,14 +290,14 @@ cairo_surface_t* makeSurface(const Eigen::Vector2i& map_size, const World& world
     for (const Polyline& pl : world.polylines)
     {
         const std::vector<Eigen::Vector2i> polyline_cells = worldToMap(pl.points, map_origin, map_resolution);
-        drawPolyline(cr, polyline_cells, 2.0, unknown_value, collision_value);
+        drawPolyline(cr, polyline_cells, 2.0, collision_value, collision_value);
     }
 
     for (const Pole& pole : world.poles)
     {
         const Eigen::Vector2i cell = worldToMap(pole.origin, map_origin, map_resolution);
         const double radius_px = pole.radius / map_resolution;
-        drawPole(cr, cell, radius_px, 2.0, unknown_value, collision_value);
+        drawPole(cr, cell, radius_px, 3.0, unknown_value, collision_value);
     }
 
     return surface;
