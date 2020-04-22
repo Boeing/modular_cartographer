@@ -226,10 +226,14 @@ World readWorldSDF(const std::string& world_sdf)
 
                 const std::vector<Eigen::Vector2d> points = getPolyline(polyline);
                 const std::vector<Eigen::Vector2d> transformed_points = transformPoints(points, link_pose);
-                if (layer == "free_space" || layer == "drivable_zone" || layer == "avoid_zone")
+                if (layer == "free_space" || layer == "drivable_zone")
                 {
                     LOG(INFO) << "adding as free space";
                     result.free_spaces.push_back(FreeSpace{transformed_points});
+                }
+                else if (layer == "exclusion_zone" || layer == "avoid_zone")
+                {
+                    // don't do anything
                 }
                 else
                 {
