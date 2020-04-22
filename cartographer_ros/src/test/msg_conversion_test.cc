@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#include "cartographer_ros/msg_conversion.h"
-
 #include <cmath>
 #include <random>
 
 #include "cartographer/transform/rigid_transform_test_helpers.h"
+#include "cartographer_ros/msg_conversion.h"
 #include "cartographer_ros/time_conversion.h"
-#include "sensor_msgs/LaserScan.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "sensor_msgs/LaserScan.h"
 
 namespace cartographer_ros
 {

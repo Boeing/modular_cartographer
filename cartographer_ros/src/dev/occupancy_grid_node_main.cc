@@ -88,8 +88,8 @@ Node::Node(const double resolution, const double publish_period_sec)
           kSubmapListTopic, 1,
           boost::function<void(const cartographer_ros_msgs::SubmapList::ConstPtr&)>(
               [this](const cartographer_ros_msgs::SubmapList::ConstPtr& msg) { HandleSubmapList(msg); }))),
-      occupancy_grid_publisher_(node_handle_.advertise<::nav_msgs::OccupancyGrid>(
-          FLAGS_occupancy_grid_topic, 1, true /* latched */)),
+      occupancy_grid_publisher_(
+          node_handle_.advertise<::nav_msgs::OccupancyGrid>(FLAGS_occupancy_grid_topic, 1, true /* latched */)),
       occupancy_grid_publisher_timer_(
           node_handle_.createWallTimer(::ros::WallDuration(publish_period_sec), &Node::DrawAndPublish, this))
 {

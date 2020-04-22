@@ -1,28 +1,23 @@
 #include <absl/strings/str_split.h>
-#include <cartographer_ros/assets_writer.h>
-#include <glog/logging.h>
-#include <png.h>
-
-#include <istream>
-#include <iterator>
-
+#include <boost/algorithm/string.hpp>
+#include <boost/program_options.hpp>
 #include <cartographer/common/configuration_file_resolver.h>
+#include <cartographer/io/internal/mapping_state_serialization.h>
 #include <cartographer/io/proto_stream.h>
-#include <cartographer/mapping/map_builder.h>
-
 #include <cartographer/mapping/2d/map_limits.h>
 #include <cartographer/mapping/2d/probability_grid.h>
 #include <cartographer/mapping/2d/submap_2d.h>
 #include <cartographer/mapping/internal/2d/pose_graph_2d.h>
 #include <cartographer/mapping/internal/optimization/optimization_problem_2d.h>
+#include <cartographer/mapping/map_builder.h>
+#include <cartographer_ros/assets_writer.h>
 #include <cartographer_ros/proto_sstream.h>
-
-#include <cartographer/io/internal/mapping_state_serialization.h>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/program_options.hpp>
-
+#include <glog/logging.h>
+#include <png.h>
 #include <tinyxml.h>
+
+#include <istream>
+#include <iterator>
 
 namespace po = boost::program_options;
 
@@ -447,7 +442,8 @@ int main(int argc, char** argv)
                     CHECK(mirrored_x >= 0 && mirrored_x < submap_cells_x);
                     CHECK(mirrored_y >= 0 && mirrored_y < submap_cells_y);
 
-                    const double distance_from_center = std::sqrt(std::pow(submap_x - submap_cells_x/2.0, 2.0) + std::pow(submap_y - submap_cells_y/2.0, 2.0));
+                    const double distance_from_center = std::sqrt(std::pow(submap_x - submap_cells_x / 2.0, 2.0) +
+                                                                  std::pow(submap_y - submap_cells_y / 2.0, 2.0));
                     const double max_dist = map_free_space_size / map_resolution;
 
                     if (px == 100)
@@ -464,7 +460,7 @@ int main(int argc, char** argv)
 
             const Eigen::Vector2f origin = {static_cast<float>(submap_center_x + map_origin.x()),
                                             static_cast<float>(submap_center_y + map_origin.y())};
-             cartographer::mapping::Submap2D submap(
+            cartographer::mapping::Submap2D submap(
                 origin, std::move(grid), &conversion_tables,
                 trajectory_builder_options.trajectory_builder_2d_options().submaps_options());
             std::vector<cartographer::mapping::CircleFeature> cf;

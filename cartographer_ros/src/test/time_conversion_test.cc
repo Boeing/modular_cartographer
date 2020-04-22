@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#include "cartographer_ros/time_conversion.h"
-
 #include <chrono>
 
 #include "cartographer/common/time.h"
-#include "ros/ros.h"
+#include "cartographer_ros/time_conversion.h"
 #include "gtest/gtest.h"
+#include "ros/ros.h"
 
 namespace cartographer_ros
 {

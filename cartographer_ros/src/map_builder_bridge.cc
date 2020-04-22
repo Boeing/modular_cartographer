@@ -1,5 +1,7 @@
 #include "cartographer_ros/map_builder_bridge.h"
 
+#include <cartographer_ros/msg_conversion.h>
+
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "cartographer/io/color.h"
@@ -10,8 +12,6 @@
 #include "cartographer_ros/time_conversion.h"
 #include "cartographer_ros_msgs/StatusCode.h"
 #include "cartographer_ros_msgs/StatusResponse.h"
-
-#include <cartographer_ros/msg_conversion.h>
 
 namespace cartographer_ros
 {
@@ -117,10 +117,10 @@ int MapBuilderBridge::AddTrajectory(
     LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
 
     map_builder_.pose_graph()->SetGlobalSlamOptimizationCallback(
-                [this](const std::map<int /* trajectory_id */, ::cartographer::mapping::SubmapId>& submap,
-                       const std::map<int /* trajectory_id */, ::cartographer::mapping::NodeId>& node){
-        OnGlobalSlamOptimization(submap, node);
-    });
+        [this](const std::map<int /* trajectory_id */, ::cartographer::mapping::SubmapId>& submap,
+               const std::map<int /* trajectory_id */, ::cartographer::mapping::NodeId>& node) {
+            OnGlobalSlamOptimization(submap, node);
+        });
 
     // Make sure there is no trajectory with 'trajectory_id' yet.
     CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
@@ -557,15 +557,15 @@ void MapBuilderBridge::OnLocalSlamResult(
     };
 }
 
-void MapBuilderBridge::OnGlobalSlamOptimization(
-        const std::map<int, ::cartographer::mapping::SubmapId>&,
-        const std::map<int, ::cartographer::mapping::NodeId>&)
+void MapBuilderBridge::OnGlobalSlamOptimization(const std::map<int, ::cartographer::mapping::SubmapId>&,
+                                                const std::map<int, ::cartographer::mapping::NodeId>&)
 {
     absl::MutexLock lock(&mutex_);
     global_slam_data_.count++;
     for (const auto& entry : sensor_bridges_)
     {
-        global_slam_data_.local_to_global[entry.first] = map_builder_.pose_graph()->GetLocalToGlobalTransform(entry.first);
+        global_slam_data_.local_to_global[entry.first] =
+            map_builder_.pose_graph()->GetLocalToGlobalTransform(entry.first);
     }
 }
 

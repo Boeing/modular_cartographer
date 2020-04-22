@@ -38,13 +38,12 @@ namespace cartographer_ros
 namespace
 {
 
-
 void Run()
 {
     const std::string configuration_directory = get_param_or_throw<std::string>("~configuration_directory");
     const bool collect_metrics = get_param_with_default_warn<bool>("~collect_metrics", false);
 
-    constexpr double kTfBufferCacheTimeInSeconds = 10.;
+    constexpr double kTfBufferCacheTimeInSeconds = 60.;
     auto tf_buffer = std::make_shared<tf2_ros::Buffer>(::ros::Duration(kTfBufferCacheTimeInSeconds));
     tf2_ros::TransformListener tf(*tf_buffer);
 

@@ -1,3 +1,4 @@
+#include <boost/program_options.hpp>
 #include <cartographer/mapping/map_builder.h>
 #include <cartographer/mapping/map_builder_interface.h>
 #include <cartographer_ros/node.h>
@@ -5,25 +6,21 @@
 #include <cartographer_ros/ros_log_sink.h>
 #include <cartographer_ros/urdf_reader.h>
 #include <ros/ros.h>
-#include <urdf/model.h>
-
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+#include <urdf/model.h>
 
 #include <memory>
 #include <string>
 #include <vector>
-#include <boost/program_options.hpp>
 
 namespace po = boost::program_options;
 
 namespace cartographer_ros
 {
 
-void testFindConstraint(const std::string& configuration_directory,
-                        const std::string& urdf_filename,
-                        const std::string& pbstream_filename,
-                        const std::string& rosbag_filename)
+void testFindConstraint(const std::string& configuration_directory, const std::string& urdf_filename,
+                        const std::string& pbstream_filename, const std::string& rosbag_filename)
 {
     ROS_INFO("TestFindConstraint");
 
@@ -46,10 +43,8 @@ void testFindConstraint(const std::string& configuration_directory,
     SensorId odom{SensorType::ODOMETRY, "odom"};
     SensorId front_laser{SensorType::RANGE, "/sick_s300_front/scan"};
     SensorId back_laser{SensorType::RANGE, "/sick_s300_back/scan"};
-    const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> expected_sensor_ids = {
-        front_laser,
-        back_laser
-    };
+    const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> expected_sensor_ids = {front_laser,
+                                                                                                       back_laser};
 
     const int trajectory_id = map_builder_bridge->AddTrajectory(expected_sensor_ids, trajectory_options);
 
@@ -73,8 +68,10 @@ void testFindConstraint(const std::string& configuration_directory,
     if (back_laser_msgs == back_laser_view.end())
         ROS_FATAL("No back laser message");
 
-    map_builder_bridge->sensor_bridge(trajectory_id)->HandleLaserScanMessage(front_laser.id, front_laser_msgs->instantiate<sensor_msgs::LaserScan>());
-    map_builder_bridge->sensor_bridge(trajectory_id)->HandleLaserScanMessage(back_laser.id, back_laser_msgs->instantiate<sensor_msgs::LaserScan>());
+    map_builder_bridge->sensor_bridge(trajectory_id)
+        ->HandleLaserScanMessage(front_laser.id, front_laser_msgs->instantiate<sensor_msgs::LaserScan>());
+    map_builder_bridge->sensor_bridge(trajectory_id)
+        ->HandleLaserScanMessage(back_laser.id, back_laser_msgs->instantiate<sensor_msgs::LaserScan>());
 
     map_builder_bridge->FinishTrajectory(trajectory_id);
     map_builder_bridge->RunFinalOptimization();
@@ -84,7 +81,7 @@ void testFindConstraint(const std::string& configuration_directory,
 
 int main(int argc, char** argv)
 {
-//    google::InitGoogleLogging(argv[0]);
+    //    google::InitGoogleLogging(argv[0]);
 
     std::string configuration_directory;
     std::string pbstream_filename;

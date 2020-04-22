@@ -18,8 +18,8 @@
 #include <vector>
 
 #include "cartographer_ros/node_options.h"
-#include "ros/package.h"
 #include "gtest/gtest.h"
+#include "ros/package.h"
 
 namespace cartographer_ros
 {

@@ -1,11 +1,12 @@
 #include "cartographer_ros/proto_sstream.h"
-#include "glog/logging.h"
 
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <sstream>
+
+#include "glog/logging.h"
 
 namespace cartographer
 {

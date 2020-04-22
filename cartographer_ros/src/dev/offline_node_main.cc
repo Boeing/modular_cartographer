@@ -14,6 +14,16 @@
  * limitations under the License.
  */
 
+#include <errno.h>
+#include <sys/resource.h>
+#include <time.h>
+
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "absl/strings/str_split.h"
 #include "cartographer/mapping/map_builder.h"
 #include "cartographer/mapping/map_builder_interface.h"
@@ -28,15 +38,6 @@
 #include "rosgraph_msgs/Clock.h"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "urdf/model.h"
-
-#include <chrono>
-#include <errno.h>
-#include <functional>
-#include <memory>
-#include <string>
-#include <sys/resource.h>
-#include <time.h>
-#include <vector>
 
 DEFINE_bool(collect_metrics, false,
             "Activates the collection of runtime metrics. If activated, the "
@@ -175,13 +176,11 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory)
         node.LoadState(FLAGS_load_state_filename, FLAGS_load_frozen_state);
     }
 
-    ::ros::Publisher tf_publisher =
-        node.node_handle()->advertise<tf2_msgs::TFMessage>(kTfTopic, 1);
+    ::ros::Publisher tf_publisher = node.node_handle()->advertise<tf2_msgs::TFMessage>(kTfTopic, 1);
 
     ::tf2_ros::StaticTransformBroadcaster static_tf_broadcaster;
 
-    ::ros::Publisher clock_publisher =
-        node.node_handle()->advertise<rosgraph_msgs::Clock>(kClockTopic, 1);
+    ::ros::Publisher clock_publisher = node.node_handle()->advertise<rosgraph_msgs::Clock>(kClockTopic, 1);
 
     if (urdf_transforms.size() > 0)
     {

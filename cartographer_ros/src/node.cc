@@ -1,15 +1,17 @@
 #include "cartographer_ros/node.h"
 
-#include <chrono>
+#include <boost/interprocess/streams/vectorstream.hpp>
+#include <boost/iostreams/stream.hpp>
+#include <cartographer/mapping/map_builder.h>
 #include <png.h>
+
+#include <chrono>
 #include <string>
 #include <vector>
 
 #include "Eigen/Core"
-
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
-
 #include "cartographer/common/configuration_file_resolver.h"
 #include "cartographer/common/lua_parameter_dictionary.h"
 #include "cartographer/common/port.h"
@@ -22,27 +24,20 @@
 #include "cartographer/sensor/point_cloud.h"
 #include "cartographer/transform/rigid_transform.h"
 #include "cartographer/transform/transform.h"
-
 #include "cartographer_ros/metrics/family_factory.h"
 #include "cartographer_ros/msg_conversion.h"
+#include "cartographer_ros/proto_sstream.h"
 #include "cartographer_ros/sensor_bridge.h"
 #include "cartographer_ros/tf_bridge.h"
 #include "cartographer_ros/time_conversion.h"
 #include "cartographer_ros_msgs/StatusCode.h"
 #include "cartographer_ros_msgs/StatusResponse.h"
-
 #include "glog/logging.h"
 #include "nav_msgs/Odometry.h"
 #include "ros/serialization.h"
 #include "sensor_msgs/PointCloud2.h"
 #include "tf2_eigen/tf2_eigen.h"
 #include "visualization_msgs/MarkerArray.h"
-#include <cartographer/mapping/map_builder.h>
-
-#include <boost/interprocess/streams/vectorstream.hpp>
-#include <boost/iostreams/stream.hpp>
-
-#include "cartographer_ros/proto_sstream.h"
 
 namespace cartographer_ros
 {
@@ -86,8 +81,10 @@ std::string TrajectoryStateToString(const TrajectoryState trajectory_state)
     return "";
 }
 
-visualization_msgs::Marker MakeCylinder(
-        ros::Time time, const double radius, const int index, const std::string& frame_id, const Eigen::Vector2f& position, const float r, const float b, const float g, const float a) {
+visualization_msgs::Marker MakeCylinder(ros::Time time, const double radius, const int index,
+                                        const std::string& frame_id, const Eigen::Vector2f& position, const float r,
+                                        const float b, const float g, const float a)
+{
     visualization_msgs::Marker marker;
     marker.ns = "Features";
     marker.id = index;
@@ -215,11 +212,16 @@ void Node::Reset()
 void Node::StartTimerCallbacks()
 {
     wall_timers_.clear();
-    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.submap_publish_period_sec), &Node::PublishSubmapList, this));
-    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.pose_publish_period_sec), &Node::PublishLocalTrajectoryData, this));
-    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.trajectory_publish_period_sec), &Node::PublishTrajectoryNodeList, this));
-    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.trajectory_publish_period_sec), &Node::PublishLandmarkPosesList, this));
-    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(kConstraintPublishPeriodSec), &Node::PublishConstraintList, this));
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.submap_publish_period_sec),
+                                               &Node::PublishSubmapList, this));
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.pose_publish_period_sec),
+                                               &Node::PublishLocalTrajectoryData, this));
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.trajectory_publish_period_sec),
+                                               &Node::PublishTrajectoryNodeList, this));
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(node_options_.trajectory_publish_period_sec),
+                                               &Node::PublishLandmarkPosesList, this));
+    wall_timers_.push_back(
+        nh_.createWallTimer(::ros::WallDuration(kConstraintPublishPeriodSec), &Node::PublishConstraintList, this));
 }
 
 bool Node::HandleSubmapQuery(::cartographer_ros_msgs::SubmapQuery::Request& request,
@@ -276,10 +278,9 @@ void Node::PublishSubmapList(const ::ros::WallTimerEvent&)
             for (const auto& f : sm.CircleFeatures())
             {
                 const cartographer::transform::Rigid3d::Vector p = gp * f.keypoint.position.cast<double>();
-                feature_markers.markers.push_back(MakeCylinder(feature_time, f.fdescriptor.radius,
-                                                               static_cast<int>(feature_markers.markers.size()),
-                                                               node_options_.map_frame, p.head<2>().cast<float>(),
-                                                               0.0f, 0.0f, 1.0f, 1.0f));
+                feature_markers.markers.push_back(
+                    MakeCylinder(feature_time, f.fdescriptor.radius, static_cast<int>(feature_markers.markers.size()),
+                                 node_options_.map_frame, p.head<2>().cast<float>(), 0.0f, 0.0f, 1.0f, 1.0f));
             }
         }
 
@@ -304,13 +305,13 @@ void Node::PublishLocalTrajectoryData(const ::ros::WallTimerEvent&)
         const auto& trajectory_data = local_it->second;
 
         const auto constraints = map_builder_bridge_->map_builder().pose_graph()->constraints();
-        const long global_constraints = std::count_if(
-                    constraints.begin(),
-                    constraints.end(),
-                    [&trajectory_id](const auto& c) {
-            return (c.node_id.trajectory_id == trajectory_id && c.submap_id.trajectory_id != trajectory_id);
-        });
-        const cartographer::transform::Rigid3d local_to_global = (global_it != global_slam_data.local_to_global.end()) ? global_it->second : cartographer::transform::Rigid3d::Identity();
+        const long global_constraints =
+            std::count_if(constraints.begin(), constraints.end(), [&trajectory_id](const auto& c) {
+                return (c.node_id.trajectory_id == trajectory_id && c.submap_id.trajectory_id != trajectory_id);
+            });
+        const cartographer::transform::Rigid3d local_to_global = (global_it != global_slam_data.local_to_global.end())
+                                                                     ? global_it->second
+                                                                     : cartographer::transform::Rigid3d::Identity();
         const ros::Time ros_time = ToRos(trajectory_data.time);
 
         if (scan_matched_point_cloud_publisher_.getNumSubscribers() > 0)
@@ -323,8 +324,7 @@ void Node::PublishLocalTrajectoryData(const ::ros::WallTimerEvent&)
                                return cartographer::sensor::ToTimedRangefinderPoint(point, 0.f /* time */);
                            });
             scan_matched_point_cloud_publisher_.publish(ToPointCloud2Message(
-                carto::common::ToUniversal(trajectory_data.time),
-                trajectory_options_.tracking_frame,
+                carto::common::ToUniversal(trajectory_data.time), trajectory_options_.tracking_frame,
                 carto::sensor::TransformTimedPointCloud(point_cloud, local_to_global.cast<float>())));
         }
 
@@ -347,12 +347,13 @@ void Node::PublishLocalTrajectoryData(const ::ros::WallTimerEvent&)
 
         geometry_msgs::TransformStamped stamped_transform;
 
-        const Rigid3d tracking_in_local = carto::transform::Embed3D(carto::transform::Project2D(trajectory_data.local_to_tracking));
+        const Rigid3d tracking_in_local =
+            carto::transform::Embed3D(carto::transform::Project2D(trajectory_data.local_to_tracking));
         const Rigid3d tracking_in_global = local_to_global * tracking_in_local;
-        const Rigid3d global_to_odom = tracking_in_global * (*trajectory_data.tracking_to_odom);
 
         if (trajectory_data.tracking_to_odom != nullptr)
         {
+            const Rigid3d global_to_odom = tracking_in_global * (*trajectory_data.tracking_to_odom);
             stamped_transform.header.stamp = ros::Time::now();
             stamped_transform.header.frame_id = node_options_.map_frame;
             stamped_transform.child_frame_id = trajectory_options_.odom_frame;
@@ -414,7 +415,8 @@ void Node::PublishConstraintList(const ::ros::WallTimerEvent&)
 
 int Node::AddTrajectory(const TrajectoryOptions& options)
 {
-    const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> expected_sensor_ids = ComputeExpectedSensorIds(options);
+    const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> expected_sensor_ids =
+        ComputeExpectedSensorIds(options);
     const int trajectory_id = map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
 
     CHECK(sensor_samplers_.count(trajectory_id) == 0);
@@ -430,7 +432,8 @@ int Node::AddTrajectory(const TrajectoryOptions& options)
                                                topic});
     }
 
-    for (const std::string& topic : ComputeRepeatedTopicNames(kMultiEchoLaserScanTopic, options.num_multi_echo_laser_scans))
+    for (const std::string& topic :
+         ComputeRepeatedTopicNames(kMultiEchoLaserScanTopic, options.num_multi_echo_laser_scans))
     {
         subscribers_[trajectory_id].push_back(
             {SubscribeWithHandler<sensor_msgs::MultiEchoLaserScan>(&Node::HandleMultiEchoLaserScanMessage,
@@ -469,7 +472,8 @@ int Node::AddTrajectory(const TrajectoryOptions& options)
              kLandmarkTopic});
     }
 
-    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(kTopicMismatchCheckDelaySec), &Node::MaybeWarnAboutTopicMismatch, this, /*oneshot=*/true));
+    wall_timers_.push_back(nh_.createWallTimer(::ros::WallDuration(kTopicMismatchCheckDelaySec),
+                                               &Node::MaybeWarnAboutTopicMismatch, this, /*oneshot=*/true));
 
     return trajectory_id;
 }
@@ -607,7 +611,7 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
     absl::MutexLock lock(&mutex_);
 
     nav_msgs::OccupancyGrid og_map = map_builder_bridge_->GetOccupancyGridMsg(request.resolution);
-    
+
     const auto local_slam_data = map_builder_bridge_->GetLocalSLAMData();
     const auto global_slam_data = map_builder_bridge_->GetGlobalSLAMData();
 
@@ -620,8 +624,11 @@ bool Node::HandleWriteState(::cartographer_ros_msgs::WriteState::Request& reques
 
     {
         const auto& trajectory_data = local_it->second;
-        const Rigid3d tracking_in_local = carto::transform::Embed3D(carto::transform::Project2D(trajectory_data.local_to_tracking));
-        const cartographer::transform::Rigid3d local_to_global = (global_it != global_slam_data.local_to_global.end()) ? global_it->second : cartographer::transform::Rigid3d::Identity();
+        const Rigid3d tracking_in_local =
+            carto::transform::Embed3D(carto::transform::Project2D(trajectory_data.local_to_tracking));
+        const cartographer::transform::Rigid3d local_to_global = (global_it != global_slam_data.local_to_global.end())
+                                                                     ? global_it->second
+                                                                     : cartographer::transform::Rigid3d::Identity();
         const Rigid3d tracking_in_global = local_to_global * tracking_in_local;
         response.trajectory_id.push_back(local_it->first);
         response.pose.push_back(ToGeometryMsgPose(tracking_in_global));
@@ -831,8 +838,11 @@ bool Node::HandlePauseLocalisation(std_srvs::TriggerRequest&, std_srvs::TriggerR
 
         CHECK(trajectory_data.tracking_to_odom);
 
-        const Rigid3d tracking_in_local = carto::transform::Embed3D(carto::transform::Project2D(trajectory_data.local_to_tracking));
-        const cartographer::transform::Rigid3d local_to_global = (global_it != global_slam_data.local_to_global.end()) ? global_it->second : cartographer::transform::Rigid3d::Identity();
+        const Rigid3d tracking_in_local =
+            carto::transform::Embed3D(carto::transform::Project2D(trajectory_data.local_to_tracking));
+        const cartographer::transform::Rigid3d local_to_global = (global_it != global_slam_data.local_to_global.end())
+                                                                     ? global_it->second
+                                                                     : cartographer::transform::Rigid3d::Identity();
         paused_tracking_in_global_ = local_to_global * tracking_in_local;
         paused_global_to_odom_ = paused_tracking_in_global_ * (*trajectory_data.tracking_to_odom);
 
@@ -844,7 +854,8 @@ bool Node::HandlePauseLocalisation(std_srvs::TriggerRequest&, std_srvs::TriggerR
         system_state_.number_of_global_constraints = 0;
         system_state_publisher_.publish(system_state_);
 
-        paused_timer_ = nh_.createWallTimer(::ros::WallDuration(node_options_.submap_publish_period_sec), &Node::PausedTimer, this);
+        paused_timer_ =
+            nh_.createWallTimer(::ros::WallDuration(node_options_.submap_publish_period_sec), &Node::PausedTimer, this);
 
         res.success = true;
     }
@@ -869,7 +880,8 @@ bool Node::HandleResumeLocalisation(std_srvs::TriggerRequest&, std_srvs::Trigger
 
     LOG(INFO) << "Request to resume localisation";
 
-    if (system_state_.mode != cartographer_ros_msgs::SystemState::MODE_LOCALISING || system_state_.localisation_status != cartographer_ros_msgs::SystemState::PAUSED)
+    if (system_state_.mode != cartographer_ros_msgs::SystemState::MODE_LOCALISING ||
+        system_state_.localisation_status != cartographer_ros_msgs::SystemState::PAUSED)
     {
         res.message = "Not currently paused!";
         res.success = false;
@@ -884,10 +896,12 @@ bool Node::HandleResumeLocalisation(std_srvs::TriggerRequest&, std_srvs::Trigger
         trimmer->set_max_submaps_to_keep(4);
 
         // Check if the requested trajectory for the relative initial pose exists
-        const auto status = TrajectoryStateToStatus(0, {TrajectoryState::ACTIVE, TrajectoryState::FROZEN, TrajectoryState::FINISHED} /* valid states */);
-        CHECK (status.code == cartographer_ros_msgs::StatusCode::OK);
+        const auto status = TrajectoryStateToStatus(
+            0, {TrajectoryState::ACTIVE, TrajectoryState::FROZEN, TrajectoryState::FINISHED} /* valid states */);
+        CHECK(status.code == cartographer_ros_msgs::StatusCode::OK);
 
-        const auto& node = map_builder_bridge_->map_builder().pose_graph()->GetTrajectoryNodes().at(cartographer::mapping::NodeId{0, 0});
+        const auto& node = map_builder_bridge_->map_builder().pose_graph()->GetTrajectoryNodes().at(
+            cartographer::mapping::NodeId{0, 0});
 
         ::cartographer::mapping::proto::InitialTrajectoryPose initial_trajectory_pose;
         initial_trajectory_pose.set_to_trajectory_id(0);
