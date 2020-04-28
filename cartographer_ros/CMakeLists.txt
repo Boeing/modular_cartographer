@@ -93,7 +93,7 @@ if (NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
     externalproject_add(${CARTOGRAPHER_PROJECT_NAME}
         PREFIX ${CARTOGRAPHER_PROJECT_NAME}
         GIT_REPOSITORY https://git.web.boeing.com/brta-robotics/cartographer.git
-        GIT_TAG f566b6daf70dadfdd6463ea4012572f7f11fcec8
+        GIT_TAG e6c9dbe074f16ba2f4a0517c7a0b949146a55b6d
         UPDATE_COMMAND ""
         DEPENDS ${PROTOBUF_PROJECT_NAME} ${ABSEIL_PROJECT_NAME}
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=install
@@ -254,9 +254,9 @@ add_executable(cartographer_occupancy_grid_node
     src/dev/occupancy_grid_node_main.cc
 )
 
-add_executable(${PROJECT_NAME}bag_validate
-    src/dev/rosbag_validate_main.cc
-)
+#add_executable(${PROJECT_NAME}bag_validate
+#    src/dev/rosbag_validate_main.cc
+#)
 
 add_executable(cartographer_pbstream_to_ros_map
     src/dev/pbstream_to_ros_map_main.cc
@@ -292,7 +292,7 @@ target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_occupancy_grid_node PUBLIC ${PROJECT_NAME} ${LIBS})
-target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
+#target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_map_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${PROJECT_NAME} ${LIBS})
@@ -323,7 +323,7 @@ install(TARGETS
     cartographer_pbstream_map_publisher
     cartographer_pbstream_to_ros_map
     ${PROJECT_NAME}
-    ${PROJECT_NAME}bag_validate
+#    ${PROJECT_NAME}bag_validate
     cartographer_rviz_plugin
     sdf_to_pbstream
     test_find_constraint

@@ -380,13 +380,7 @@ int main(int argc, char** argv)
 
         const std::vector<std::string> submap_locations = vm["submap_location"].as<std::vector<std::string>>();
 
-        cartographer::common::ThreadPool thread_pool(1);
-
-        auto opt_problem = absl::make_unique<cartographer::mapping::optimization::OptimizationProblem2D>(
-            map_builder_options.pose_graph_options().optimization_problem_options());
-
-        cartographer::mapping::PoseGraph2D pose_graph(map_builder_options.pose_graph_options(), std::move(opt_problem),
-                                                      &thread_pool);
+        cartographer::mapping::PoseGraph2D pose_graph(map_builder_options.pose_graph_options());
 
         for (size_t i = 0; i < submap_locations.size(); ++i)
         {

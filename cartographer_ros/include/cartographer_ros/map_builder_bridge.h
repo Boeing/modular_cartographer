@@ -41,7 +41,7 @@ class MapBuilderBridge
     {
         ::cartographer::common::Time time;
         ::cartographer::transform::Rigid3d local_to_tracking;
-        std::shared_ptr<cartographer::transform::Rigid3d> tracking_to_odom;
+        ::cartographer::transform::Rigid3d tracking_to_odom;
         std::shared_ptr<const ::cartographer::mapping::TrajectoryNode::Data> trajectory_node_data;
     };
 
@@ -99,7 +99,7 @@ class MapBuilderBridge
   private:
     void OnLocalSlamResult(
         const int trajectory_id, const ::cartographer::common::Time time,
-        const ::cartographer::transform::Rigid3d local_pose,
+        const ::cartographer::transform::Rigid3d local_pose, const ::cartographer::transform::Rigid3d odom,
         const std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult>
             insertion_result) LOCKS_EXCLUDED(mutex_);
 
