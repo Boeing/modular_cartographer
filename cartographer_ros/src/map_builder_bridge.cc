@@ -110,9 +110,9 @@ int MapBuilderBridge::AddTrajectory(
 {
     const int trajectory_id = map_builder_.AddTrajectoryBuilder(
         expected_sensor_ids, trajectory_options.trajectory_builder_options,
-        [this](const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose,
+        [this](const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose, const Rigid3d odom,
                std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult> insertion) {
-            OnLocalSlamResult(trajectory_id, time, local_pose, std::move(insertion));
+            OnLocalSlamResult(trajectory_id, time, local_pose, odom, std::move(insertion));
         });
     LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
 
@@ -543,16 +543,15 @@ SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id)
 }
 
 void MapBuilderBridge::OnLocalSlamResult(
-    const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose,
+    const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose, const Rigid3d odom,
     const std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult> insertion_result)
 {
     absl::MutexLock lock(&mutex_);
-    const SensorBridge& sensor_bridge = *sensor_bridges_.at(trajectory_id);
     CHECK_EQ(trajectory_options_.count(trajectory_id), 1);
     local_slam_data_[trajectory_id] = {
         time,
         local_pose,
-        sensor_bridge.tf_bridge().LookupToTracking(time, trajectory_options_[trajectory_id].odom_frame),
+        odom.inverse(),
         insertion_result->constant_data,
     };
 }

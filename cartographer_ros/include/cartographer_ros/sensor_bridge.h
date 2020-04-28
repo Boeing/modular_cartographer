@@ -63,8 +63,6 @@ class SensorBridge
                                          const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg);
     void HandlePointCloud2Message(const std::string& sensor_id, const sensor_msgs::PointCloud2::ConstPtr& msg);
 
-    const TfBridge& tf_bridge() const;
-
   private:
     void HandleLaserScan(const std::string& sensor_id, ::cartographer::common::Time start_time,
                          const std::string& frame_id, const ::cartographer::sensor::TimedPointCloud& points);

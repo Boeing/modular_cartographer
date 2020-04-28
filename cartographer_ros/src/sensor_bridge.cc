@@ -181,11 +181,6 @@ void SensorBridge::HandlePointCloud2Message(const std::string& sensor_id, const 
     HandleRangefinder(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
-const TfBridge& SensorBridge::tf_bridge() const
-{
-    return tf_bridge_;
-}
-
 void SensorBridge::HandleLaserScan(const std::string& sensor_id, const carto::common::Time time,
                                    const std::string& frame_id, const carto::sensor::TimedPointCloud& points)
 {

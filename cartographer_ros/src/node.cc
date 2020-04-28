@@ -351,9 +351,8 @@ void Node::PublishLocalTrajectoryData(const ::ros::WallTimerEvent&)
             carto::transform::Embed3D(carto::transform::Project2D(trajectory_data.local_to_tracking));
         const Rigid3d tracking_in_global = local_to_global * tracking_in_local;
 
-        if (trajectory_data.tracking_to_odom != nullptr)
         {
-            const Rigid3d global_to_odom = tracking_in_global * (*trajectory_data.tracking_to_odom);
+            const Rigid3d global_to_odom = tracking_in_global * trajectory_data.tracking_to_odom;
             stamped_transform.header.stamp = ros::Time::now();
             stamped_transform.header.frame_id = node_options_.map_frame;
             stamped_transform.child_frame_id = trajectory_options_.odom_frame;
@@ -372,7 +371,7 @@ void Node::PublishLocalTrajectoryData(const ::ros::WallTimerEvent&)
         }
         else
         {
-            if (trajectory_data.tracking_to_odom && global_constraints > 0)
+            if (global_constraints > 0)
             {
                 system_state_.localisation_status = cartographer_ros_msgs::SystemState::LOCALISED;
             }
@@ -836,15 +835,13 @@ bool Node::HandlePauseLocalisation(std_srvs::TriggerRequest&, std_srvs::TriggerR
 
         const auto& trajectory_data = local_it->second;
 
-        CHECK(trajectory_data.tracking_to_odom);
-
         const Rigid3d tracking_in_local =
             carto::transform::Embed3D(carto::transform::Project2D(trajectory_data.local_to_tracking));
         const cartographer::transform::Rigid3d local_to_global = (global_it != global_slam_data.local_to_global.end())
                                                                      ? global_it->second
                                                                      : cartographer::transform::Rigid3d::Identity();
         paused_tracking_in_global_ = local_to_global * tracking_in_local;
-        paused_global_to_odom_ = paused_tracking_in_global_ * (*trajectory_data.tracking_to_odom);
+        paused_global_to_odom_ = paused_tracking_in_global_ * trajectory_data.tracking_to_odom;
 
         Reset();
 
