@@ -381,6 +381,7 @@ int main(int argc, char** argv)
         const std::vector<std::string> submap_locations = vm["submap_location"].as<std::vector<std::string>>();
 
         cartographer::mapping::PoseGraph2D pose_graph(map_builder_options.pose_graph_options());
+        pose_graph.FreezeTrajectory(0);
 
         for (size_t i = 0; i < submap_locations.size(); ++i)
         {
@@ -499,8 +500,6 @@ int main(int argc, char** argv)
         }
 
         pose_graph.FinishTrajectory(0);
-        pose_graph.FreezeTrajectory(0);
-        pose_graph.RunFinalOptimization();
 
         cartographer::mapping::proto::TrajectoryBuilderOptionsWithSensorIds t_opt;
         *t_opt.mutable_trajectory_builder_options() = trajectory_builder_options;
