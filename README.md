@@ -145,3 +145,25 @@ we can actually relax the raytrace and hit fraction thresholds.
 Currently, if we see 3 or more features, we reduce the raytrace and hit 
 fraction required by 0.025. The parameters `min_hit_fraction` and 
 `min_raytrace_fraction` are used when we see 2 or fewer features.
+
+## Testing
+### Find constraints
+`test_find_constraint` will perform a global constraint search and print pretty
+debug images that are extremely helpful with tuning. To run this test, you will need:
+- Map in the form of a `.pbstream` file. Generate this by running `sdf_to_pbstream` on the `.world`/`.sdf` map.
+- robot `.urdf`
+- Rosbag with the laser data
+
+Create a test folder with the `.urdf`, `.pbstream` and the `.bag` files.
+
+In the same directory, create a new directory called
+`cartographer_debug`. This name is important! Cartographer will look for this directory
+and if it exists, it will save some debug `.png` in it.
+
+Build cartographer_ros and the test app will be in
+`devel/.private/cartographer_ros/lib/cartographer_ros/test_find_constraint`
+
+Run it with something like:
+```bash
+~/catkin_ws/devel/.private/cartographer_ros/lib/cartographer_ros/test_find_constraint --configuration_directory ~/your_project/cartographer_config --pbstream map.pbstream --urdf robot.urdf --rosbag test.bag
+```
