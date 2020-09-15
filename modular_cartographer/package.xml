@@ -2,8 +2,8 @@
 <package format="2">
     <name>modular_cartographer</name>
     <version>0.1.0</version>
-    <description>modular_cartographer metapackage</description>
-    <maintainer email="Phillip.Haeusler@boeing.com">Phillip Haeusler</maintainer>
+    <description>cartographer_ros packages</description>
+    <maintainer email="William.Ko@boeing.com">William Ko</maintainer>
     <author>Boeing</author>
     <license>Boeing Proprietary</license>
 
