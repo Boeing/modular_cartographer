@@ -1,0 +1,6 @@
+bool use_initial_pose
+geometry_msgs/Pose initial_pose
+int32 relative_to_trajectory_id
+---
+cartographer_ros_msgs/StatusResponse status
+int32 trajectory_id

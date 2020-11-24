@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>modular_cartographer</name>
+    <version>0.1.0</version>
+    <description>cartographer_ros packages</description>
+    <maintainer email="William.Ko@boeing.com">William Ko</maintainer>
+    <author>Boeing</author>
+    <license>Boeing Proprietary</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <exec_depend>cartographer_ros</exec_depend>
+    <exec_depend>cartographer_ros_msgs</exec_depend>
+
+    <export>
+        <metapackage/>
+    </export>
+
+</package>

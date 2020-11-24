@@ -1,0 +1,14 @@
+float64 resolution
+bool include_unfinished_submaps
+---
+
+nav_msgs/MapMetaData map_info
+sensor_msgs/CompressedImage occupancy_grid
+
+uint8[] pbstream_data
+
+# current trajectory positions
+int32[] trajectory_id
+geometry_msgs/Pose[] pose
+
+cartographer_ros_msgs/StatusResponse status

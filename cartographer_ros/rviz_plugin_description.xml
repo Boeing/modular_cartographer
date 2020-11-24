@@ -1,0 +1,10 @@
+<library path="lib/libcartographer_rviz_plugin">
+    <class name="Submaps"
+           type="cartographer_rviz::SubmapsDisplay"
+           base_class_type="rviz::Display">
+        <description>
+            Displays submaps as a unified map in RViz.
+            https://github.com/googlecartographer/cartographer_ros
+        </description>
+    </class>
+</library>
