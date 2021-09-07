@@ -50,31 +50,35 @@ set(ABSEIL_LIBRARIES
     "${ABSEIL_PROJECT_BUILD_DIR}/absl/utility/${CMAKE_STATIC_LIBRARY_PREFIX}absl_utility${CMAKE_STATIC_LIBRARY_SUFFIX}"
 )
 message(STATUS "${ABSEIL_LIBRARIES}")
-externalproject_add(${ABSEIL_PROJECT_NAME}
+externalproject_add(
+    ${ABSEIL_PROJECT_NAME}
     PREFIX ${ABSEIL_PROJECT_NAME}
     URL ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/abseil-cpp-7b46e1d31a6b08b1c6da2a13e7b151a20446fa07.tar.gz
     URL_MD5 86b452e655610381675a09742244b307
     INSTALL_COMMAND ""
     BUILD_COMMAND ${CMAKE_COMMAND} --build "${ABSEIL_PROJECT_BUILD_DIR}"
-    CMAKE_CACHE_ARGS 
-        "-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON"
-        "-DBUILD_TESTING:BOOL=OFF"
-        "-DCMAKE_BUILD_TYPE:STRING=Release"
+    CMAKE_CACHE_ARGS "-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON" "-DBUILD_TESTING:BOOL=OFF"
+                     "-DCMAKE_BUILD_TYPE:STRING=Release"
     BUILD_BYPRODUCTS "${ABSEIL_LIBRARIES}"
 )
 
 # Protobuf
 set(PROTOBUF_PROJECT_NAME protobuf)
-if (NOT DEFINED PROTOBUF_INSTALL_DIR)
+if(NOT DEFINED PROTOBUF_INSTALL_DIR)
     set(PROTOBUF_PROJECT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PROTOBUF_PROJECT_NAME}/src/${PROTOBUF_PROJECT_NAME})
-    set(PROTOBUF_PROJECT_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PROTOBUF_PROJECT_NAME}/src/${PROTOBUF_PROJECT_NAME}-build)
+    set(PROTOBUF_PROJECT_BUILD_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROTOBUF_PROJECT_NAME}/src/${PROTOBUF_PROJECT_NAME}-build
+    )
     set(PROTOBUF_INSTALL_DIR ${PROTOBUF_PROJECT_BUILD_DIR}/install)
-    externalproject_add(${PROTOBUF_PROJECT_NAME}
+    externalproject_add(
+        ${PROTOBUF_PROJECT_NAME}
         PREFIX ${PROTOBUF_PROJECT_NAME}
         URL ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/protobuf-3.4.1.tar.gz
         URL_MD5 31b19dcfd6567095fdb66a8c07347222
         UPDATE_COMMAND ""
-        CONFIGURE_COMMAND ${CMAKE_COMMAND} ${PROTOBUF_PROJECT_SRC_DIR}/cmake -GNinja -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=install
+        CONFIGURE_COMMAND
+            ${CMAKE_COMMAND} ${PROTOBUF_PROJECT_SRC_DIR}/cmake -GNinja -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+            -DCMAKE_BUILD_TYPE=Release -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=install
         CMAKE_GENERATOR "Ninja"
         BUILD_COMMAND "ninja"
         INSTALL_COMMAND ninja install
@@ -86,11 +90,16 @@ set(PROTOBUF_LIBRARIES ${PROTOBUF_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX
 
 # Cartographer
 set(CARTOGRAPHER_PROJECT_NAME cartographer)
-if (NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
-    set(CARTOGRAPHER_PROJECT_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${CARTOGRAPHER_PROJECT_NAME}/src/${CARTOGRAPHER_PROJECT_NAME})
-    set(CARTOGRAPHER_PROJECT_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/${CARTOGRAPHER_PROJECT_NAME}/src/${CARTOGRAPHER_PROJECT_NAME}-build)
+if(NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
+    set(CARTOGRAPHER_PROJECT_SRC_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/${CARTOGRAPHER_PROJECT_NAME}/src/${CARTOGRAPHER_PROJECT_NAME}
+    )
+    set(CARTOGRAPHER_PROJECT_BUILD_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/${CARTOGRAPHER_PROJECT_NAME}/src/${CARTOGRAPHER_PROJECT_NAME}-build
+    )
     set(CARTOGRAPHER_INSTALL_DIR ${CARTOGRAPHER_PROJECT_BUILD_DIR}/install)
-    externalproject_add(${CARTOGRAPHER_PROJECT_NAME}
+    externalproject_add(
+        ${CARTOGRAPHER_PROJECT_NAME}
         PREFIX ${CARTOGRAPHER_PROJECT_NAME}
         GIT_REPOSITORY https://git.web.boeing.com/brta-robotics/cartographer.git
         GIT_TAG d5ae412c0869339bf8cd820bbf54efd3b6ebe17e
@@ -98,8 +107,7 @@ if (NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
         DEPENDS ${PROTOBUF_PROJECT_NAME} ${ABSEIL_PROJECT_NAME}
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=install
         CMAKE_CACHE_ARGS
-            "-DCMAKE_PREFIX_PATH:STRING=${PROTOBUF_INSTALL_DIR}"
-            "-DABSEIL_INCLUDE_DIRS:STRING=${ABSEIL_INCLUDE_DIRS}"
+            "-DCMAKE_PREFIX_PATH:STRING=${PROTOBUF_INSTALL_DIR}" "-DABSEIL_INCLUDE_DIRS:STRING=${ABSEIL_INCLUDE_DIRS}"
             "-DABSEIL_LIBRARIES:STRING=${ABSEIL_LIBRARIES}"
         CMAKE_GENERATOR "Ninja"
         BUILD_COMMAND "ninja"
@@ -108,7 +116,9 @@ if (NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
     )
 endif()
 set(CARTOGRAPHER_INCLUDE_DIRS ${CARTOGRAPHER_INSTALL_DIR}/include)
-set(CARTOGRAPHER_LIBRARIES ${CARTOGRAPHER_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}cartographer${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(CARTOGRAPHER_LIBRARIES
+    ${CARTOGRAPHER_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}cartographer${CMAKE_STATIC_LIBRARY_SUFFIX}
+)
 
 set(PACKAGE_DEPENDENCIES
     ${PROJECT_NAME}_msgs
@@ -153,21 +163,23 @@ pkg_search_module(CAIRO REQUIRED cairo>=1.12.16)
 
 catkin_package(
     CATKIN_DEPENDS
-        ${PACKAGE_DEPENDENCIES}
+    ${PACKAGE_DEPENDENCIES}
     DEPENDS
-        Boost
-        CERES
-        EIGEN3
-        PCL
-        urdfdom_headers
+    Boost
+    CERES
+    EIGEN3
+    PCL
+    urdfdom_headers
     INCLUDE_DIRS
-    LIBRARIES ${PROJECT_NAME}
+    LIBRARIES
+    ${PROJECT_NAME}
 )
 
 include_directories(include)
 
-#catkin_lint: ignore_once missing_directory
-include_directories(SYSTEM
+# catkin_lint: ignore_once missing_directory
+include_directories(
+    SYSTEM
     ${ABSEIL_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
@@ -210,11 +222,8 @@ add_library(${PROJECT_NAME} ${SRC_FILES})
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${CARTOGRAPHER_PROJECT_NAME})
 
 set(RVIZ_SRC_FILES
-    include/${PROJECT_NAME}/rviz/drawable_submap.h
-    include/${PROJECT_NAME}/rviz/ogre_slice.h
-    include/${PROJECT_NAME}/rviz/submaps_display.h
-    src/rviz/drawable_submap.cc
-    src/rviz/ogre_slice.cc
+    include/${PROJECT_NAME}/rviz/drawable_submap.h include/${PROJECT_NAME}/rviz/ogre_slice.h
+    include/${PROJECT_NAME}/rviz/submaps_display.h src/rviz/drawable_submap.cc src/rviz/ogre_slice.cc
     src/rviz/submaps_display.cc
 )
 
@@ -237,54 +246,29 @@ set(LIBS
     Qt5::Widgets
 )
 
-add_executable(cartographer_assets_writer
-    src/dev/assets_writer_main.cc
-    src/ros_map_writing_points_processor.cc
-)
+add_executable(cartographer_assets_writer src/dev/assets_writer_main.cc src/ros_map_writing_points_processor.cc)
 
-add_executable(cartographer_node
-    src/node_main.cc
-)
+add_executable(cartographer_node src/node_main.cc)
 
-add_executable(cartographer_offline_node
-    src/dev/offline_node_main.cc
-)
+add_executable(cartographer_offline_node src/dev/offline_node_main.cc)
 
-add_executable(cartographer_occupancy_grid_node
-    src/dev/occupancy_grid_node_main.cc
-)
+add_executable(cartographer_occupancy_grid_node src/dev/occupancy_grid_node_main.cc)
 
-#add_executable(${PROJECT_NAME}bag_validate
-#    src/dev/rosbag_validate_main.cc
-#)
+# add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc )
 
-add_executable(cartographer_pbstream_to_ros_map
-    src/dev/pbstream_to_ros_map_main.cc
-)
+add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
 
-add_executable(cartographer_pbstream_map_publisher
-    src/dev/pbstream_map_publisher_main.cc
-)
+add_executable(cartographer_pbstream_map_publisher src/dev/pbstream_map_publisher_main.cc)
 
-add_executable(cartographer_dev_pbstream_trajectories_to_rosbag
-    src/dev/pbstream_trajectories_to_rosbag_main.cc
-)
+add_executable(cartographer_dev_pbstream_trajectories_to_rosbag src/dev/pbstream_trajectories_to_rosbag_main.cc)
 
-add_executable(cartographer_dev_rosbag_publisher
-    src/dev/rosbag_publisher_main.cc
-)
+add_executable(cartographer_dev_rosbag_publisher src/dev/rosbag_publisher_main.cc)
 
-add_executable(cartographer_dev_trajectory_comparison
-    src/dev/trajectory_comparison_main.cc
-)
+add_executable(cartographer_dev_trajectory_comparison src/dev/trajectory_comparison_main.cc)
 
-add_executable(test_find_constraint
-    src/dev/test_find_constraint.cc
-)
+add_executable(test_find_constraint src/dev/test_find_constraint.cc)
 
-add_executable(sdf_to_pbstream
-    src/dev/sdf_to_pbstream.cc
-)
+add_executable(sdf_to_pbstream src/dev/sdf_to_pbstream.cc)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
 target_link_libraries(cartographer_rviz_plugin PUBLIC ${PROJECT_NAME} ${LIBS})
@@ -292,7 +276,7 @@ target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_occupancy_grid_node PUBLIC ${PROJECT_NAME} ${LIBS})
-#target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
+# target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_pbstream_map_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${PROJECT_NAME} ${LIBS})
@@ -301,42 +285,36 @@ target_link_libraries(cartographer_dev_trajectory_comparison PUBLIC ${PROJECT_NA
 target_link_libraries(test_find_constraint PUBLIC ${PROJECT_NAME} ${LIBS})
 target_link_libraries(sdf_to_pbstream PUBLIC ${PROJECT_NAME} ${LIBS})
 
-if (CATKIN_ENABLE_TESTING)
+if(CATKIN_ENABLE_TESTING)
     foreach(TEST_SOURCE_FILENAME ${ALL_TESTS})
         get_filename_component(TEST_NAME ${TEST_SOURCE_FILENAME} NAME_WE)
         catkin_add_gtest(${TEST_NAME} ${TEST_SOURCE_FILENAME})
         add_dependencies(${TEST_NAME} ${catkin_EXPORTED_TARGETS})
-        target_link_libraries(${TEST_NAME}
-            ${PROJECT_NAME}
-        )
+        target_link_libraries(${TEST_NAME} ${PROJECT_NAME})
     endforeach()
 endif()
 
-install(TARGETS
-    cartographer_assets_writer
-    cartographer_dev_pbstream_trajectories_to_rosbag
-    cartographer_dev_rosbag_publisher
-    cartographer_dev_trajectory_comparison
-    cartographer_node
-    cartographer_occupancy_grid_node
-    cartographer_offline_node
-    cartographer_pbstream_map_publisher
-    cartographer_pbstream_to_ros_map
-    ${PROJECT_NAME}
-#    ${PROJECT_NAME}bag_validate
-    cartographer_rviz_plugin
-    sdf_to_pbstream
-    test_find_constraint
-
+install(
+    TARGETS
+        cartographer_assets_writer
+        cartographer_dev_pbstream_trajectories_to_rosbag
+        cartographer_dev_rosbag_publisher
+        cartographer_dev_trajectory_comparison
+        cartographer_node
+        cartographer_occupancy_grid_node
+        cartographer_offline_node
+        cartographer_pbstream_map_publisher
+        cartographer_pbstream_to_ros_map
+        ${PROJECT_NAME}
+        # ${PROJECT_NAME}bag_validate
+        cartographer_rviz_plugin
+        sdf_to_pbstream
+        test_find_constraint
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(FILES rviz_plugin_description.xml
-    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+install(FILES rviz_plugin_description.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-install(DIRECTORY ogre_media
-    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+install(DIRECTORY ogre_media DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
