@@ -196,11 +196,12 @@ World readWorldSDF(const std::string& world_sdf)
 
         const Eigen::Isometry3d model_pose = getPose(model->FirstChildElement("pose")).cast<double>();
 
+        unsigned int count = 0;
+
         for (const TiXmlElement* link : constIterate(model, "link"))
         {
             const std::string name = safe_string(link->Attribute("name"));
             const std::string layer = safe_string(link->Attribute("layer"));
-            LOG(INFO) << "Loading link: " << name << " " << layer;
 
             const Eigen::Isometry3d link_pose = model_pose * getPose(link->FirstChildElement("pose")).cast<double>();
 
@@ -216,15 +217,13 @@ World readWorldSDF(const std::string& world_sdf)
 
                 const double height_value = std::stod(height->GetText());
 
-                LOG(INFO) << "Loading polydata: " << name << " height: " << height_value;
-
                 if (height_value <= 0)
                     continue;
 
                 const std::vector<Eigen::Vector2d> points = getPolyline(polyline);
                 const std::vector<Eigen::Vector2d> transformed_points = transformPoints(points, link_pose);
 
-                LOG(INFO) << "adding object";
+                count++;
                 result.polylines.push_back(Polyline{transformed_points});
             }
             else
@@ -243,6 +242,8 @@ World readWorldSDF(const std::string& world_sdf)
                 result.poles.push_back(Pole{laser_retro, radius_value, link_pose.translation().head<2>()});
             }
         }
+
+        LOG(INFO) << "Loaded " << count << " links from: " << model->Attribute("name");
     }
 
     return result;
