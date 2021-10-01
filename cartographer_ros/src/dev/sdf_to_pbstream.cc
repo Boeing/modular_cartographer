@@ -463,9 +463,6 @@ int main(int argc, char** argv)
                     CHECK(mirrored_x >= 0 && mirrored_x < submap_cells_x);
                     CHECK(mirrored_y >= 0 && mirrored_y < submap_cells_y);
 
-                    const double distance_from_center = std::sqrt(std::pow(submap_x - submap_cells_x / 2.0, 2.0) +
-                                                                  std::pow(submap_y - submap_cells_y / 2.0, 2.0));
-
                     if (px == 100)
                     {
                         grid->SetProbability({mirrored_y, mirrored_x}, 1.f);
