@@ -256,16 +256,21 @@ void Node::PublishSubmapList(const ::ros::WallTimerEvent&)
     submap_list_publisher_.publish(submaps);
 
     // This is very CPU intensive. Throttle rate
-    static unsigned int og_throttle = 0;
-    if (og_throttle == 0)
+    // Only really needed when mapping
+    // There is a bug that causes this to crash Cartographer when submaps are trimmed
+    if (system_state_.mode == cartographer_ros_msgs::SystemState::MODE_MAPPING)
     {
-        const nav_msgs::OccupancyGrid og_map = map_builder_bridge_->GetOccupancyGridMsg(0.02);
-        occupancy_grid_publisher_.publish(og_map);
-    }
-    og_throttle++;
-    if (og_throttle >= 10)
-    {
-        og_throttle = 0;
+        static unsigned int og_throttle = 0;
+        if (og_throttle == 0)
+        {
+            const nav_msgs::OccupancyGrid og_map = map_builder_bridge_->GetOccupancyGridMsg(0.02);
+            occupancy_grid_publisher_.publish(og_map);
+        }
+        og_throttle++;
+        if (og_throttle >= 5)
+        {
+            og_throttle = 0;
+        }
     }
 
     if (submap_features_publisher_.getNumSubscribers() > 0)
