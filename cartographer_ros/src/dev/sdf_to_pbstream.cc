@@ -405,6 +405,10 @@ int main(int argc, char** argv)
         cartographer::mapping::PoseGraph2D pose_graph(map_builder_options.pose_graph_options());
         pose_graph.FreezeTrajectory(0);
 
+        // Cairo can sometimes create memory-aligned rows that are larger than the image width, so when accessing
+        // raw pixel data, we need to multiply by the stride instead of the image width
+        const unsigned int stride = cairo_image_surface_get_stride(surface);
+
         for (size_t i = 0; i < submap_locations.size(); ++i)
         {
             const std::string& submap_location = submap_locations[i];
@@ -448,7 +452,7 @@ int main(int argc, char** argv)
                         continue;
 
                     uint8_t* pixel_data = reinterpret_cast<uint8_t*>(cairo_image_surface_get_data(surface));
-                    const unsigned int idx = static_cast<unsigned int>(y * map_size.x() + x);
+                    const unsigned int idx = static_cast<unsigned int>(y * stride + x);
                     const uint8_t px = pixel_data[idx];
 
                     const int submap_x = x - submap_cells_offset_x;
