@@ -177,7 +177,10 @@ catkin_package(
 
 include_directories(include)
 
-# catkin_lint: ignore_once missing_directory
+# Need to stop cmake_format from adding space between # and catkin_lint
+# cmake-format: off
+#catkin_lint: ignore_once missing_directory
+# cmake-format: on
 include_directories(
     SYSTEM
     ${ABSEIL_INCLUDE_DIRS}
