@@ -102,7 +102,7 @@ if(NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
         ${CARTOGRAPHER_PROJECT_NAME}
         PREFIX ${CARTOGRAPHER_PROJECT_NAME}
         GIT_REPOSITORY https://git.web.boeing.com/brta-robotics/cartographer.git
-        GIT_TAG d5ae412c0869339bf8cd820bbf54efd3b6ebe17e
+        GIT_TAG dev/lra
         UPDATE_COMMAND ""
         DEPENDS ${PROTOBUF_PROJECT_NAME} ${ABSEIL_PROJECT_NAME}
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=install
