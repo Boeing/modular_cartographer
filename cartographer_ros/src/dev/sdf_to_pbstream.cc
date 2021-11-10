@@ -498,7 +498,12 @@ int main(int argc, char** argv)
                     f.keypoint.position.z() = 0.0;
                     f.fdescriptor.score = 0.0;
                     f.fdescriptor.radius = static_cast<float>(p.radius);
-                    cf.push_back(f);
+                    
+                    if ((p.origin.x() >= submap_tl_x && p.origin.x() <= submap_max_x) &&
+                        (p.origin.y() >= submap_tl_y && p.origin.y() <= submap_max_y))
+                    {
+                        cf.push_back(f);
+                    }
                 }
             }
             submap.SetCircleFeatures(cf);
