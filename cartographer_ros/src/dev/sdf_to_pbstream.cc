@@ -435,6 +435,9 @@ int main(int argc, char** argv)
             const int submap_cells_y = static_cast<int>(submap_size_y / map_resolution);
 
             cartographer::mapping::ValueConversionTables conversion_tables;
+
+            // Cartographer grid indexing is row-major, so cell indexes are given as (row, column)
+            // Index (0, 0) refers to the top right corner, so both X and Y need to be mirrored
             auto grid = absl::make_unique<cartographer::mapping::ProbabilityGrid>(
                 cartographer::mapping::MapLimits(
                     map_resolution, Eigen::Vector2d(submap_max_x + map_origin.x(), submap_max_y + map_origin.y()),
