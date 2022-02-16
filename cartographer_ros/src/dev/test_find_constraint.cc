@@ -75,6 +75,8 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
     map_builder_bridge->sensor_bridge(trajectory_id)
         ->HandleLaserScanMessage(back_laser.id, back_laser_msgs->instantiate<sensor_msgs::LaserScan>());
 
+    LOG(INFO) << "Running final optimization";
+
     map_builder_bridge->RunFinalOptimization();
 }
 
@@ -82,7 +84,10 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
 
 int main(int argc, char** argv)
 {
-    //    google::InitGoogleLogging(argv[0]);
+    // google::InitGoogleLogging(argv[0]);
+
+    ::ros::init(argc, argv, "test_find_constraint_node");
+    ::ros::start();
 
     std::string configuration_directory;
     std::string pbstream_filename;
@@ -119,5 +124,8 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    cartographer_ros::ScopedRosLogSink ros_log_sink;
     cartographer_ros::testFindConstraint(configuration_directory, urdf_filename, pbstream_filename, rosbag_filename);
+
+    ::ros::shutdown();
 }

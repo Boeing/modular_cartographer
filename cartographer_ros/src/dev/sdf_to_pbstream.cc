@@ -196,21 +196,19 @@ World readWorldSDF(const std::string& world_sdf)
 
         const Eigen::Isometry3d model_pose = getPose(model->FirstChildElement("pose")).cast<double>();
 
+        unsigned int count = 0;
+
         for (const TiXmlElement* link : constIterate(model, "link"))
         {
             const std::string name = safe_string(link->Attribute("name"));
             const std::string layer = safe_string(link->Attribute("layer"));
-            LOG(INFO) << "Loading link: " << name << " " << layer;
 
             const Eigen::Isometry3d link_pose = model_pose * getPose(link->FirstChildElement("pose")).cast<double>();
 
-            const auto visual = link->FirstChildElement("visual");
             const auto collision = link->FirstChildElement("collision");
-
-            const auto visual_geometry = visual ? visual->FirstChildElement("geometry") : nullptr;
             const auto collision_geometry = collision ? collision->FirstChildElement("geometry") : nullptr;
 
-            const auto polyline = visual_geometry ? visual_geometry->FirstChildElement("polyline") : nullptr;
+            const auto polyline = collision_geometry ? collision_geometry->FirstChildElement("polyline") : nullptr;
             if (polyline)
             {
                 const auto height = polyline->FirstChildElement("height");
@@ -219,27 +217,14 @@ World readWorldSDF(const std::string& world_sdf)
 
                 const double height_value = std::stod(height->GetText());
 
-                LOG(INFO) << "Loading polydata: " << name << " height: " << height_value;
-
                 if (height_value <= 0)
                     continue;
 
                 const std::vector<Eigen::Vector2d> points = getPolyline(polyline);
                 const std::vector<Eigen::Vector2d> transformed_points = transformPoints(points, link_pose);
-                if (layer == "free_space" || layer == "drivable_zone")
-                {
-                    LOG(INFO) << "adding as free space";
-                    result.free_spaces.push_back(FreeSpace{transformed_points});
-                }
-                else if (layer == "exclusion_zone" || layer == "avoid_zone")
-                {
-                    // don't do anything
-                }
-                else
-                {
-                    LOG(INFO) << "adding as object";
-                    result.polylines.push_back(Polyline{transformed_points});
-                }
+
+                count++;
+                result.polylines.push_back(Polyline{transformed_points});
             }
             else
             {
@@ -257,6 +242,8 @@ World readWorldSDF(const std::string& world_sdf)
                 result.poles.push_back(Pole{laser_retro, radius_value, link_pose.translation().head<2>()});
             }
         }
+
+        LOG(INFO) << "Loaded " << count << " links from: " << model->Attribute("name");
     }
 
     return result;
@@ -274,8 +261,16 @@ cairo_surface_t* makeSurface(const Eigen::Vector2i& map_size, const World& world
     cairo_t* cr = cairo_create(surface);
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
+    // If no free space is provided, then assume default value is free and give a warning
+    double default_value = unknown_value;
+    if (world.free_spaces.size() == 0)
+    {
+        default_value = free_value;
+        LOG(WARNING) << "No free space polygons provided. Setting default state to free. This may slow down your map.";
+    }
+
     // Set everything to unknown
-    cairo_set_source_rgba(cr, 0, 0, 0, unknown_value);
+    cairo_set_source_rgba(cr, 0, 0, 0, default_value);
     cairo_set_line_width(cr, 1.0);
     cairo_rectangle(cr, 0, 0, map_size.x(), map_size.y());
     cairo_fill(cr);
@@ -289,7 +284,7 @@ cairo_surface_t* makeSurface(const Eigen::Vector2i& map_size, const World& world
     for (const Polyline& pl : world.polylines)
     {
         const std::vector<Eigen::Vector2i> polyline_cells = worldToMap(pl.points, map_origin, map_resolution);
-        drawPolyline(cr, polyline_cells, 2.0, collision_value, collision_value);
+        drawPolyline(cr, polyline_cells, 2.0, unknown_value, collision_value);
     }
 
     for (const Pole& pole : world.poles)
@@ -312,7 +307,6 @@ int main(int argc, char** argv)
     std::string map_png;
     std::string map_origin_arg = "0,0";
     std::string map_size_arg = "64,64";
-    double map_free_space_size = 10.0;
     std::string world_sdf;
     double map_resolution = 0.02;
 
@@ -327,10 +321,10 @@ int main(int argc, char** argv)
         ("map_png", po::value<std::string>(&map_png), "Map PNG destination")
         ("map_origin", po::value<std::string>(&map_origin_arg), "Map origin in meters 'x,y'")
         ("map_size", po::value<std::string>(&map_size_arg), "Map size in meters 'x,y'")
-        ("map_free_space_size", po::value<double>(&map_free_space_size), "Maximum radial free space size in meters")
         ("world_sdf", po::value<std::string>(&world_sdf)->required(), "World SDF file")
         ("map_resolution", po::value<double>(&map_resolution), "Map resolution")
-        ("submap_location", po::value<std::vector<std::string>>()->multitoken()->required(), "Cartographer Submap Location");
+        ("submap_location", po::value<std::vector<std::string>>()->multitoken()->required(), "Cartographer Submap Location")
+        ("free_space", po::value<std::vector<std::string>>()->multitoken(), "Free space polygon");
         // clang-format on
 
         po::variables_map vm;
@@ -362,10 +356,38 @@ int main(int argc, char** argv)
             map_origin.y() = std::stod(map_origin_strs[1]);
         }
 
-        const World world = readWorldSDF(world_sdf);
+        
+        LOG(INFO) << "loading sdf";
+        World world = readWorldSDF(world_sdf);
+        LOG(INFO) << "finished loading sdf";
+
+        // Add free spaces
+        if (!vm["free_space"].empty())
+        {
+            const std::vector<std::string> free_spaces = vm["free_space"].as<std::vector<std::string>>();
+
+            // Each element in free_spaces is a polygon in the form x1, y1, x2, y2, x3, y3...
+            for (size_t i = 0; i < free_spaces.size(); ++i)
+            {
+                const std::string& free_space = free_spaces[i];
+
+                std::vector<std::string> strs;
+                boost::split(strs, free_space, boost::is_any_of(","));
+
+                // Make sure we have an even number of numbers
+                CHECK(strs.size() % 2 == 0);
+
+                std::vector<Eigen::Vector2d> points;
+                for (size_t j = 0; j < strs.size(); j+=2)
+                {
+                    points.push_back(Eigen::Vector2d(std::stod(strs[j]), std::stod(strs[j+1])));
+                }
+                world.free_spaces.push_back(FreeSpace{points});
+            }
+        }
 
         cairo_surface_t* surface = makeSurface(map_size, world, map_origin, map_resolution);
-
+        LOG(INFO) << "Writing png to: " << map_png;
         cairo_surface_write_to_png(surface, map_png.c_str());
 
         auto file_resolver = absl::make_unique<cartographer::common::ConfigurationFileResolver>(
@@ -382,6 +404,10 @@ int main(int argc, char** argv)
 
         cartographer::mapping::PoseGraph2D pose_graph(map_builder_options.pose_graph_options());
         pose_graph.FreezeTrajectory(0);
+
+        // Cairo can sometimes create memory-aligned rows that are larger than the image width, so when accessing
+        // raw pixel data, we need to multiply by the stride instead of the image width
+        const unsigned int stride = cairo_image_surface_get_stride(surface);
 
         for (size_t i = 0; i < submap_locations.size(); ++i)
         {
@@ -409,6 +435,9 @@ int main(int argc, char** argv)
             const int submap_cells_y = static_cast<int>(submap_size_y / map_resolution);
 
             cartographer::mapping::ValueConversionTables conversion_tables;
+
+            // Cartographer grid indexing is row-major, so cell indexes are given as (row, column)
+            // Index (0, 0) refers to the top right corner, so both X and Y need to be mirrored
             auto grid = absl::make_unique<cartographer::mapping::ProbabilityGrid>(
                 cartographer::mapping::MapLimits(
                     map_resolution, Eigen::Vector2d(submap_max_x + map_origin.x(), submap_max_y + map_origin.y()),
@@ -426,7 +455,7 @@ int main(int argc, char** argv)
                         continue;
 
                     uint8_t* pixel_data = reinterpret_cast<uint8_t*>(cairo_image_surface_get_data(surface));
-                    const unsigned int idx = static_cast<unsigned int>(y * map_size.x() + x);
+                    const unsigned int idx = static_cast<unsigned int>(y * stride + x);
                     const uint8_t px = pixel_data[idx];
 
                     const int submap_x = x - submap_cells_offset_x;
@@ -441,15 +470,11 @@ int main(int argc, char** argv)
                     CHECK(mirrored_x >= 0 && mirrored_x < submap_cells_x);
                     CHECK(mirrored_y >= 0 && mirrored_y < submap_cells_y);
 
-                    const double distance_from_center = std::sqrt(std::pow(submap_x - submap_cells_x / 2.0, 2.0) +
-                                                                  std::pow(submap_y - submap_cells_y / 2.0, 2.0));
-                    const double max_dist = map_free_space_size / map_resolution;
-
                     if (px == 100)
                     {
                         grid->SetProbability({mirrored_y, mirrored_x}, 1.f);
                     }
-                    else if (px < 100 && distance_from_center < max_dist)
+                    else if (px < 100)
                     {
                         grid->SetProbability({mirrored_y, mirrored_x}, 0.f);
                     }
@@ -473,7 +498,12 @@ int main(int argc, char** argv)
                     f.keypoint.position.z() = 0.0;
                     f.fdescriptor.score = 0.0;
                     f.fdescriptor.radius = static_cast<float>(p.radius);
-                    cf.push_back(f);
+                    
+                    if ((p.origin.x() >= submap_tl_x && p.origin.x() <= submap_max_x) &&
+                        (p.origin.y() >= submap_tl_y && p.origin.y() <= submap_max_y))
+                    {
+                        cf.push_back(f);
+                    }
                 }
             }
             submap.SetCircleFeatures(cf);
