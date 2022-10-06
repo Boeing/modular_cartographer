@@ -24,7 +24,7 @@
 #include "cartographer_ros/metrics/internal/counter.h"
 #include "cartographer_ros/metrics/internal/gauge.h"
 #include "cartographer_ros/metrics/internal/histogram.h"
-#include "cartographer_ros_msgs/MetricFamily.h"
+#include "cartographer_ros_msgs/msg/metric_family.hpp"
 
 namespace cartographer_ros
 {
@@ -37,7 +37,7 @@ class CounterFamily : public ::cartographer::metrics::Family<::cartographer::met
     {
     }
     Counter* Add(const std::map<std::string, std::string>& labels) override;
-    cartographer_ros_msgs::MetricFamily ToRosMessage();
+    cartographer_ros_msgs::msg::MetricFamily ToRosMessage();
 
   private:
     std::string name_;
@@ -53,7 +53,7 @@ class GaugeFamily : public ::cartographer::metrics::Family<::cartographer::metri
     }
     Gauge* Add(const std::map<std::string, std::string>& labels) override;
 
-    cartographer_ros_msgs::MetricFamily ToRosMessage();
+    cartographer_ros_msgs::msg::MetricFamily ToRosMessage();
 
   private:
     std::string name_;
@@ -71,7 +71,7 @@ class HistogramFamily : public ::cartographer::metrics::Family<::cartographer::m
 
     Histogram* Add(const std::map<std::string, std::string>& labels) override;
 
-    cartographer_ros_msgs::MetricFamily ToRosMessage();
+    cartographer_ros_msgs::msg::MetricFamily ToRosMessage();
 
   private:
     std::string name_;

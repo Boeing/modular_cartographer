@@ -56,7 +56,7 @@ using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
     return ptr;
 }
 
-void FamilyFactory::ReadMetrics(::cartographer_ros_msgs::ReadMetrics::Response* response) const
+void FamilyFactory::ReadMetrics(std::shared_ptr<cartographer_ros_msgs::srv::ReadMetrics::Response> response) const
 {
     for (const auto& counter_family : counter_families_)
     {

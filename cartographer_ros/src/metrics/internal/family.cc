@@ -36,9 +36,9 @@ Counter* CounterFamily::Add(const std::map<std::string, std::string>& labels)
     return ptr;
 }
 
-cartographer_ros_msgs::MetricFamily CounterFamily::ToRosMessage()
+cartographer_ros_msgs::msg::MetricFamily CounterFamily::ToRosMessage()
 {
-    cartographer_ros_msgs::MetricFamily family_msg;
+    cartographer_ros_msgs::msg::MetricFamily family_msg;
     family_msg.name = name_;
     family_msg.description = description_;
     for (const auto& wrapper : wrappers_)
@@ -56,9 +56,9 @@ Gauge* GaugeFamily::Add(const std::map<std::string, std::string>& labels)
     return ptr;
 }
 
-cartographer_ros_msgs::MetricFamily GaugeFamily::ToRosMessage()
+cartographer_ros_msgs::msg::MetricFamily GaugeFamily::ToRosMessage()
 {
-    cartographer_ros_msgs::MetricFamily family_msg;
+    cartographer_ros_msgs::msg::MetricFamily family_msg;
     family_msg.name = name_;
     family_msg.description = description_;
     for (const auto& wrapper : wrappers_)
@@ -76,9 +76,9 @@ Histogram* HistogramFamily::Add(const std::map<std::string, std::string>& labels
     return ptr;
 }
 
-cartographer_ros_msgs::MetricFamily HistogramFamily::ToRosMessage()
+cartographer_ros_msgs::msg::MetricFamily HistogramFamily::ToRosMessage()
 {
-    cartographer_ros_msgs::MetricFamily family_msg;
+    cartographer_ros_msgs::msg::MetricFamily family_msg;
     family_msg.name = name_;
     family_msg.description = description_;
     for (const auto& wrapper : wrappers_)

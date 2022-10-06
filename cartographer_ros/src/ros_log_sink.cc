@@ -18,11 +18,17 @@
 
 #include <chrono>
 #include <cstring>
+#include <iostream>
 #include <string>
 #include <thread>
 
 #include "glog/log_severity.h"
-#include "ros/console.h"
+// #include "ros/console.h"
+
+#define ROS_INFO_STREAM(str) std::cout << str << std::endl;
+#define ROS_WARN_STREAM(str) std::cout << str << std::endl;
+#define ROS_ERROR_STREAM(str) std::cerr << str << std::endl;
+#define ROS_FATAL_STREAM(str) std::cerr << str << std::endl;
 
 namespace cartographer_ros
 {
