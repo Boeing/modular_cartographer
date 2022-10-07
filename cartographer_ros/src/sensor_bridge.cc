@@ -51,7 +51,7 @@ SensorBridge::SensorBridge(const int num_subdivisions_per_laser_scan, const std:
 {
 }
 
-std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(const nav_msgs::Odometry::ConstPtr& msg)
+std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(const nav_msgs::msg::Odometry::ConstSharedPtr& msg)
 {
     const carto::common::Time time = FromRos(msg->header.stamp);
     const auto sensor_to_tracking = tf_bridge_.LookupToTracking(time, CheckNoLeadingSlash(msg->child_frame_id));
@@ -65,7 +65,7 @@ std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(const 
         Eigen::Vector3d(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z)});
 }
 
-void SensorBridge::HandleOdometryMessage(const std::string& sensor_id, const nav_msgs::Odometry::ConstPtr& msg)
+void SensorBridge::HandleOdometryMessage(const std::string& sensor_id, const nav_msgs::msg::Odometry::ConstSharedPtr& msg)
 {
     std::unique_ptr<carto::sensor::OdometryData> odometry_data = ToOdometryData(msg);
     if (odometry_data != nullptr)
@@ -74,10 +74,10 @@ void SensorBridge::HandleOdometryMessage(const std::string& sensor_id, const nav
     }
 }
 
-void SensorBridge::HandleNavSatFixMessage(const std::string& sensor_id, const sensor_msgs::NavSatFix::ConstPtr& msg)
+void SensorBridge::HandleNavSatFixMessage(const std::string& sensor_id, const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg)
 {
     const carto::common::Time time = FromRos(msg->header.stamp);
-    if (msg->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX)
+    if (msg->status.status == sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX)
     {
         trajectory_builder_->AddSensorData(sensor_id,
                                            carto::sensor::FixedFramePoseData{time, absl::optional<Rigid3d>()});
@@ -99,7 +99,7 @@ void SensorBridge::HandleNavSatFixMessage(const std::string& sensor_id, const se
 }
 
 void SensorBridge::HandleLandmarkMessage(const std::string& sensor_id,
-                                         const cartographer_ros_msgs::LandmarkList::ConstPtr& msg)
+                                         const cartographer_ros_msgs::msg::LandmarkList::ConstSharedPtr& msg)
 {
     auto landmark_data = ToLandmarkData(*msg);
 
@@ -116,7 +116,7 @@ void SensorBridge::HandleLandmarkMessage(const std::string& sensor_id,
     trajectory_builder_->AddSensorData(sensor_id, landmark_data);
 }
 
-std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(const sensor_msgs::Imu::ConstPtr& msg)
+std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(const sensor_msgs::msg::Imu::ConstSharedPtr& msg)
 {
     CHECK_NE(msg->linear_acceleration_covariance[0], -1)
         << "Your IMU data claims to not contain linear acceleration measurements "
@@ -140,12 +140,13 @@ std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(const sensor_msg
            "Transforming linear acceleration into the tracking frame will "
            "otherwise be imprecise.";
     return absl::make_unique<carto::sensor::ImuData>(
+    // return ::cartographer::common::make_unique<::cartographer::sensor::ImuData>( # Proposed in migrated version
         carto::sensor::ImuData{time, sensor_to_tracking->rotation() * ToEigen(msg->linear_acceleration),
                                sensor_to_tracking->rotation() * ToEigen(msg->angular_velocity)});
 }
 
 // cppcheck-suppress unusedFunction
-void SensorBridge::HandleImuMessage(const std::string& sensor_id, const sensor_msgs::Imu::ConstPtr& msg)
+void SensorBridge::HandleImuMessage(const std::string& sensor_id, const sensor_msgs::msg::Imu::ConstSharedPtr& msg)
 {
     std::unique_ptr<carto::sensor::ImuData> imu_data = ToImuData(msg);
     if (imu_data != nullptr)
@@ -156,7 +157,7 @@ void SensorBridge::HandleImuMessage(const std::string& sensor_id, const sensor_m
     }
 }
 
-void SensorBridge::HandleLaserScanMessage(const std::string& sensor_id, const sensor_msgs::LaserScan::ConstPtr& msg)
+void SensorBridge::HandleLaserScanMessage(const std::string& sensor_id, const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg)
 {
     carto::sensor::TimedPointCloud point_cloud;
     carto::common::Time time;
@@ -165,7 +166,7 @@ void SensorBridge::HandleLaserScanMessage(const std::string& sensor_id, const se
 }
 
 void SensorBridge::HandleMultiEchoLaserScanMessage(const std::string& sensor_id,
-                                                   const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg)
+                                                   const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg)
 {
     carto::sensor::TimedPointCloud point_cloud;
     carto::common::Time time;
@@ -173,7 +174,7 @@ void SensorBridge::HandleMultiEchoLaserScanMessage(const std::string& sensor_id,
     HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
-void SensorBridge::HandlePointCloud2Message(const std::string& sensor_id, const sensor_msgs::PointCloud2::ConstPtr& msg)
+void SensorBridge::HandlePointCloud2Message(const std::string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg)
 {
     carto::sensor::TimedPointCloud point_cloud;
     carto::common::Time time;
