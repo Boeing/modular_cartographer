@@ -35,7 +35,7 @@ namespace cartographer_ros
 // Fetch 'submap_id' using the 'client' and returning the response or 'nullptr'
 // on error.
 std::unique_ptr<::cartographer::io::SubmapTextures>
-    FetchSubmapTextures(std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> result);
+    FetchSubmapTextures(const ::cartographer::mapping::SubmapId& submap_id, rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client);
         // const ::cartographer::mapping::SubmapId& submap_id, ros::ServiceClient* client);
 
 }  // namespace cartographer_ros
