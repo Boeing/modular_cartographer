@@ -6,13 +6,16 @@ project(cartographer_ros)
 # set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # set(CMAKE_CXX_EXTENSIONS OFF)
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17) #Replaced 14 for 15 for is_same_v compatibility
+  set(CMAKE_CXX_STANDARD 17) #Replaced 14 for 17 for is_same_v compatibility
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# From https://stackoverflow.com/questions/65536494/why-am-i-keeping-get-this-error-message-xxx-so-undefined-reference-to-abslst
+# Fixes abseil binding, but breaks everything else
+# add_definitions("-D_GLIBCXX_USE_CXX11_ABI=0") 
 
 include(ExternalProject)
 
@@ -182,6 +185,8 @@ endif()
 # find_package(Qt5 ${rviz_QT_VERSION} EXACT REQUIRED Core Widgets)
 find_package(gflags REQUIRED)
 find_package(std_srvs REQUIRED)
+# find_package(tinyxml REQUIRED)
+
 
 find_package(PkgConfig)
 # include(FindPkgConfig)
@@ -343,21 +348,23 @@ install(TARGETS
 # qt5_wrap_cpp(RVIZ_SRC_FILES_MOC ${RVIZ_SRC_FILES})
 # add_library(cartographer_rviz_plugin ${RVIZ_SRC_FILES_MOC} ${RVIZ_SRC_FILES})
 
-# set(LIBS
-#     ${ABSEIL_LIBRARIES}
-#     ${Boost_LIBRARIES}
-#     ${CAIRO_LIBRARIES}
-#     ${CARTOGRAPHER_LIBRARIES}
-#     ${catkin_LIBRARIES}
-#     ${CERES_LIBRARIES}
-#     ${LUA_LIBRARIES}
-#     ${PCL_LIBRARIES}
-#     ${PROTOBUF_LIBRARIES}
-#     gflags
-#     glog
-#     Qt5::Core
-#     Qt5::Widgets
-# )
+set(LIBS
+    ${ABSEIL_LIBRARIES}
+    ${Boost_LIBRARIES}
+    ${CAIRO_LIBRARIES}
+    ${CARTOGRAPHER_LIBRARIES}
+    # ${catkin_LIBRARIES}
+    ${CERES_LIBRARIES}
+    ${LUA_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${PROTOBUF_LIBRARIES}
+    gflags
+    glog
+    tinyxml
+    png16
+    # Qt5::Core
+    # Qt5::Widgets
+)
 
 add_executable(cartographer_node
   src/node_main.cc)
@@ -389,6 +396,34 @@ ament_target_dependencies(occupancy_grid_node
   "std_msgs"
 )
 
+# Linking problems with abseil
+# add_executable(cartographer_assets_writer src/dev/assets_writer_main.cc src/ros_map_writing_points_processor.cc)
+# target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} cairo)
+
+# Depends on bagfiles
+# add_executable(cartographer_offline_node src/dev/offline_node_main.cc)
+# target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
+
+# Linking problems with abseil
+# add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
+# target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} cairo)
+
+add_executable(cartographer_pbstream_map_publisher src/dev/pbstream_map_publisher_main.cc)
+target_link_libraries(cartographer_pbstream_map_publisher ${PROJECT_NAME} ${LIBS})
+ament_target_dependencies(cartographer_pbstream_map_publisher
+  "rclcpp"
+  "nav_msgs"
+)
+
+# add_executable(sdf_to_pbstream src/dev/sdf_to_pbstream.cc)
+# target_link_libraries(sdf_to_pbstream ${PROJECT_NAME} ${LIBS})
+# ament_target_dependencies(sdf_to_pbstream
+#   "cartographer_ros_msgs"
+#   "nav_msgs"
+#   "rclcpp"
+#   "std_msgs"
+# )
+
 install(TARGETS
   cartographer_node
   occupancy_grid_node
@@ -417,7 +452,7 @@ install(TARGETS
 
 # add_executable(test_find_constraint src/dev/test_find_constraint.cc)
 
-# add_executable(sdf_to_pbstream src/dev/sdf_to_pbstream.cc)
+
 
 # target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
 # target_link_libraries(cartographer_rviz_plugin PUBLIC ${PROJECT_NAME} ${LIBS})
