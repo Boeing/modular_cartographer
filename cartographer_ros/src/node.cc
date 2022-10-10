@@ -587,13 +587,15 @@ cartographer_ros_msgs::msg::StatusResponse Cartographer::TrajectoryStateToStatus
     const auto it = trajectory_states.find(trajectory_id);
     if (it == trajectory_states.end())
     {
-        status_response.message = absl::StrCat("Trajectory ", trajectory_id, " doesn't exist.");
+        // status_response.message = absl::StrCat("Trajectory ", trajectory_id, " doesn't exist.");
+        status_response.message = "Trajectory " + std::to_string(trajectory_id) + " doesn't exist.";
         status_response.code = cartographer_ros_msgs::msg::StatusCode::NOT_FOUND;
         return status_response;
     }
 
-    status_response.message =
-        absl::StrCat("Trajectory ", trajectory_id, " is in '", TrajectoryStateToString(it->second), "' state.");
+    // status_response.message =
+    //     absl::StrCat("Trajectory ", trajectory_id, " is in '", TrajectoryStateToString(it->second), "' state.");
+    status_response.message = "Trajectory " + std::to_string(trajectory_id) + " is in '" + TrajectoryStateToString(it->second) + "' state.";
     status_response.code = valid_states.count(it->second) ? cartographer_ros_msgs::msg::StatusCode::OK
                                                           : cartographer_ros_msgs::msg::StatusCode::INVALID_ARGUMENT;
     return status_response;
@@ -604,7 +606,8 @@ cartographer_ros_msgs::msg::StatusResponse Cartographer::FinishTrajectoryUnderLo
     cartographer_ros_msgs::msg::StatusResponse status_response;
     if (trajectories_scheduled_for_finish_.count(trajectory_id))
     {
-        status_response.message = absl::StrCat("Trajectory ", trajectory_id, " already pending to finish.");
+        // status_response.message = absl::StrCat("Trajectory ", trajectory_id, " already pending to finish.");
+        status_response.message = "Trajectory " + std::to_string(trajectory_id) + " already pending to finish.";
         status_response.code = cartographer_ros_msgs::msg::StatusCode::OK;
         LOG(INFO) << status_response.message;
         return status_response;
@@ -633,7 +636,8 @@ cartographer_ros_msgs::msg::StatusResponse Cartographer::FinishTrajectoryUnderLo
     }
     map_builder_bridge_->FinishTrajectory(trajectory_id);
     trajectories_scheduled_for_finish_.emplace(trajectory_id);
-    status_response.message = absl::StrCat("Finished trajectory ", trajectory_id, ".");
+    // status_response.message = absl::StrCat("Finished trajectory ", trajectory_id, ".");
+    status_response.message = "Finished trajectory " + std::to_string(trajectory_id) + ".";
     status_response.code = cartographer_ros_msgs::msg::StatusCode::OK;
     return status_response;
 }
@@ -661,6 +665,7 @@ void Cartographer::HandleLoadState(const std::shared_ptr<cartographer_ros_msgs::
 void Cartographer::HandleGetTrajectoryStates(const std::shared_ptr<cartographer_ros_msgs::srv::GetTrajectoryStates::Request> request,
                                     std::shared_ptr<cartographer_ros_msgs::srv::GetTrajectoryStates::Response> response)
 {
+    (void)request;
     using TrajectoryState = ::cartographer::mapping::PoseGraphInterface::TrajectoryState;
     absl::MutexLock lock(&mutex_);
     response->status.code = ::cartographer_ros_msgs::msg::StatusCode::OK;
@@ -789,12 +794,14 @@ void Cartographer::HandleWriteState(const std::shared_ptr<cartographer_ros_msgs:
         }
 
         response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;
-        response->status.message = absl::StrCat("Success");
+        // response->status.message = absl::StrCat("Success");
+        response->status.message = "Success";
     }
     else
     {
         response->status.code = cartographer_ros_msgs::msg::StatusCode::CANCELLED;
-        response->status.message = absl::StrCat("Failed");
+        // response->status.message = absl::StrCat("Failed");
+        response->status.message = "Failed";
     }
 
     Reset();
@@ -811,6 +818,7 @@ void Cartographer::HandleWriteState(const std::shared_ptr<cartographer_ros_msgs:
 void Cartographer::HandleReadMetrics(const std::shared_ptr<cartographer_ros_msgs::srv::ReadMetrics::Request> request,
                             std::shared_ptr<cartographer_ros_msgs::srv::ReadMetrics::Response> response)
 {
+    (void)request;
     absl::MutexLock lock(&mutex_);
     response->timestamp = this->get_clock()->now();
     if (!metrics_registry_)
@@ -899,6 +907,7 @@ void Cartographer::HandleStartLocalisation(const std::shared_ptr<cartographer_ro
 void Cartographer::HandlePauseLocalisation(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
                                   std::shared_ptr<std_srvs::srv::Trigger::Response> res)
 {
+    (void)req;
     absl::MutexLock lock(&mutex_);
 
     LOG(INFO) << "Request to pause localisation";
@@ -962,6 +971,7 @@ void Cartographer::PausedTimer()
 void Cartographer::HandleResumeLocalisation(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
                                     std::shared_ptr<std_srvs::srv::Trigger::Response> res)
 {
+    (void)req;
     absl::MutexLock lock(&mutex_);
 
     LOG(INFO) << "Request to resume localisation";
@@ -1016,6 +1026,7 @@ void Cartographer::HandleResumeLocalisation(const std::shared_ptr<std_srvs::srv:
 void Cartographer::HandleStopLocalisation(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
                                   std::shared_ptr<std_srvs::srv::Trigger::Response> res)
 {
+    (void)req;
     absl::MutexLock lock(&mutex_);
 
     LOG(INFO) << "Request to stop localisation";
@@ -1040,9 +1051,10 @@ void Cartographer::HandleStopLocalisation(const std::shared_ptr<std_srvs::srv::T
     // return true;
 }
 
-void Cartographer::HandleStartMapping(const std::shared_ptr<cartographer_ros_msgs::srv::StartMapping::Request> request,
+void Cartographer::HandleStartMapping(const std::shared_ptr<cartographer_ros_msgs::srv::StartMapping::Request> req,
                               std::shared_ptr<cartographer_ros_msgs::srv::StartMapping::Response> response)
 {
+    (void)req;
     absl::MutexLock lock(&mutex_);
 
     LOG(INFO) << "Request to start mapping";
@@ -1069,6 +1081,7 @@ void Cartographer::HandleStartMapping(const std::shared_ptr<cartographer_ros_msg
 void Cartographer::HandleStopMapping(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
                             std::shared_ptr<std_srvs::srv::Trigger::Response> res)
 {
+    (void)req;
     absl::MutexLock lock(&mutex_);
 
     LOG(INFO) << "Request to stop mapping";

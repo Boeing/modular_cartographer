@@ -37,7 +37,8 @@ constexpr double kConstraintMarkerScale = 0.025;
 visualization_msgs::msg::Marker CreateTrajectoryMarker(const int trajectory_id, const std::string& frame_id, ::rclcpp::Time node_time)
 {
     visualization_msgs::msg::Marker marker;
-    marker.ns = absl::StrCat("Trajectory ", trajectory_id);
+    // marker.ns = absl::StrCat("Trajectory ", trajectory_id);
+    marker.ns = "Trajectory " + std::to_string(trajectory_id);
     marker.id = 0;
     marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
     marker.header.stamp = node_time;
@@ -255,8 +256,10 @@ void MapBuilderBridge::HandleTrajectoryQuery(const std::shared_ptr<::cartographe
         response->trajectory.push_back(pose_stamped);
     }
     response->status.code = cartographer_ros_msgs::msg::StatusCode::OK;
-    response->status.message = absl::StrCat("Retrieved ", response->trajectory.size(),
-                                           " trajectory nodes from trajectory ", request->trajectory_id, ".");
+    // response->status.message = absl::StrCat("Retrieved ", response->trajectory.size(),
+    //                                        " trajectory nodes from trajectory ", request->trajectory_id, ".");
+    response->status.message = "Retrieved " + std::to_string(response->trajectory.size()) +
+                                           " trajectory nodes from trajectory " + std::to_string(request->trajectory_id) + ".";
 }
 
 visualization_msgs::msg::MarkerArray MapBuilderBridge::GetTrajectoryNodeList(::rclcpp::Time node_time)
