@@ -13,7 +13,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# From https://stackoverflow.com/questions/65536494/why-am-i-keeping-get-this-error-message-xxx-so-undefined-reference-to-abslst
+# Abseil error https://stackoverflow.com/questions/65536494/why-am-i-keeping-get-this-error-message-xxx-so-undefined-reference-to-abslst
+# Boost error https://stackoverflow.com/questions/39591067/undefined-reference-to-boostprogram-options-in-xubuntu
 # Fixes abseil binding, but breaks everything else
 # add_definitions("-D_GLIBCXX_USE_CXX11_ABI=0") 
 
@@ -69,7 +70,7 @@ externalproject_add(
     INSTALL_COMMAND ""
     BUILD_COMMAND ${CMAKE_COMMAND} --build "${ABSEIL_PROJECT_BUILD_DIR}"
     CMAKE_CACHE_ARGS "-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON" "-DBUILD_TESTING:BOOL=OFF"
-                     "-DCMAKE_BUILD_TYPE:STRING=Release"
+                     "-DCMAKE_BUILD_TYPE:STRING=Release" "CMAKE_CXX_STANDARD:STRING=17"
     BUILD_BYPRODUCTS "${ABSEIL_LIBRARIES}"
 )
 
@@ -101,6 +102,7 @@ set(PROTOBUF_LIBRARIES ${PROTOBUF_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX
 
 # Cartographer
 set(CARTOGRAPHER_PROJECT_NAME cartographer)
+# set(CARTOGRAPHER_INSTALL_DIR /root/ros2_ws/aux/cartographer/build/install)
 if(NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
     set(CARTOGRAPHER_PROJECT_SRC_DIR
         ${CMAKE_CURRENT_BINARY_DIR}/${CARTOGRAPHER_PROJECT_NAME}/src/${CARTOGRAPHER_PROJECT_NAME}
@@ -170,7 +172,8 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system iostreams)
+find_package(rosbag2_cpp REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system iostreams program_options)
 find_package(PCL REQUIRED COMPONENTS common)
 # find_package(LuaGoogle REQUIRED)
 find_package(Lua REQUIRED)
@@ -185,8 +188,14 @@ endif()
 # find_package(Qt5 ${rviz_QT_VERSION} EXACT REQUIRED Core Widgets)
 find_package(gflags REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(urdf REQUIRED)
 # find_package(tinyxml REQUIRED)
-
+# find_package(absl REQUIRED PATHS /root/ros2_ws/aux/abseil-install)
+# find_package(protobuf REQUIRED PATHS /root/ros2_ws/aux/protobuf/build/install)
+# set(ABSEIL_INCLUDE_DIRS /root/ros2_ws/aux/abseil-install/include)
+# set(ABSEIL_LIBRARIES /root/ros2_ws/aux/abseil-install/lib)
+# set(PROTOBUF_INCLUDE_DIRS /root/ros2_ws/aux/protobuf/build/install/include)
+# set(PROTOBUF_LIBRARIES /root/ros2_ws/aux/protobuf/build/install/lib)
 
 find_package(PkgConfig)
 # include(FindPkgConfig)
@@ -263,7 +272,7 @@ include_directories(
 
 
 set(SRC_FILES
-    ## src/assets_writer.cc # Use of rosbag
+    src/assets_writer.cc # Use of rosbag
     src/map_builder_bridge.cc
     src/metrics/family_factory.cc
     src/metrics/internal/family.cc
@@ -286,9 +295,28 @@ set(SRC_FILES
     src/urdf_reader.cc
 )
 
+set(LIBS
+    ${ABSEIL_LIBRARIES}
+    ${Boost_LIBRARIES}
+    ${CAIRO_LIBRARIES}
+    ${CARTOGRAPHER_LIBRARIES}
+    # ${catkin_LIBRARIES}
+    ${CERES_LIBRARIES}
+    ${LUA_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${PROTOBUF_LIBRARIES}
+    gflags
+    glog
+    tinyxml
+    png16
+    # Qt5::Core
+    # Qt5::Widgets
+)
+
 add_library(${PROJECT_NAME} ${SRC_FILES})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
+  # ${LIBS}
   ${CARTOGRAPHER_LIBRARIES}
   ${ABSEIL_LIBRARIES}
   ${PROTOBUF_LIBRARIES}
@@ -348,24 +376,6 @@ install(TARGETS
 # qt5_wrap_cpp(RVIZ_SRC_FILES_MOC ${RVIZ_SRC_FILES})
 # add_library(cartographer_rviz_plugin ${RVIZ_SRC_FILES_MOC} ${RVIZ_SRC_FILES})
 
-set(LIBS
-    ${ABSEIL_LIBRARIES}
-    ${Boost_LIBRARIES}
-    ${CAIRO_LIBRARIES}
-    ${CARTOGRAPHER_LIBRARIES}
-    # ${catkin_LIBRARIES}
-    ${CERES_LIBRARIES}
-    ${LUA_LIBRARIES}
-    ${PCL_LIBRARIES}
-    ${PROTOBUF_LIBRARIES}
-    gflags
-    glog
-    tinyxml
-    png16
-    # Qt5::Core
-    # Qt5::Widgets
-)
-
 add_executable(cartographer_node
   src/node_main.cc)
 target_include_directories(cartographer_node SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
@@ -397,12 +407,24 @@ ament_target_dependencies(occupancy_grid_node
 )
 
 # Linking problems with abseil
-# add_executable(cartographer_assets_writer src/dev/assets_writer_main.cc src/ros_map_writing_points_processor.cc)
-# target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} cairo)
+add_executable(cartographer_assets_writer src/dev/assets_writer_main.cc src/ros_map_writing_points_processor.cc)
+target_link_libraries(cartographer_assets_writer ${PROJECT_NAME} cairo)
+ament_target_dependencies(cartographer_assets_writer
+  "rclcpp"
+  "rosbag2_cpp"
+  "sensor_msgs"
+  "tf2"
+  "tf2_ros"
+  "urdf"
+)
 
 # Depends on bagfiles
 # add_executable(cartographer_offline_node src/dev/offline_node_main.cc)
 # target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
+
+# Depends on bagfiles
+# # add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc )
+# # target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
 
 # Linking problems with abseil
 # add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
@@ -415,8 +437,25 @@ ament_target_dependencies(cartographer_pbstream_map_publisher
   "nav_msgs"
 )
 
+# Depends on bagfiles
+# add_executable(cartographer_dev_pbstream_trajectories_to_rosbag src/dev/pbstream_trajectories_to_rosbag_main.cc)
+# target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${PROJECT_NAME} ${LIBS})
+
+# Depends on bagfiles
+# add_executable(cartographer_dev_rosbag_publisher src/dev/rosbag_publisher_main.cc)
+# target_link_libraries(cartographer_dev_rosbag_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
+
+# Depends on bagfiles
+# add_executable(cartographer_dev_trajectory_comparison src/dev/trajectory_comparison_main.cc)
+# target_link_libraries(cartographer_dev_trajectory_comparison PUBLIC ${PROJECT_NAME} ${LIBS})
+
+# Depends on bagfiles
+# add_executable(test_find_constraint src/dev/test_find_constraint.cc)
+# target_link_libraries(test_find_constraint PUBLIC ${PROJECT_NAME} ${LIBS})
+
+# Linking problem with boost
 # add_executable(sdf_to_pbstream src/dev/sdf_to_pbstream.cc)
-# target_link_libraries(sdf_to_pbstream ${PROJECT_NAME} ${LIBS})
+# target_link_libraries(sdf_to_pbstream ${PROJECT_NAME} ${ABSEIL_LIBRARIES} ${Boost_LIBRARIES} tinyxml)
 # ament_target_dependencies(sdf_to_pbstream
 #   "cartographer_ros_msgs"
 #   "nav_msgs"
@@ -427,47 +466,11 @@ ament_target_dependencies(cartographer_pbstream_map_publisher
 install(TARGETS
   cartographer_node
   occupancy_grid_node
+  cartographer_pbstream_map_publisher
   DESTINATION lib/${PROJECT_NAME})
-
-
-# add_executable(cartographer_assets_writer src/dev/assets_writer_main.cc src/ros_map_writing_points_processor.cc)
-
-# add_executable(cartographer_node src/node_main.cc)
-
-# add_executable(cartographer_offline_node src/dev/offline_node_main.cc)
-
-# add_executable(cartographer_occupancy_grid_node src/dev/occupancy_grid_node_main.cc)
-
-# # add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc )
-
-# add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
-
-# add_executable(cartographer_pbstream_map_publisher src/dev/pbstream_map_publisher_main.cc)
-
-# add_executable(cartographer_dev_pbstream_trajectories_to_rosbag src/dev/pbstream_trajectories_to_rosbag_main.cc)
-
-# add_executable(cartographer_dev_rosbag_publisher src/dev/rosbag_publisher_main.cc)
-
-# add_executable(cartographer_dev_trajectory_comparison src/dev/trajectory_comparison_main.cc)
-
-# add_executable(test_find_constraint src/dev/test_find_constraint.cc)
-
-
 
 # target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
 # target_link_libraries(cartographer_rviz_plugin PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_assets_writer PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_node PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_occupancy_grid_node PUBLIC ${PROJECT_NAME} ${LIBS})
-# # target_link_libraries(${PROJECT_NAME}bag_validate PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_pbstream_map_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_dev_rosbag_publisher PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(cartographer_dev_trajectory_comparison PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(test_find_constraint PUBLIC ${PROJECT_NAME} ${LIBS})
-# target_link_libraries(sdf_to_pbstream PUBLIC ${PROJECT_NAME} ${LIBS})
 
 # # if(CATKIN_ENABLE_TESTING)
 # #     foreach(TEST_SOURCE_FILENAME ${ALL_TESTS})
