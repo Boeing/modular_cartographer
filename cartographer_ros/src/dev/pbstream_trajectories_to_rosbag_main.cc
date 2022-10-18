@@ -22,11 +22,11 @@
 #include "cartographer/transform/transform.h"
 #include "cartographer_ros/msg_conversion.h"
 #include "cartographer_ros/time_conversion.h"
-#include "geometry_msgs/TransformStamped.h"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
-#include "rosbag/bag.h"
-#include "tf2_msgs/TFMessage.h"
+#include <rosbag2_cpp/writer.hpp>
+#include "tf2_msgs/msg/tf_message.hpp"
 
 DEFINE_string(input, "", "pbstream file to process");
 DEFINE_string(output, "", "Bag file to write to.");
@@ -37,13 +37,11 @@ namespace cartographer_ros
 namespace
 {
 
-geometry_msgs::TransformStamped ToTransformStamped(int64_t timestamp_uts, const std::string& parent_frame_id,
+geometry_msgs::msg::TransformStamped ToTransformStamped(int64_t timestamp_uts, const std::string& parent_frame_id,
                                                    const std::string& child_frame_id,
                                                    const cartographer::transform::proto::Rigid3d& parent_T_child)
 {
-    static int64_t seq = 0;
-    geometry_msgs::TransformStamped transform_stamped;
-    transform_stamped.header.seq = ++seq;
+    geometry_msgs::msg::TransformStamped transform_stamped;
     transform_stamped.header.frame_id = parent_frame_id;
     transform_stamped.header.stamp = cartographer_ros::ToRos(::cartographer::common::FromUniversal(timestamp_uts));
     transform_stamped.child_frame_id = child_frame_id;
@@ -57,7 +55,9 @@ void pbstream_trajectories_to_bag(const std::string&, const std::string& output_
 {
     const auto pose_graph = cartographer::io::DeserializePoseGraphFromFile(FLAGS_input);
 
-    rosbag::Bag bag(output_bag_filename, rosbag::bagmode::Write);
+    auto writer = std::make_unique<rosbag2_cpp::Writer>();
+    writer->open(output_bag_filename);
+
     for (const auto trajectory : pose_graph.trajectory())
     {
         const auto child_frame_id = absl::StrCat("trajectory_", trajectory.trajectory_id());
@@ -65,12 +65,12 @@ void pbstream_trajectories_to_bag(const std::string&, const std::string& output_
                   << " with " << trajectory.node_size() << " nodes.";
         for (const auto& node : trajectory.node())
         {
-            tf2_msgs::TFMessage tf_msg;
-            geometry_msgs::TransformStamped transform_stamped =
+            tf2_msgs::msg::TFMessage tf_msg;
+            geometry_msgs::msg::TransformStamped transform_stamped =
                 ToTransformStamped(node.timestamp(), parent_frame_id, child_frame_id, node.pose());
             tf_msg.transforms.push_back(transform_stamped);
-            bag.write(child_frame_id, transform_stamped.header.stamp, transform_stamped);
-            bag.write("/tf", transform_stamped.header.stamp, tf_msg);
+            writer->write(transform_stamped, child_frame_id, transform_stamped.header.stamp);
+            writer->write(tf_msg, "/tf", transform_stamped.header.stamp);            
         }
     }
 }

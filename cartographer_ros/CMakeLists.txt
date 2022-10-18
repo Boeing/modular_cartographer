@@ -433,20 +433,19 @@ ament_target_dependencies(cartographer_assets_writer
 #   "visualization_msgs"
 # )
 
-# Depends on bagfiles
-add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc )
-target_link_libraries(${PROJECT_NAME}bag_validate ${PROJECT_NAME} ${LIBS})
-ament_target_dependencies(${PROJECT_NAME}bag_validate
-  "nav_msgs"
-  "rclcpp"
-  "rosbag2_cpp"
-  "sensor_msgs"
-  "tf2_msgs"
-)
+# Linking problem with abseil
+# add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc )
+# target_link_libraries(${PROJECT_NAME}bag_validate ${PROJECT_NAME} ${LIBS})
+# ament_target_dependencies(${PROJECT_NAME}bag_validate
+#   "nav_msgs"
+#   "rclcpp"
+#   "rosbag2_cpp"
+#   "sensor_msgs"
+#   "tf2_msgs"
+# )
 
-# Linking problems with abseil
-# add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
-# target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} cairo)
+add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
+target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} cairo)
 
 add_executable(cartographer_pbstream_map_publisher src/dev/pbstream_map_publisher_main.cc)
 target_link_libraries(cartographer_pbstream_map_publisher ${PROJECT_NAME} ${LIBS})
@@ -455,9 +454,14 @@ ament_target_dependencies(cartographer_pbstream_map_publisher
   "nav_msgs"
 )
 
-# Depends on bagfiles
-# add_executable(cartographer_dev_pbstream_trajectories_to_rosbag src/dev/pbstream_trajectories_to_rosbag_main.cc)
-# target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag PUBLIC ${PROJECT_NAME} ${LIBS})
+add_executable(cartographer_dev_pbstream_trajectories_to_rosbag src/dev/pbstream_trajectories_to_rosbag_main.cc)
+target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag ${PROJECT_NAME} ${LIBS})
+ament_target_dependencies(cartographer_dev_pbstream_trajectories_to_rosbag
+  "rclcpp"
+  "rosbag2_cpp"
+  "rosbag2_storage"
+  "tf2_msgs"
+)
 
 # Depends on bagfiles
 # add_executable(cartographer_dev_rosbag_publisher src/dev/rosbag_publisher_main.cc)
