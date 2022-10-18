@@ -282,7 +282,7 @@ set(SRC_FILES
     src/node.cc
     src/node_constants.cc
     src/node_options.cc
-    ## src/playable_bag.cc # Use of rosbag
+    src/playable_bag.cc # Use of rosbag
     src/proto_sstream.cc
     src/ros_log_sink.cc
     src/ros_map.cc
@@ -406,7 +406,6 @@ ament_target_dependencies(occupancy_grid_node
   "std_msgs"
 )
 
-# Linking problems with abseil
 add_executable(cartographer_assets_writer src/dev/assets_writer_main.cc src/ros_map_writing_points_processor.cc)
 target_link_libraries(cartographer_assets_writer ${PROJECT_NAME} cairo)
 ament_target_dependencies(cartographer_assets_writer
@@ -419,8 +418,20 @@ ament_target_dependencies(cartographer_assets_writer
 )
 
 # Depends on bagfiles
-# add_executable(cartographer_offline_node src/dev/offline_node_main.cc)
-# target_link_libraries(cartographer_offline_node PUBLIC ${PROJECT_NAME} ${LIBS})
+add_executable(cartographer_offline_node src/dev/offline_node_main.cc)
+target_link_libraries(cartographer_offline_node ${PROJECT_NAME} ${LIBS})
+ament_target_dependencies(cartographer_offline_node
+  "cartographer_ros_msgs"
+  "nav_msgs"
+  "rclcpp"
+  "rosbag2_cpp"
+  "rosbag2_storage"
+  "std_srvs"
+  "tf2"
+  "tf2_ros"
+  "urdf"
+  "visualization_msgs"
+)
 
 # Depends on bagfiles
 # # add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc )

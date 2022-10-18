@@ -16,14 +16,16 @@
 
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_PLAYABLE_BAG_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_PLAYABLE_BAG_H
-#include <cartographer_ros_msgs/BagfileProgress.h>
-#include <ros/node_handle.h>
+#include <cartographer_ros_msgs/msg/bagfile_progress.hpp>
 
 #include <functional>
 #include <queue>
 
-#include "rosbag/bag.h"
-#include "rosbag/view.h"
+#include <rclcpp/rclcpp.hpp>
+#include <rosbag2_cpp/reader.hpp>
+#include <rosbag2_cpp/readers/sequential_reader.hpp>
+#include <rosbag2_cpp/writer.hpp>
+#include <rosbag2_cpp/writers/sequential_writer.hpp>
 #include "tf2_ros/buffer.h"
 
 namespace cartographer_ros
@@ -35,15 +37,15 @@ class PlayableBag
     // Handles messages early, i.e. when they are about to enter the buffer.
     // Returns a boolean indicating whether the message should enter the buffer.
     using FilteringEarlyMessageHandler =
-        std::function<bool /* forward_message_to_buffer */ (const rosbag::MessageInstance&)>;
+        std::function<bool /* forward_message_to_buffer */ (std::shared_ptr<rosbag2_storage::SerializedBagMessage>)>;
 
-    PlayableBag(const std::string& bag_filename, int bag_id, ros::Time start_time, ros::Time end_time,
-                ros::Duration buffer_delay, FilteringEarlyMessageHandler filtering_early_message_handler);
+    PlayableBag(const std::string& bag_filename, int bag_id, rclcpp::Duration buffer_delay, FilteringEarlyMessageHandler filtering_early_message_handler);
 
-    ros::Time PeekMessageTime() const;
-    rosbag::MessageInstance GetNextMessage(cartographer_ros_msgs::BagfileProgress* progress);
+    rclcpp::Time PeekMessageTime() const;
+    rosbag2_storage::SerializedBagMessage GetNextMessage(cartographer_ros_msgs::msg::BagfileProgress* progress);
+    
     bool IsMessageAvailable() const;
-    std::tuple<ros::Time, ros::Time> GetBeginEndTime() const;
+    std::tuple<rclcpp::Time, rclcpp::Time> GetBeginEndTime() const;
 
     int bag_id() const;
     std::set<std::string> topics() const
@@ -58,21 +60,20 @@ class PlayableBag
     {
         return finished_;
     }
+    rosbag2_storage::BagMetadata bag_metadata;
 
   private:
     void AdvanceOneMessage();
     void AdvanceUntilMessageAvailable();
 
-    std::unique_ptr<rosbag::Bag> bag_;
-    std::unique_ptr<rosbag::View> view_;
-    rosbag::View::const_iterator view_iterator_;
+    std::unique_ptr<rosbag2_cpp::Reader> bag_reader_;
     bool finished_;
     const int bag_id_;
     const std::string bag_filename_;
-    const double duration_in_seconds_;
+    double duration_in_seconds_;
     int message_counter_;
-    std::deque<rosbag::MessageInstance> buffered_messages_;
-    const ::ros::Duration buffer_delay_;
+    std::deque<rosbag2_storage::SerializedBagMessage> buffered_messages_;
+    const rclcpp::Duration buffer_delay_;
     FilteringEarlyMessageHandler filtering_early_message_handler_;
     std::set<std::string> topics_;
 };
@@ -80,16 +81,16 @@ class PlayableBag
 class PlayableBagMultiplexer
 {
   public:
-    PlayableBagMultiplexer();
+    PlayableBagMultiplexer(rclcpp::Node::SharedPtr node);
     void AddPlayableBag(PlayableBag playable_bag);
 
     // Returns the next message from the multiplexed (merge-sorted) message
     // stream, along with the bag id corresponding to the message, and whether
     // this was the last message in that bag.
-    std::tuple<rosbag::MessageInstance, int /* bag_id */, bool /* is_last_message_in_bag */> GetNextMessage();
+    std::tuple<rosbag2_storage::SerializedBagMessage, int /* bag_id */, std::string, bool /* is_last_message_in_bag */> GetNextMessage();
 
     bool IsMessageAvailable() const;
-    ros::Time PeekMessageTime() const;
+    rclcpp::Time PeekMessageTime() const;
 
     std::set<std::string> topics() const
     {
@@ -99,7 +100,7 @@ class PlayableBagMultiplexer
   private:
     struct BagMessageItem
     {
-        ros::Time message_timestamp;
+        rclcpp::Time message_timestamp;
         int bag_index;
         struct TimestampIsGreater
         {
@@ -110,11 +111,11 @@ class PlayableBagMultiplexer
         };
     };
 
-    ros::NodeHandle pnh_;
+    rclcpp::Node::SharedPtr node_;
     // Publishes information about the bag-file(s) processing and its progress
-    ros::Publisher bag_progress_pub_;
+    rclcpp::Publisher<cartographer_ros_msgs::msg::BagfileProgress>::SharedPtr bag_progress_pub_;
     // Map between bagfile id and the last time when its progress was published
-    std::map<int, ros::Time> bag_progress_time_map_;
+    std::map<int, rclcpp::Time> bag_progress_time_map_;
     // The time interval of publishing bag-file(s) processing in seconds
     double progress_pub_interval_;
 
