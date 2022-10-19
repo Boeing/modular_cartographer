@@ -16,7 +16,7 @@ endif()
 # Abseil error https://stackoverflow.com/questions/65536494/why-am-i-keeping-get-this-error-message-xxx-so-undefined-reference-to-abslst
 # Boost error https://stackoverflow.com/questions/39591067/undefined-reference-to-boostprogram-options-in-xubuntu
 # Fixes abseil binding, but breaks everything else
-# add_definitions("-D_GLIBCXX_USE_CXX11_ABI=0") 
+# add_definitions("-D_GLIBCXX_USE_CXX11_ABI=0")
 
 include(ExternalProject)
 
@@ -116,7 +116,7 @@ if(NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
         PREFIX ${CARTOGRAPHER_PROJECT_NAME}
         # GIT_REPOSITORY https://git.web.boeing.com/brta-robotics/cartographer.git
         # GIT_TAG 8d17b2fadb3a754f52f7730fc2e1a39e4803bcb1
-        SOURCE_DIR /root/ros2_ws/src/cartographer 
+        SOURCE_DIR /root/ros2_ws/src/cartographer
         UPDATE_COMMAND ""
         DEPENDS ${PROTOBUF_PROJECT_NAME} ${ABSEIL_PROJECT_NAME}
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=install
@@ -260,7 +260,7 @@ include_directories(
   ${ABSEIL_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${CAIRO_INCLUDE_DIRS}
-  ${CARTOGRAPHER_INCLUDE_DIRS} 
+  ${CARTOGRAPHER_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${LUA_INCLUDE_DIR}
@@ -315,7 +315,10 @@ set(LIBS
 
 add_library(${PROJECT_NAME} ${SRC_FILES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC 
+# Add dependency to cartographer external_project
+add_dependencies(${PROJECT_NAME} ${CARTOGRAPHER_PROJECT_NAME})
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
   # ${LIBS}
   ${CARTOGRAPHER_LIBRARIES}
   ${ABSEIL_LIBRARIES}
