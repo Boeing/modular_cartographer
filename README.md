@@ -10,6 +10,7 @@ Both `cartographer-ros` and `cartographer` have been forked and modified to suit
 ## Changes from upstream
 
 Most of the important changes are in `cartographer`:
+
 - Add 2D Submap features
   - Match reflective poles for robust constraint matching
 - Add `GlobalICPScanMatcher2D`
@@ -39,6 +40,7 @@ into a `.pbstream` (protobuf stream), which is how Cartographer likes its maps.
 ## How to Build
 
 If you just want to use as-is, run
+
 ```bash
 catkin build modular_cartographer
 ```
@@ -48,7 +50,8 @@ The `CMakeLists.txt` is configured to automagically pull, build and link `cartog
 
 If you are a developer and would like to build `cartographer` manually:
 
-**Build protobuf**
+### Build protobuf
+
 ```bash
 cd /home/boeing/git
 git clone https://github.com/protocolbuffers/protobuf.git
@@ -61,9 +64,11 @@ ninja
 ninja install
 ```
 
-**Build cartographer**
+### Build cartographer
+
 - You need to provide the path to an Abseil tar `ABSEIL_TAR_PATH`
 - You need to provide the correct version of protobuf on `CMAKE_PREFIX_PATH`
+
 ```bash
 cd cartographer
 mkdir build
@@ -73,21 +78,25 @@ make -j8
 make install
 ```
 
-**Point cartographer_ros to installation of cartographer**
+### Point cartographer_ros to installation of cartographer
 
 Modify `cartographer_ros` `CMakeLists.txt` to point to the install path for cartographer
 CMakeLists.txt.
 
 Above the line
-```bash
+
+```Cmake
 if (NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
 ```
+
 add
-```
+
+```Cmake
 set(CARTOGRAPHER_INSTALL_DIR /home/boeing/ros/cartographer/build/install)
 ```
 
 ## Tuning Cartographer
+
 Cartographer can be quite sensitive to certain parameters. These are configured in `.lua`
 files. A set of default configuration files are available in `cartographer/configuration_files`
 although a set of configurations dedicated to the project is most likely required.
@@ -117,7 +126,7 @@ to filtering out bad constraints. Remember, a bad constraint is worse than no co
 
 The three most useful metrics are:
 
-**Raytrace fraction**
+### Raytrace fraction
 
 The raytrace score is calculated by tracing a line from the robot to each laser point.
 If the line hits an object before reaching the point, it means we are seeing beyond
@@ -129,14 +138,14 @@ Because laser scanners have noise, we allow a margin of error defined by
 `raytrace_threshold`. If a point is within this distance from the obstacle, then
 we still consider it a pass.
 
-**Hit fraction**
+### Hit fraction
 
 This measures how many points actually hit an object. This ratio will
 vary depending on how cluttered the room is and thus may not be very effective
 in a complex environment. `hit_threshold` controls the distance between the laser
 point and an object for it to register as a hit.
 
-**Features match count**
+### Features match count
 
 Features are unique objects in the room such as high-reflective points.
 They are very effective in removing ambiguity when the room is very
@@ -147,9 +156,12 @@ fraction required by 0.025. The parameters `min_hit_fraction` and
 `min_raytrace_fraction` are used when we see 2 or fewer features.
 
 ## Testing
+
 ### Find constraints
+
 `test_find_constraint` will perform a global constraint search and print pretty
 debug images that are extremely helpful with tuning. To run this test, you will need:
+
 - Map in the form of a `.pbstream` file. Generate this by running `sdf_to_pbstream` on the `.world`/`.sdf` map.
 - robot `.urdf`
 - Rosbag with the laser data
@@ -164,6 +176,7 @@ Build cartographer_ros and the test app will be in
 `devel/.private/cartographer_ros/lib/cartographer_ros/test_find_constraint`
 
 Run it with something like:
+
 ```bash
 ~/catkin_ws/devel/.private/cartographer_ros/lib/cartographer_ros/test_find_constraint --configuration_directory ~/your_project/cartographer_config --pbstream map.pbstream --urdf robot.urdf --rosbag test.bag
 ```
