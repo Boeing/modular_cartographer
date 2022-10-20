@@ -517,7 +517,7 @@ ament_target_dependencies(cartographer_pbstream_map_publisher
 )
 
 add_executable(cartographer_dev_pbstream_trajectories_to_rosbag src/dev/pbstream_trajectories_to_rosbag_main.cc)
-target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag ${PROJECT_NAME} ${LIBS})
+target_link_libraries(cartographer_dev_pbstream_trajectories_to_rosbag ${PROJECT_NAME})
 ament_target_dependencies(cartographer_dev_pbstream_trajectories_to_rosbag
   "rclcpp"
   "rosbag2_cpp"
@@ -538,14 +538,14 @@ ament_target_dependencies(cartographer_dev_pbstream_trajectories_to_rosbag
 # target_link_libraries(test_find_constraint PUBLIC ${PROJECT_NAME} ${LIBS})
 
 # Linking problem with boost
-# add_executable(sdf_to_pbstream src/dev/sdf_to_pbstream.cc)
-# target_link_libraries(sdf_to_pbstream ${PROJECT_NAME} ${ABSEIL_LIBRARIES} ${Boost_LIBRARIES} tinyxml)
-# ament_target_dependencies(sdf_to_pbstream
-#   "cartographer_ros_msgs"
-#   "nav_msgs"
-#   "rclcpp"
-#   "std_msgs"
-# )
+add_executable(sdf_to_pbstream src/dev/sdf_to_pbstream.cc)
+target_link_libraries(sdf_to_pbstream ${PROJECT_NAME} ${ABSEIL_LIBRARIES} tinyxml)
+ament_target_dependencies(sdf_to_pbstream
+  "cartographer_ros_msgs"
+  "nav_msgs"
+  "rclcpp"
+  "std_msgs"
+)
 
 install(TARGETS
   cartographer_node
