@@ -28,18 +28,17 @@
 #include "cartographer_ros/time_conversion.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
-#include "ros/ros.h"
-#include "ros/time.h"
-#include "rosbag/bag.h"
-#include "rosbag/view.h"
+#include <rclcpp/rclcpp.hpp>
+#include <rosbag2_cpp/reader.hpp>
 #include "tf2_eigen/tf2_eigen.h"
-#include "tf2_msgs/TFMessage.h"
+#include "tf2_msgs/msg/tf_message.hpp"
 
 DEFINE_string(bag_filename, "",
               "Bag file containing TF messages of the trajectory that will be "
               "compared against the trajectory in the .pbstream file.");
 DEFINE_string(tf_parent_frame, "map", "The parent frame ID of the TF trajectory from the bag file.");
 DEFINE_string(tf_child_frame, "base_link", "The child frame ID of the TF trajectory from the bag file.");
+DEFINE_string(tf_topic, "tf", "Topic where TF messages are being published.");
 DEFINE_string(pbstream_filename, "",
               "Proto stream file containing the pose graph. The last "
               "trajectory will be used for comparison.");
@@ -79,25 +78,32 @@ void Run(const std::string& pbstream_filename, const std::string& bag_filename)
         *pose_graph_proto.mutable_trajectory()->rbegin();
     const cartographer::transform::TransformInterpolationBuffer transform_interpolation_buffer(last_trajectory_proto);
 
-    rosbag::Bag bag;
-    bag.open(bag_filename, rosbag::bagmode::Read);
-    rosbag::View view(bag);
+    // Declare serializer for TFMessages
+    auto tf_serializer = rclcpp::Serialization<tf2_msgs::msg::TFMessage>();
+
+    rosbag2_cpp::Reader bag_reader;
+    bag_reader.open(bag_filename);
+
     std::vector<double> deviation_translation, deviation_rotation;
     const double signal_maximum = std::numeric_limits<double>::max();
-    for (const rosbag::MessageInstance& message : view)
+    while (bag_reader.has_next())
     {
-        if (!message.isType<tf2_msgs::TFMessage>())
+        auto message = bag_reader.read_next();
+        if (message->topic_name != FLAGS_tf_topic)
         {
             continue;
         }
-        auto tf_message = message.instantiate<tf2_msgs::TFMessage>();
-        for (const auto& transform : tf_message->transforms)
+        rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
+        tf2_msgs::msg::TFMessage::SharedPtr msg = std::make_shared<tf2_msgs::msg::TFMessage>();;
+        tf_serializer.deserialize_message(&serialized_msg, msg.get());
+
+        for (auto& transform : msg->transforms)
         {
             if (transform.header.frame_id != FLAGS_tf_parent_frame || transform.child_frame_id != FLAGS_tf_child_frame)
             {
                 continue;
             }
-            const cartographer::common::Time transform_time = FromRos(message.getTime());
+            const cartographer::common::Time transform_time = FromRos(transform.header.stamp);
             if (!transform_interpolation_buffer.Has(transform_time))
             {
                 deviation_translation.push_back(signal_maximum);
@@ -112,7 +118,6 @@ void Run(const std::string& pbstream_filename, const std::string& bag_filename)
                 published_transform.rotation().angularDistance(optimized_transform.rotation()));
         }
     }
-    bag.close();
     LOG(INFO) << "Distribution of translation difference:\n" << QuantilesToString(&deviation_translation);
     LOG(INFO) << "Distribution of rotation difference:\n" << QuantilesToString(&deviation_rotation);
     LOG(INFO) << "Fraction of translation difference smaller than 1m: "

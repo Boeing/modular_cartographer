@@ -525,7 +525,6 @@ ament_target_dependencies(cartographer_dev_pbstream_trajectories_to_rosbag
   "tf2_msgs"
 )
 
-# Depends on bagfiles
 add_executable(cartographer_dev_rosbag_publisher src/dev/rosbag_publisher_main.cc)
 target_link_libraries(cartographer_dev_rosbag_publisher ${PROJECT_NAME})
 ament_target_dependencies(cartographer_dev_rosbag_publisher
@@ -536,9 +535,13 @@ ament_target_dependencies(cartographer_dev_rosbag_publisher
   "tf2_msgs"
 )
 
-# Depends on bagfiles
-# add_executable(cartographer_dev_trajectory_comparison src/dev/trajectory_comparison_main.cc)
-# target_link_libraries(cartographer_dev_trajectory_comparison PUBLIC ${PROJECT_NAME} ${LIBS})
+add_executable(cartographer_dev_trajectory_comparison src/dev/trajectory_comparison_main.cc)
+target_link_libraries(cartographer_dev_trajectory_comparison ${PROJECT_NAME} ${LIBS})
+ament_target_dependencies(cartographer_dev_trajectory_comparison
+  "rclcpp"
+  "rosbag2_cpp"
+  "tf2_msgs"
+)
 
 # Depends on bagfiles
 # add_executable(test_find_constraint src/dev/test_find_constraint.cc)
