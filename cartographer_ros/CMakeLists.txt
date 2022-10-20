@@ -519,7 +519,6 @@ ament_target_dependencies(
     "tf2_msgs"
 )
 
-# Depends on boost
 add_executable(test_find_constraint src/dev/test_find_constraint.cc)
 target_link_libraries(test_find_constraint ${PROJECT_NAME} ${LIBS})
 ament_target_dependencies(test_find_constraint
