@@ -170,9 +170,9 @@ if(NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
     externalproject_add(
         ${CARTOGRAPHER_PROJECT_NAME}
         PREFIX ${CARTOGRAPHER_PROJECT_NAME}
-        # GIT_REPOSITORY https://git.web.boeing.com/brta-robotics/cartographer.git
-        # GIT_TAG 8d17b2fadb3a754f52f7730fc2e1a39e4803bcb1
-        SOURCE_DIR /home/inigo/ros/galactic/cartographer_ws/src/cartographer
+        GIT_REPOSITORY git@gitlab.com:mtdi/pi9419/boeing/cartographer.git
+        GIT_TAG master
+        GIT_SHALLOW ON
         UPDATE_COMMAND ""
         DEPENDS ${PROTOBUF_PROJECT_NAME} ${ABSEIL_PROJECT_NAME}
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=install
