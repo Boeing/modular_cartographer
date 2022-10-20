@@ -10,7 +10,6 @@
 #include <cartographer/mapping/map_builder.h>
 #include <cartographer_ros/assets_writer.h>
 #include <cartographer_ros/proto_sstream.h>
-#include "gflags/gflags.h"
 #include <glog/logging.h>
 #include <png.h>
 #include <tinyxml.h>
@@ -18,6 +17,7 @@
 #include <istream>
 #include <iterator>
 
+#include "gflags/gflags.h"
 
 std::string safe_string(const char* str)
 {
@@ -343,7 +343,6 @@ int main(int argc, char** argv)
     google::InitGoogleLogging(argv[0]);
     google::ParseCommandLineFlags(&argc, &argv, false);
 
-
     try
     {
 
@@ -362,7 +361,6 @@ int main(int argc, char** argv)
             map_origin.x() = std::stod(map_origin_strs[0]);
             map_origin.y() = std::stod(map_origin_strs[1]);
         }
-
 
         LOG(INFO) << "loading sdf";
         World world = readWorldSDF(FLAGS_world_sdf);
@@ -384,15 +382,15 @@ int main(int argc, char** argv)
                 CHECK(strs.size() % 2 == 0);
 
                 std::vector<Eigen::Vector2d> points;
-                for (size_t j = 0; j < strs.size(); j+=2)
+                for (size_t j = 0; j < strs.size(); j += 2)
                 {
-                    points.push_back(Eigen::Vector2d(std::stod(strs[j]), std::stod(strs[j+1])));
+                    points.push_back(Eigen::Vector2d(std::stod(strs[j]), std::stod(strs[j + 1])));
                 }
                 world.free_spaces.push_back(FreeSpace{points});
             }
         }
 
-        cairo_surface_t *surface = makeSurface(map_size, world, map_origin, FLAGS_map_resolution);
+        cairo_surface_t* surface = makeSurface(map_size, world, map_origin, FLAGS_map_resolution);
         LOG(INFO) << "Writing png to: " << FLAGS_map_png;
         cairo_surface_write_to_png(surface, FLAGS_map_png.c_str());
 

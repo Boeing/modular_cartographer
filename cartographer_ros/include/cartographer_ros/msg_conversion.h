@@ -1,6 +1,8 @@
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_MSG_CONVERSION_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_MSG_CONVERSION_H
 
+#include <builtin_interfaces/msg/time.hpp>
+
 #include "cartographer/common/time.h"
 #include "cartographer/io/submap_painter.h"
 #include "cartographer/sensor/landmark_data.h"
@@ -16,14 +18,11 @@
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
-#include <builtin_interfaces/msg/time.hpp>
-
-
 namespace cartographer_ros
 {
 
 sensor_msgs::msg::PointCloud2 ToPointCloud2Message(int64_t timestamp, const std::string& frame_id,
-                                              const ::cartographer::sensor::TimedPointCloud& point_cloud);
+                                                   const ::cartographer::sensor::TimedPointCloud& point_cloud);
 
 geometry_msgs::msg::Transform ToGeometryMsgTransform(const ::cartographer::transform::Rigid3d& rigid3d);
 

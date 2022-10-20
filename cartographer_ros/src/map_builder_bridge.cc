@@ -34,7 +34,8 @@ constexpr double kConstraintMarkerScale = 0.025;
     return result;
 }
 
-visualization_msgs::msg::Marker CreateTrajectoryMarker(const int trajectory_id, const std::string& frame_id, ::rclcpp::Time node_time)
+visualization_msgs::msg::Marker CreateTrajectoryMarker(const int trajectory_id, const std::string& frame_id,
+                                                       ::rclcpp::Time node_time)
 {
     visualization_msgs::msg::Marker marker;
     // marker.ns = absl::StrCat("Trajectory ", trajectory_id);
@@ -63,7 +64,7 @@ int GetLandmarkIndex(const std::string& landmark_id, std::unordered_map<std::str
 }
 
 visualization_msgs::msg::Marker CreateLandmarkMarker(int landmark_index, const Rigid3d& landmark_pose,
-                                                const std::string& frame_id, ::rclcpp::Time node_time)
+                                                     const std::string& frame_id, ::rclcpp::Time node_time)
 {
     visualization_msgs::msg::Marker marker;
     marker.ns = "Landmarks";
@@ -79,7 +80,8 @@ visualization_msgs::msg::Marker CreateLandmarkMarker(int landmark_index, const R
     return marker;
 }
 
-void PushAndResetLineMarker(visualization_msgs::msg::Marker* marker, std::vector<visualization_msgs::msg::Marker>* markers)
+void PushAndResetLineMarker(visualization_msgs::msg::Marker* marker,
+                            std::vector<visualization_msgs::msg::Marker>* markers)
 {
     markers->push_back(*marker);
     ++marker->id;
@@ -111,7 +113,8 @@ int MapBuilderBridge::AddTrajectory(
 {
     const int trajectory_id = map_builder_.AddTrajectoryBuilder(
         expected_sensor_ids, trajectory_options.trajectory_builder_options,
-        [this](const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose, const Rigid3d odom,
+        [this](const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose,
+               const Rigid3d odom,
                std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult> insertion) {
             OnLocalSlamResult(trajectory_id, time, local_pose, odom, std::move(insertion));
         });
@@ -165,7 +168,8 @@ bool MapBuilderBridge::SerializeState(std::ostream& stream, const bool include_u
     return true;
 }
 
-void MapBuilderBridge::HandleSubmapQuery(const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
+void MapBuilderBridge::HandleSubmapQuery(
+    const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
     std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response)
 {
     cartographer::mapping::proto::SubmapQuery::Response response_proto;
@@ -237,8 +241,9 @@ MapBuilderBridge::GlobalSLAMData MapBuilderBridge::GetGlobalSLAMData() const
     return global_slam_data_;
 }
 
-void MapBuilderBridge::HandleTrajectoryQuery(const std::shared_ptr<::cartographer_ros_msgs::srv::TrajectoryQuery::Request> request,
-                               std::shared_ptr<::cartographer_ros_msgs::srv::TrajectoryQuery::Response> response)
+void MapBuilderBridge::HandleTrajectoryQuery(
+    const std::shared_ptr<::cartographer_ros_msgs::srv::TrajectoryQuery::Request> request,
+    std::shared_ptr<::cartographer_ros_msgs::srv::TrajectoryQuery::Response> response)
 {
     // This query is safe if the trajectory doesn't exist (returns 0 poses).
     // However, we can filter unwanted states at the higher level in the node.
@@ -259,7 +264,7 @@ void MapBuilderBridge::HandleTrajectoryQuery(const std::shared_ptr<::cartographe
     // response->status.message = absl::StrCat("Retrieved ", response->trajectory.size(),
     //                                        " trajectory nodes from trajectory ", request->trajectory_id, ".");
     response->status.message = "Retrieved " + std::to_string(response->trajectory.size()) +
-                                           " trajectory nodes from trajectory " + std::to_string(request->trajectory_id) + ".";
+                               " trajectory nodes from trajectory " + std::to_string(request->trajectory_id) + ".";
 }
 
 visualization_msgs::msg::MarkerArray MapBuilderBridge::GetTrajectoryNodeList(::rclcpp::Time node_time)
@@ -297,7 +302,8 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetTrajectoryNodeList(::r
 
     for (const int trajectory_id : node_poses.trajectory_ids())
     {
-        visualization_msgs::msg::Marker marker = CreateTrajectoryMarker(trajectory_id, node_options_.map_frame, node_time);
+        visualization_msgs::msg::Marker marker =
+            CreateTrajectoryMarker(trajectory_id, node_options_.map_frame, node_time);
         int last_inter_submap_constrained_node =
             std::max(node_poses.trajectory(trajectory_id).begin()->id.node_index,
                      trajectory_to_last_inter_submap_constrained_node.at(trajectory_id));
@@ -321,7 +327,8 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetTrajectoryNodeList(::r
                 PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
                 continue;
             }
-            const ::geometry_msgs::msg::Point node_point = ToGeometryMsgPoint(node_id_data.data.global_pose.translation());
+            const ::geometry_msgs::msg::Point node_point =
+                ToGeometryMsgPoint(node_id_data.data.global_pose.translation());
             marker.points.push_back(node_point);
 
             if (node_id_data.id.node_index == last_inter_trajectory_constrained_node)
@@ -371,8 +378,9 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetLandmarkPosesList(::rc
     const std::map<std::string, Rigid3d> landmark_poses = map_builder_.pose_graph()->GetLandmarkPoses();
     for (const auto& id_to_pose : landmark_poses)
     {
-        landmark_poses_list.markers.push_back(CreateLandmarkMarker(
-            GetLandmarkIndex(id_to_pose.first, &landmark_to_index_), id_to_pose.second, node_options_.map_frame, node_time));
+        landmark_poses_list.markers.push_back(
+            CreateLandmarkMarker(GetLandmarkIndex(id_to_pose.first, &landmark_to_index_), id_to_pose.second,
+                                 node_options_.map_frame, node_time));
     }
     return landmark_poses_list;
 }

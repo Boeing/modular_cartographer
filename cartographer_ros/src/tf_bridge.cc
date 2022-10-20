@@ -39,28 +39,29 @@ std::unique_ptr<::cartographer::transform::Rigid3d> TfBridge::LookupToTracking(c
         // const ::ros::Time latest_tf_time =
         const ::builtin_interfaces::msg::Time latest_tf_time =
             // buffer_->lookupTransform(tracking_frame_, frame_id, ::ros::Time(0.),
-            buffer_->lookupTransform(tracking_frame_, frame_id, tf2::TimePointZero,
-             timeout).header.stamp;
+            buffer_->lookupTransform(tracking_frame_, frame_id, tf2::TimePointZero, timeout).header.stamp;
         // const ::ros::Time requested_time = ToRos(time);
         // if (latest_tf_time >= requested_time)
         const ::builtin_interfaces::msg::Time requested_time = ToRos(time);
-        std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> converted{std::chrono::nanoseconds{requested_time.sec*1000000000LL+requested_time.nanosec}};
-        std::chrono::system_clock::time_point recovered = std::chrono::time_point_cast<std::chrono::system_clock::duration>(converted);
-        std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> converted_tf_time{std::chrono::nanoseconds{latest_tf_time.sec*1000000000LL+latest_tf_time.nanosec}};
-        std::chrono::system_clock::time_point recovered_tf_time = std::chrono::time_point_cast<std::chrono::system_clock::duration>(converted_tf_time);
+        std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> converted{
+            std::chrono::nanoseconds{requested_time.sec * 1000000000LL + requested_time.nanosec}};
+        std::chrono::system_clock::time_point recovered =
+            std::chrono::time_point_cast<std::chrono::system_clock::duration>(converted);
+        std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> converted_tf_time{
+            std::chrono::nanoseconds{latest_tf_time.sec * 1000000000LL + latest_tf_time.nanosec}};
+        std::chrono::system_clock::time_point recovered_tf_time =
+            std::chrono::time_point_cast<std::chrono::system_clock::duration>(converted_tf_time);
 
-        if (recovered_tf_time >= recovered)        
+        if (recovered_tf_time >= recovered)
         {
             // We already have newer data, so we do not wait. Otherwise, we would wait
             // for the full 'timeout' even if we ask for data that is too old.
             // timeout = ::ros::Duration(0.);
             timeout = tf2::durationFromSec(0.0);
-
         }
-        return absl::make_unique<::cartographer::transform::Rigid3d>(
-            ToRigid3d(buffer_->lookupTransform(
-                // tracking_frame_, frame_id, requested_time, timeout)));
-                tracking_frame_, frame_id, recovered, timeout)));
+        return absl::make_unique<::cartographer::transform::Rigid3d>(ToRigid3d(buffer_->lookupTransform(
+            // tracking_frame_, frame_id, requested_time, timeout)));
+            tracking_frame_, frame_id, recovered, timeout)));
     }
     catch (const tf2::TransformException& ex)
     {

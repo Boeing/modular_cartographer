@@ -16,6 +16,9 @@
 
 #include "cartographer_ros/msg_conversion.h"
 
+#include <builtin_interfaces/msg/time.hpp>
+#include <rclcpp/rclcpp.hpp>
+
 #include <cmath>
 
 #include "cartographer/common/math.h"
@@ -35,14 +38,11 @@
 #include "pcl/point_cloud.h"
 #include "pcl/point_types.h"
 #include "pcl_conversions/pcl_conversions.h"
-#include <rclcpp/rclcpp.hpp>
 #include "rclcpp/serialization.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
-
-#include <builtin_interfaces/msg/time.hpp>
 
 namespace
 {
@@ -91,7 +91,7 @@ using ::cartographer_ros_msgs::msg::LandmarkEntry;
 using ::cartographer_ros_msgs::msg::LandmarkList;
 
 sensor_msgs::msg::PointCloud2 PreparePointCloud2Message(const int64_t timestamp, const std::string& frame_id,
-                                                   const int num_points)
+                                                        const int num_points)
 {
     sensor_msgs::msg::PointCloud2 msg;
     msg.header.stamp = ToRos(::cartographer::common::FromUniversal(timestamp));
@@ -206,20 +206,20 @@ bool PointCloud2HasField(const sensor_msgs::msg::PointCloud2& pc2, const std::st
 }  // namespace
 
 sensor_msgs::msg::PointCloud2 ToPointCloud2Message(const int64_t timestamp, const std::string& frame_id,
-                                              const ::cartographer::sensor::TimedPointCloud& point_cloud)
+                                                   const ::cartographer::sensor::TimedPointCloud& point_cloud)
 {
-  auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
-  size_t offset = 0;
-  float * const data = reinterpret_cast<float*>(&msg.data[0]);
-  for (const auto& point : point_cloud) {
-    data[offset++] = point.position.x();
-    data[offset++] = point.position.y();
-    data[offset++] = point.position.z();
-    data[offset++] = kPointCloudComponentFourMagic;
-  }
-  return msg;
+    auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
+    size_t offset = 0;
+    float* const data = reinterpret_cast<float*>(&msg.data[0]);
+    for (const auto& point : point_cloud)
+    {
+        data[offset++] = point.position.x();
+        data[offset++] = point.position.y();
+        data[offset++] = point.position.z();
+        data[offset++] = kPointCloudComponentFourMagic;
+    }
+    return msg;
 }
-
 
 std::tuple<::cartographer::sensor::TimedPointCloud, ::cartographer::common::Time>
     ToPointCloudWithIntensities(const sensor_msgs::msg::LaserScan& msg)

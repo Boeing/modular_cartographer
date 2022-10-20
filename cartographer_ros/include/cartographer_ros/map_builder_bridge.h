@@ -2,6 +2,7 @@
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_MAP_BUILDER_BRIDGE_H
 
 #include <cartographer/mapping/map_builder.h>
+#include <rclcpp/time.hpp>
 
 #include <memory>
 #include <set>
@@ -23,7 +24,6 @@
 #include "cartographer_ros_msgs/srv/trajectory_query.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
-#include <rclcpp/time.hpp>
 
 // Abseil unfortunately pulls in winnt.h, which #defines DELETE.
 // Clean up to unbreak visualization_msgs::Marker::DELETE.
@@ -74,7 +74,7 @@ class MapBuilderBridge
     bool SerializeState(std::ostream& stream, const bool include_unfinished_submaps);
 
     void HandleSubmapQuery(const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
-      std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response);
+                           std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response);
     void HandleTrajectoryQuery(const std::shared_ptr<::cartographer_ros_msgs::srv::TrajectoryQuery::Request> request,
                                std::shared_ptr<::cartographer_ros_msgs::srv::TrajectoryQuery::Response> response);
 

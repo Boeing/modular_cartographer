@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <rclcpp/rclcpp.hpp>
+
 #include <cmath>
 #include <string>
 #include <vector>
@@ -35,7 +37,6 @@
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
 #include "gflags/gflags.h"
 #include "nav_msgs/msg/occupancy_grid.h"
-#include <rclcpp/rclcpp.hpp>
 
 using std::placeholders::_1;
 
@@ -75,7 +76,8 @@ class OccupancyGridNode : public rclcpp::Node
 
     absl::Mutex mutex_;
     ::rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_ GUARDED_BY(mutex_);
-    ::rclcpp::Subscription<cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_subscriber_ GUARDED_BY(mutex_);
+    ::rclcpp::Subscription<cartographer_ros_msgs::msg::SubmapList>::SharedPtr
+        submap_list_subscriber_ GUARDED_BY(mutex_);
     ::rclcpp::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_ GUARDED_BY(mutex_);
     std::map<SubmapId, SubmapSlice> submap_slices_ GUARDED_BY(mutex_);
     ::rclcpp::TimerBase::SharedPtr occupancy_grid_publisher_timer_;
@@ -84,22 +86,18 @@ class OccupancyGridNode : public rclcpp::Node
 };
 
 OccupancyGridNode::OccupancyGridNode(const double resolution, const double publish_period_sec)
-    : Node("cartographer_occupancy_grid_node"),
-      resolution_(resolution)
+    : Node("cartographer_occupancy_grid_node"), resolution_(resolution)
 {
-  client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName);
+    client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName);
 
-  submap_list_subscriber_ = create_subscription<cartographer_ros_msgs::msg::SubmapList>(
-    kSubmapListTopic, rclcpp::QoS(10), std::bind(&OccupancyGridNode::HandleSubmapList, this, _1));
+    submap_list_subscriber_ = create_subscription<cartographer_ros_msgs::msg::SubmapList>(
+        kSubmapListTopic, rclcpp::QoS(10), std::bind(&OccupancyGridNode::HandleSubmapList, this, _1));
 
-  occupancy_grid_publisher_ = this->create_publisher<::nav_msgs::msg::OccupancyGrid>(
-    kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
+    occupancy_grid_publisher_ =
+        this->create_publisher<::nav_msgs::msg::OccupancyGrid>(kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
 
-  occupancy_grid_publisher_timer_ = this->create_wall_timer(
-    std::chrono::milliseconds(int(publish_period_sec * 1000)),
-    [this]() {
-      DrawAndPublish();
-    });
+    occupancy_grid_publisher_timer_ = this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
+                                                              [this]() { DrawAndPublish(); });
 }
 
 void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg)
@@ -195,7 +193,7 @@ int main(int argc, char** argv)
     ::rclcpp::init(argc, argv);
 
     cartographer_ros::ScopedRosLogSink ros_log_sink;
-  
+
     auto node = std::make_shared<cartographer_ros::OccupancyGridNode>(FLAGS_resolution, FLAGS_publish_period_sec);
 
     ::rclcpp::spin(node);

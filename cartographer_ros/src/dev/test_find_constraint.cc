@@ -40,7 +40,7 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
 
     using SensorId = cartographer::mapping::TrajectoryBuilderInterface::SensorId;
     using SensorType = SensorId::SensorType;
-//    SensorId odom{SensorType::ODOMETRY, "odom"};
+    //    SensorId odom{SensorType::ODOMETRY, "odom"};
     SensorId front_laser{SensorType::RANGE, "/sick_s300_front/scan"};
     SensorId back_laser{SensorType::RANGE, "/sick_s300_back/scan"};
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> expected_sensor_ids = {front_laser,
@@ -56,13 +56,13 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
 
     rosbag::View front_laser_view(bag, rosbag::TopicQuery(front_laser.id));
     rosbag::View back_laser_view(bag, rosbag::TopicQuery(back_laser.id));
-//    rosbag::View odom_view(bag, rosbag::TopicQuery(odom.id));
+    //    rosbag::View odom_view(bag, rosbag::TopicQuery(odom.id));
 
     LOG(INFO) << "Loading data...";
 
     auto front_laser_msgs = front_laser_view.begin();
     auto back_laser_msgs = back_laser_view.begin();
-//    auto odom_msgs = odom_view.begin();
+    //    auto odom_msgs = odom_view.begin();
 
     if (front_laser_msgs == front_laser_view.end())
         ROS_FATAL("No front laser message");

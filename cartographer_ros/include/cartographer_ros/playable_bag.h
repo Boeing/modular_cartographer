@@ -17,15 +17,15 @@
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_PLAYABLE_BAG_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_PLAYABLE_BAG_H
 #include <cartographer_ros_msgs/msg/bagfile_progress.hpp>
-
-#include <functional>
-#include <queue>
-
 #include <rclcpp/rclcpp.hpp>
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_cpp/readers/sequential_reader.hpp>
 #include <rosbag2_cpp/writer.hpp>
 #include <rosbag2_cpp/writers/sequential_writer.hpp>
+
+#include <functional>
+#include <queue>
+
 #include "tf2_ros/buffer.h"
 
 namespace cartographer_ros
@@ -39,7 +39,8 @@ class PlayableBag
     using FilteringEarlyMessageHandler =
         std::function<bool /* forward_message_to_buffer */ (std::shared_ptr<rosbag2_storage::SerializedBagMessage>)>;
 
-    PlayableBag(const std::string& bag_filename, int bag_id, rclcpp::Duration buffer_delay, FilteringEarlyMessageHandler filtering_early_message_handler);
+    PlayableBag(const std::string& bag_filename, int bag_id, rclcpp::Duration buffer_delay,
+                FilteringEarlyMessageHandler filtering_early_message_handler);
 
     rclcpp::Time PeekMessageTime() const;
     rosbag2_storage::SerializedBagMessage GetNextMessage(cartographer_ros_msgs::msg::BagfileProgress* progress);
@@ -87,7 +88,8 @@ class PlayableBagMultiplexer
     // Returns the next message from the multiplexed (merge-sorted) message
     // stream, along with the bag id corresponding to the message, and whether
     // this was the last message in that bag.
-    std::tuple<rosbag2_storage::SerializedBagMessage, int /* bag_id */, std::string, bool /* is_last_message_in_bag */> GetNextMessage();
+    std::tuple<rosbag2_storage::SerializedBagMessage, int /* bag_id */, std::string, bool /* is_last_message_in_bag */>
+        GetNextMessage();
 
     bool IsMessageAvailable() const;
     rclcpp::Time PeekMessageTime() const;

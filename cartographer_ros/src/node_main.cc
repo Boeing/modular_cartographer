@@ -1,11 +1,12 @@
+#include <rclcpp/rclcpp.hpp>
+#include <tf2_ros/transform_listener.h>
+
 #include "absl/memory/memory.h"
 #include "cartographer/mapping/map_builder.h"
 #include "cartographer_ros/node.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/ros_log_sink.h"
 #include "gflags/gflags.h"
-#include <rclcpp/rclcpp.hpp>
-#include <tf2_ros/transform_listener.h>
 
 DEFINE_string(configuration_directory, "",
               "First directory in which configuration files are searched, "
@@ -26,17 +27,17 @@ void Run()
     // https://stackoverflow.com/questions/54295618/how-to-know-if-a-gflag-was-provided-in-the-command-line
     if (!gflags::GetCommandLineFlagInfoOrDie("configuration_directory").is_default)
     {
-            temp_configuration_directory = FLAGS_configuration_directory;
+        temp_configuration_directory = FLAGS_configuration_directory;
     }
-    else 
+    else
     {
         throw std::runtime_error("Missing required param: configuration_directory");
     }
     if (!gflags::GetCommandLineFlagInfoOrDie("collect_metrics").is_default)
     {
-            temp_collect_metrics = FLAGS_collect_metrics;
+        temp_collect_metrics = FLAGS_collect_metrics;
     }
-    else 
+    else
     {
         temp_collect_metrics = false;
     }

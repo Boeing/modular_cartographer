@@ -1,4 +1,4 @@
-    /*
+/*
  * Copyright 2017 The Cartographer Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,9 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <regex>
 #include <string>
 #include <vector>
-#include <regex>
 
 // #include "absl/strings/str_split.h"
 #include "cartographer/mapping/map_builder.h"
@@ -36,13 +36,12 @@
 #include "gflags/gflags.h"
 // #include "ros/callback_queue.h"
 // #include "ros/ros.h"
+#include <rclcpp/rclcpp.hpp>
+
+#include "rclcpp/exceptions.hpp"
 #include "rosgraph_msgs/msg/clock.hpp"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "urdf/model.h"
-#include "rclcpp/exceptions.hpp"
-#include <rclcpp/rclcpp.hpp>
-
-
 
 DEFINE_bool(collect_metrics, false,
             "Activates the collection of runtime metrics. If activated, the "
@@ -130,23 +129,21 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
     // const std::vector<std::string> bag_filenames = absl::StrSplit(FLAGS_bag_filenames, ',', absl::SkipEmpty());
     std::regex regex(",");
     std::vector<std::string> bag_filenames;
-    if (!FLAGS_bag_filenames.empty()){
+    if (!FLAGS_bag_filenames.empty())
+    {
         std::regex regex(",");
         std::vector<std::string> if_bag_filenames(
-        std::sregex_token_iterator(
-            FLAGS_bag_filenames.begin(), FLAGS_bag_filenames.end(), regex, -1),
-        std::sregex_token_iterator()
-        );
+            std::sregex_token_iterator(FLAGS_bag_filenames.begin(), FLAGS_bag_filenames.end(), regex, -1),
+            std::sregex_token_iterator());
         bag_filenames = if_bag_filenames;
     }
     cartographer_ros::NodeOptions node_options;
     // const std::vector<std::string> configuration_basenames =
     //     absl::StrSplit(FLAGS_configuration_basenames, ',', absl::SkipEmpty());
-    std::vector<std::string> configuration_basenames(
-        std::sregex_token_iterator(
-        FLAGS_configuration_basenames.begin(), FLAGS_configuration_basenames.end(), regex, -1),
-        std::sregex_token_iterator()
-    );
+    std::vector<std::string> configuration_basenames(std::sregex_token_iterator(FLAGS_configuration_basenames.begin(),
+                                                                                FLAGS_configuration_basenames.end(),
+                                                                                regex, -1),
+                                                     std::sregex_token_iterator());
     std::vector<TrajectoryOptions> bag_trajectory_options(1);
     std::tie(node_options, bag_trajectory_options.at(0)) =
         LoadOptions(FLAGS_configuration_directory, configuration_basenames.at(0));
@@ -181,29 +178,26 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
 
     // auto tf_buffer = std::make_shared<tf2_ros::Buffer>();
     std::shared_ptr<tf2_ros::Buffer> tf_buffer = std::make_shared<tf2_ros::Buffer>(
-        cartographer_offline_node->get_clock(),
-        tf2::durationFromSec(10),
-        cartographer_offline_node);
+        cartographer_offline_node->get_clock(), tf2::durationFromSec(10), cartographer_offline_node);
 
     std::vector<geometry_msgs::msg::TransformStamped> urdf_transforms;
     // const std::vector<std::string> urdf_filenames = absl::StrSplit(FLAGS_urdf_filenames, ',', absl::SkipEmpty());
     // for (const auto& urdf_filename : urdf_filenames)
     // {
     //     const auto current_urdf_transforms = ReadStaticTransformsFromUrdf(urdf_filename, tf_buffer.get());
-    //     urdf_transforms.insert(urdf_transforms.end(), current_urdf_transforms.begin(), current_urdf_transforms.end());
+    //     urdf_transforms.insert(urdf_transforms.end(), current_urdf_transforms.begin(),
+    //     current_urdf_transforms.end());
     // }
-    if (!FLAGS_urdf_filenames.empty()) {
+    if (!FLAGS_urdf_filenames.empty())
+    {
         std::vector<std::string> urdf_filenames(
-        std::sregex_token_iterator(
-            FLAGS_urdf_filenames.begin(), FLAGS_urdf_filenames.end(), regex, -1),
-        std::sregex_token_iterator()
-        );
-        for (const auto& urdf_filename : urdf_filenames) {
-        const auto current_urdf_transforms =
-            ReadStaticTransformsFromUrdf(urdf_filename, tf_buffer);
-        urdf_transforms.insert(urdf_transforms.end(),
-                                current_urdf_transforms.begin(),
-                                current_urdf_transforms.end());
+            std::sregex_token_iterator(FLAGS_urdf_filenames.begin(), FLAGS_urdf_filenames.end(), regex, -1),
+            std::sregex_token_iterator());
+        for (const auto& urdf_filename : urdf_filenames)
+        {
+            const auto current_urdf_transforms = ReadStaticTransformsFromUrdf(urdf_filename, tf_buffer);
+            urdf_transforms.insert(urdf_transforms.end(), current_urdf_transforms.begin(),
+                                   current_urdf_transforms.end());
         }
     }
 
@@ -217,16 +211,14 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
 
     // ::ros::Publisher tf_publisher = node.node_handle()->advertise<tf2_msgs::TFMessage>(kTfTopic, 1);
     rclcpp::Publisher<tf2_msgs::msg::TFMessage>::SharedPtr tf_publisher =
-        cartographer_offline_node->create_publisher<tf2_msgs::msg::TFMessage>(
-        kTfTopic, kLatestOnlyPublisherQueueSize);
+        cartographer_offline_node->create_publisher<tf2_msgs::msg::TFMessage>(kTfTopic, kLatestOnlyPublisherQueueSize);
 
     ::tf2_ros::StaticTransformBroadcaster static_tf_broadcaster(cartographer_offline_node);
 
     // ::ros::Publisher clock_publisher = node.node_handle()->advertise<rosgraph_msgs::Clock>(kClockTopic, 1);
     rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_publisher =
-        cartographer_offline_node->create_publisher<rosgraph_msgs::msg::Clock>(
-        kClockTopic, kLatestOnlyPublisherQueueSize);
-
+        cartographer_offline_node->create_publisher<rosgraph_msgs::msg::Clock>(kClockTopic,
+                                                                               kLatestOnlyPublisherQueueSize);
 
     if (urdf_transforms.size() > 0)
     {
@@ -234,7 +226,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
     }
 
     // ros::AsyncSpinner async_spinner(kSingleThreaded);
-    // async_spinner.start();  
+    // async_spinner.start();
     rosgraph_msgs::msg::Clock clock;
     // auto clock_republish_timer = node.node_handle()->createWallTimer(
     //     ::ros::WallDuration(kClockPublishFrequencySec),
@@ -275,8 +267,8 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
         }
         for (const auto& expected_sensor_id : bag_expected_sensor_ids.at(current_bag_index))
         {
-            const auto bag_resolved_topic = std::make_pair(static_cast<int>(current_bag_index),
-                                                           "/"+expected_sensor_id.id);
+            const auto bag_resolved_topic =
+                std::make_pair(static_cast<int>(current_bag_index), "/" + expected_sensor_id.id);
             if (bag_topic_to_sensor_id.count(bag_resolved_topic) != 0)
             {
                 LOG(ERROR) << "Sensor " << expected_sensor_id.id << " of bag " << current_bag_index
@@ -294,9 +286,10 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
                         // When a message is retrieved by GetNextMessage() further below,
                         // we will have already inserted further 'kDelay' seconds worth of
                         // transforms into 'tf_buffer' via this lambda.
-                        [&tf_publisher, &tf_buffer, cartographer_offline_node, serializer](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg) {
+                        [&tf_publisher, &tf_buffer, cartographer_offline_node,
+                         serializer](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg) {
                             // Can't filter by type as in ROS1
-                            if (msg->topic_name  == kTfTopic || msg->topic_name  == kTfStaticTopic)
+                            if (msg->topic_name == kTfTopic || msg->topic_name == kTfStaticTopic)
                             {
                                 if (FLAGS_use_bag_transforms)
                                 {
@@ -304,7 +297,8 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
                                     // tf_publisher.publish(tf_message);
                                     tf2_msgs::msg::TFMessage tf_message;
                                     rclcpp::SerializedMessage serialized_msg(*msg->serialized_data);
-                                    try {
+                                    try
+                                    {
                                         serializer.deserialize_message(&serialized_msg, &tf_message);
                                         for (auto& transform : tf_message.transforms)
                                         {
@@ -323,7 +317,9 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
                                             }
                                         }
                                         tf_publisher->publish(tf_message);
-                                    } catch (const rclcpp::exceptions::RCLError& rcl_error) {
+                                    }
+                                    catch (const rclcpp::exceptions::RCLError& rcl_error)
+                                    {
                                         return true;
                                     }
                                 }
@@ -342,8 +338,8 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
     std::stringstream bag_topics_string;
     for (const auto& topic : playable_bag_multiplexer.topics())
     {
-        std::string resolved_topic = cartographer_offline_node->get_node_base_interface()->
-            resolve_topic_or_service_name(topic, false);
+        std::string resolved_topic =
+            cartographer_offline_node->get_node_base_interface()->resolve_topic_or_service_name(topic, false);
         bag_topics.insert(resolved_topic);
         bag_topics_string << resolved_topic << ",";
     }
@@ -411,56 +407,59 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
             trajectory_id = bag_index_to_trajectory_id.at(bag_index);
         }
 
-        const auto bag_topic =
-            std::make_pair(bag_index, cartographer_offline_node->get_node_base_interface()->
-                resolve_topic_or_service_name(msg.topic_name, false));
+        const auto bag_topic = std::make_pair(
+            bag_index,
+            cartographer_offline_node->get_node_base_interface()->resolve_topic_or_service_name(msg.topic_name, false));
         auto it = bag_topic_to_sensor_id.find(bag_topic);
-        
+
         if (it != bag_topic_to_sensor_id.end())
         {
             const std::string& sensor_id = it->second.id;
-            if (topic_type == "sensor_msgs/msg/LaserScan") {
+            if (topic_type == "sensor_msgs/msg/LaserScan")
+            {
                 rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
-                sensor_msgs::msg::LaserScan::SharedPtr laser_scan_msg =
-                    std::make_shared<sensor_msgs::msg::LaserScan>();
+                sensor_msgs::msg::LaserScan::SharedPtr laser_scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
                 laser_scan_serializer.deserialize_message(&serialized_msg, laser_scan_msg.get());
-                node.HandleLaserScanMessage(trajectory_id, sensor_id,
-                                            laser_scan_msg);
-            } else if (topic_type == "sensor_msgs/msg/MultiEchoLaserScan") {
+                node.HandleLaserScanMessage(trajectory_id, sensor_id, laser_scan_msg);
+            }
+            else if (topic_type == "sensor_msgs/msg/MultiEchoLaserScan")
+            {
                 rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
                 sensor_msgs::msg::MultiEchoLaserScan::SharedPtr multi_echo_laser_scan_msg =
                     std::make_shared<sensor_msgs::msg::MultiEchoLaserScan>();
                 multi_echo_laser_scan_serializer.deserialize_message(&serialized_msg, multi_echo_laser_scan_msg.get());
-                node.HandleMultiEchoLaserScanMessage(trajectory_id, sensor_id,
-                                            multi_echo_laser_scan_msg);
-            } else if (topic_type == "sensor_msgs/msg/PointCloud2") {
+                node.HandleMultiEchoLaserScanMessage(trajectory_id, sensor_id, multi_echo_laser_scan_msg);
+            }
+            else if (topic_type == "sensor_msgs/msg/PointCloud2")
+            {
                 rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
                 sensor_msgs::msg::PointCloud2::SharedPtr pcl2_scan_msg =
                     std::make_shared<sensor_msgs::msg::PointCloud2>();
                 pcl2_serializer.deserialize_message(&serialized_msg, pcl2_scan_msg.get());
-                node.HandlePointCloud2Message(trajectory_id, sensor_id,
-                                            pcl2_scan_msg);
-            } else if (topic_type == "nav_msgs/msg/Odometry") {
+                node.HandlePointCloud2Message(trajectory_id, sensor_id, pcl2_scan_msg);
+            }
+            else if (topic_type == "nav_msgs/msg/Odometry")
+            {
                 rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
-                nav_msgs::msg::Odometry::SharedPtr odom_scan_msg =
-                    std::make_shared<nav_msgs::msg::Odometry>();
+                nav_msgs::msg::Odometry::SharedPtr odom_scan_msg = std::make_shared<nav_msgs::msg::Odometry>();
                 odom_serializer.deserialize_message(&serialized_msg, odom_scan_msg.get());
-                node.HandleOdometryMessage(trajectory_id, sensor_id,
-                                            odom_scan_msg);
-            } else if (topic_type == "sensor_msgs/msg/NavSatFix") {
+                node.HandleOdometryMessage(trajectory_id, sensor_id, odom_scan_msg);
+            }
+            else if (topic_type == "sensor_msgs/msg/NavSatFix")
+            {
                 rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
                 sensor_msgs::msg::NavSatFix::SharedPtr nav_sat_fix_msg =
                     std::make_shared<sensor_msgs::msg::NavSatFix>();
                 nav_sat_fix_serializer.deserialize_message(&serialized_msg, nav_sat_fix_msg.get());
-                node.HandleNavSatFixMessage(trajectory_id, sensor_id,
-                                            nav_sat_fix_msg);
-            } else if (topic_type == "cartographer_ros_msgs/msg/LandmarkList") {
+                node.HandleNavSatFixMessage(trajectory_id, sensor_id, nav_sat_fix_msg);
+            }
+            else if (topic_type == "cartographer_ros_msgs/msg/LandmarkList")
+            {
                 rclcpp::SerializedMessage serialized_msg(*msg.serialized_data);
                 cartographer_ros_msgs::msg::LandmarkList::SharedPtr landmark_list_msg =
                     std::make_shared<cartographer_ros_msgs::msg::LandmarkList>();
                 landmark_list_serializer.deserialize_message(&serialized_msg, landmark_list_msg.get());
-                node.HandleLandmarkMessage(trajectory_id, sensor_id,
-                                            landmark_list_msg);
+                node.HandleLandmarkMessage(trajectory_id, sensor_id, landmark_list_msg);
             }
         }
         clock.clock = rclcpp::Time(msg.time_stamp);
@@ -477,11 +476,9 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
     // final optimization, serialization, and optional indefinite spinning at the
     // end.
     // TODO from port: need a spin for the timer to tick
-    auto clock_republish_timer = cartographer_offline_node->create_wall_timer(
-      std::chrono::milliseconds(int(kClockPublishFrequencySec)),
-      [&clock_publisher, &clock]() {
-        clock_publisher->publish(clock);
-      });    
+    auto clock_republish_timer =
+        cartographer_offline_node->create_wall_timer(std::chrono::milliseconds(int(kClockPublishFrequencySec)),
+                                                     [&clock_publisher, &clock]() { clock_publisher->publish(clock); });
     node.RunFinalOptimization();
 
     const std::chrono::time_point<std::chrono::steady_clock> end_time = std::chrono::steady_clock::now();
@@ -502,7 +499,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
     if (rclcpp::ok() && !(bag_filenames.empty() && FLAGS_save_state_filename.empty()))
     {
         const std::string state_output_filename = FLAGS_save_state_filename.empty()
-                                                    //   ? absl::StrCat(bag_filenames.front(), ".pbstream")
+                                                      //   ? absl::StrCat(bag_filenames.front(), ".pbstream")
                                                       ? bag_filenames.front() + ".pbstream"
                                                       : FLAGS_save_state_filename;
         LOG(INFO) << "Writing state to '" << state_output_filename << "'...";
@@ -532,8 +529,7 @@ int main(int argc, char** argv)
             return absl::make_unique<::cartographer::mapping::MapBuilder>(map_builder_options);
         };
 
-    rclcpp::Node::SharedPtr cartographer_offline_node =
-      rclcpp::Node::make_shared("cartographer_offline_node");
+    rclcpp::Node::SharedPtr cartographer_offline_node = rclcpp::Node::make_shared("cartographer_offline_node");
     cartographer_ros::RunOfflineNode(map_builder_factory, cartographer_offline_node);
 
     rclcpp::shutdown();

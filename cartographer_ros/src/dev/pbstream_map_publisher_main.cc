@@ -43,9 +43,10 @@ namespace cartographer_ros
 
 class PBStreamMapPublisher : public rclcpp::Node
 {
-public:
-    PBStreamMapPublisher(const std::string& pbstream_filename, const std::string& map_topic, const std::string& map_frame_id,
-         const double resolution) : Node("pb_stream_pblisher") 
+  public:
+    PBStreamMapPublisher(const std::string& pbstream_filename, const std::string& map_topic,
+                         const std::string& map_frame_id, const double resolution)
+        : Node("pb_stream_pblisher")
     {
         std::unique_ptr<nav_msgs::msg::OccupancyGrid> msg_ptr = LoadOccupancyGridMsg(pbstream_filename, resolution);
 
@@ -55,12 +56,13 @@ public:
         // ::ros::Publisher pub = node_handle.advertise<nav_msgs::OccupancyGrid>(map_topic, 1, true /*latched */);
 
         LOG(INFO) << "Publishing occupancy grid topic " << map_topic << " (frame_id: " << map_frame_id
-                << ", resolution:" << std::to_string(resolution) << ").";
+                  << ", resolution:" << std::to_string(resolution) << ").";
         pub->publish(*msg_ptr);
     }
-private:
+
+  private:
     std::unique_ptr<nav_msgs::msg::OccupancyGrid> LoadOccupancyGridMsg(const std::string& pbstream_filename,
-                                                                const double resolution)
+                                                                       const double resolution)
     {
         ::cartographer::io::ProtoStreamReader reader(pbstream_filename);
         ::cartographer::io::ProtoStreamDeserializer deserializer(&reader);
@@ -88,7 +90,8 @@ int main(int argc, char** argv)
 
     rclcpp::init(argc, argv);
     cartographer_ros::ScopedRosLogSink ros_log_sink;
-    auto node = std::make_shared<cartographer_ros::PBStreamMapPublisher>(FLAGS_pbstream_filename, FLAGS_map_topic, FLAGS_map_frame_id, FLAGS_resolution); 
+    auto node = std::make_shared<cartographer_ros::PBStreamMapPublisher>(FLAGS_pbstream_filename, FLAGS_map_topic,
+                                                                         FLAGS_map_frame_id, FLAGS_resolution);
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
