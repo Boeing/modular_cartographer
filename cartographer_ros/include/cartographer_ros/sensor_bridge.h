@@ -51,17 +51,20 @@ class SensorBridge
     SensorBridge(const SensorBridge&) = delete;
     SensorBridge& operator=(const SensorBridge&) = delete;
 
-    std::unique_ptr<::cartographer::sensor::OdometryData> ToOdometryData(const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
+    std::unique_ptr<::cartographer::sensor::OdometryData>
+        ToOdometryData(const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
     void HandleOdometryMessage(const std::string& sensor_id, const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
     void HandleNavSatFixMessage(const std::string& sensor_id, const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg);
-    void HandleLandmarkMessage(const std::string& sensor_id, const cartographer_ros_msgs::msg::LandmarkList::ConstSharedPtr& msg);
+    void HandleLandmarkMessage(const std::string& sensor_id,
+                               const cartographer_ros_msgs::msg::LandmarkList::ConstSharedPtr& msg);
 
     std::unique_ptr<::cartographer::sensor::ImuData> ToImuData(const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
     void HandleImuMessage(const std::string& sensor_id, const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
     void HandleLaserScanMessage(const std::string& sensor_id, const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg);
     void HandleMultiEchoLaserScanMessage(const std::string& sensor_id,
                                          const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
-    void HandlePointCloud2Message(const std::string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
+    void HandlePointCloud2Message(const std::string& sensor_id,
+                                  const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
 
   private:
     void HandleLaserScan(const std::string& sensor_id, ::cartographer::common::Time start_time,

@@ -17,8 +17,11 @@
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_H
 
+#include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/u_int8_multi_array.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
 
 #include <map>
 #include <memory>
@@ -35,27 +38,24 @@
 #include "cartographer_ros/node_constants.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/trajectory_options.h"
+#include "cartographer_ros_msgs/msg/status_response.hpp"
+#include "cartographer_ros_msgs/msg/submap_entry.hpp"
+#include "cartographer_ros_msgs/msg/submap_list.hpp"
+#include "cartographer_ros_msgs/msg/system_state.hpp"
 #include "cartographer_ros_msgs/srv/finish_trajectory.hpp"
 #include "cartographer_ros_msgs/srv/get_trajectory_states.hpp"
 #include "cartographer_ros_msgs/srv/load_state.hpp"
 #include "cartographer_ros_msgs/srv/read_metrics.hpp"
 #include "cartographer_ros_msgs/srv/start_localisation.hpp"
 #include "cartographer_ros_msgs/srv/start_mapping.hpp"
-#include "cartographer_ros_msgs/msg/status_response.hpp"
-#include "cartographer_ros_msgs/msg/submap_entry.hpp"
-#include "cartographer_ros_msgs/msg/submap_list.hpp"
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
-#include "cartographer_ros_msgs/msg/system_state.hpp"
 #include "cartographer_ros_msgs/srv/write_state.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
-#include <rclcpp/rclcpp.hpp>
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/transform_listener.h>
 #include "std_srvs/srv/trigger.hpp"
 // #include <rclcpp/qos.hpp>
 // #include <rmw/qos_profiles.h>
@@ -67,9 +67,8 @@ namespace cartographer_ros
 class Cartographer : public rclcpp::Node
 {
   public:
-    Cartographer(const NodeOptions& node_options,
-      const TrajectoryOptions& trajectory_options,
-      const bool collect_metrics);
+    Cartographer(const NodeOptions& node_options, const TrajectoryOptions& trajectory_options,
+                 const bool collect_metrics);
     ~Cartographer();
 
     void Reset() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -115,32 +114,35 @@ class Cartographer : public rclcpp::Node
     };
 
     void HandleSubmapQuery(const std::shared_ptr<cartographer_ros_msgs::srv::SubmapQuery::Request> request,
-                            std::shared_ptr<cartographer_ros_msgs::srv::SubmapQuery::Response> response);
+                           std::shared_ptr<cartographer_ros_msgs::srv::SubmapQuery::Response> response);
     void HandleTrajectoryQuery(const std::shared_ptr<cartographer_ros_msgs::srv::TrajectoryQuery::Request> request,
-                                std::shared_ptr<cartographer_ros_msgs::srv::TrajectoryQuery::Response> response);
+                               std::shared_ptr<cartographer_ros_msgs::srv::TrajectoryQuery::Response> response);
     void HandleLoadState(const std::shared_ptr<cartographer_ros_msgs::srv::LoadState::Request> request,
-                          std::shared_ptr<cartographer_ros_msgs::srv::LoadState::Response> response);
+                         std::shared_ptr<cartographer_ros_msgs::srv::LoadState::Response> response);
     void HandleWriteState(const std::shared_ptr<cartographer_ros_msgs::srv::WriteState::Request> request,
-                            std::shared_ptr<cartographer_ros_msgs::srv::WriteState::Response> response);
-    void HandleGetTrajectoryStates(const std::shared_ptr<cartographer_ros_msgs::srv::GetTrajectoryStates::Request> request,
-                                    std::shared_ptr<cartographer_ros_msgs::srv::GetTrajectoryStates::Response> response);
+                          std::shared_ptr<cartographer_ros_msgs::srv::WriteState::Response> response);
+    void HandleGetTrajectoryStates(
+        const std::shared_ptr<cartographer_ros_msgs::srv::GetTrajectoryStates::Request> request,
+        std::shared_ptr<cartographer_ros_msgs::srv::GetTrajectoryStates::Response> response);
     void HandleReadMetrics(const std::shared_ptr<cartographer_ros_msgs::srv::ReadMetrics::Request> request,
-                            std::shared_ptr<cartographer_ros_msgs::srv::ReadMetrics::Response> response);
+                           std::shared_ptr<cartographer_ros_msgs::srv::ReadMetrics::Response> response);
 
     void HandleStartLocalisation(const std::shared_ptr<cartographer_ros_msgs::srv::StartLocalisation::Request> request,
-                                  std::shared_ptr<cartographer_ros_msgs::srv::StartLocalisation::Response> response) LOCKS_EXCLUDED(mutex_);
+                                 std::shared_ptr<cartographer_ros_msgs::srv::StartLocalisation::Response> response)
+        LOCKS_EXCLUDED(mutex_);
     void HandleStopLocalisation(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
-                                  std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
+                                std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
 
     void HandlePauseLocalisation(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
-                                  std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
+                                 std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
     void HandleResumeLocalisation(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
-                                    std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
+                                  std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
 
     void HandleStartMapping(const std::shared_ptr<cartographer_ros_msgs::srv::StartMapping::Request> request,
-                              std::shared_ptr<cartographer_ros_msgs::srv::StartMapping::Response> response) LOCKS_EXCLUDED(mutex_);
+                            std::shared_ptr<cartographer_ros_msgs::srv::StartMapping::Response> response)
+        LOCKS_EXCLUDED(mutex_);
     void HandleStopMapping(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
-                            std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
+                           std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
 
     void HandleMapData(const std_msgs::msg::UInt8MultiArray::SharedPtr msg) LOCKS_EXCLUDED(mutex_);
 
@@ -155,7 +157,8 @@ class Cartographer : public rclcpp::Node
     // Not sure if this is correct originally passing "const ::ros::WallTimerEvent&", but doesn't exist anymore.
     void PausedTimer();
 
-    cartographer_ros_msgs::msg::StatusResponse FinishTrajectoryUnderLock(int trajectory_id) EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+    cartographer_ros_msgs::msg::StatusResponse FinishTrajectoryUnderLock(int trajectory_id)
+        EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
     // Not sure if this can be done in ROS2.
     // void MaybeWarnAboutTopicMismatch();
@@ -170,7 +173,7 @@ class Cartographer : public rclcpp::Node
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-    
+
     absl::Mutex mutex_;
     std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
     std::shared_ptr<MapBuilderBridge> map_builder_bridge_ GUARDED_BY(mutex_);
@@ -180,7 +183,7 @@ class Cartographer : public rclcpp::Node
 
     ::cartographer::transform::Rigid3d paused_tracking_in_global_ GUARDED_BY(mutex_);
     ::cartographer::transform::Rigid3d paused_global_to_odom_ GUARDED_BY(mutex_);
-    
+
     ::rclcpp::TimerBase::SharedPtr paused_timer_;
 
     ::rclcpp::Node::SharedPtr nh_;

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <rosbag2_cpp/writer.hpp>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,7 +27,6 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
-#include <rosbag2_cpp/writer.hpp>
 #include "tf2_msgs/msg/tf_message.hpp"
 
 DEFINE_string(input, "", "pbstream file to process");
@@ -38,8 +39,8 @@ namespace
 {
 
 geometry_msgs::msg::TransformStamped ToTransformStamped(int64_t timestamp_uts, const std::string& parent_frame_id,
-                                                   const std::string& child_frame_id,
-                                                   const cartographer::transform::proto::Rigid3d& parent_T_child)
+                                                        const std::string& child_frame_id,
+                                                        const cartographer::transform::proto::Rigid3d& parent_T_child)
 {
     geometry_msgs::msg::TransformStamped transform_stamped;
     transform_stamped.header.frame_id = parent_frame_id;
@@ -70,7 +71,7 @@ void pbstream_trajectories_to_bag(const std::string&, const std::string& output_
                 ToTransformStamped(node.timestamp(), parent_frame_id, child_frame_id, node.pose());
             tf_msg.transforms.push_back(transform_stamped);
             writer->write(transform_stamped, child_frame_id, transform_stamped.header.stamp);
-            writer->write(tf_msg, "/tf", transform_stamped.header.stamp);            
+            writer->write(tf_msg, "/tf", transform_stamped.header.stamp);
         }
     }
 }

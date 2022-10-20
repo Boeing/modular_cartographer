@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#include <rclcpp/rclcpp.hpp>
+#include <rosbag2_cpp/reader.hpp>
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -28,8 +31,6 @@
 #include "cartographer_ros/time_conversion.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
-#include <rclcpp/rclcpp.hpp>
-#include <rosbag2_cpp/reader.hpp>
 #include "tf2_eigen/tf2_eigen.h"
 #include "tf2_msgs/msg/tf_message.hpp"
 
@@ -94,7 +95,8 @@ void Run(const std::string& pbstream_filename, const std::string& bag_filename)
             continue;
         }
         rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
-        tf2_msgs::msg::TFMessage::SharedPtr msg = std::make_shared<tf2_msgs::msg::TFMessage>();;
+        tf2_msgs::msg::TFMessage::SharedPtr msg = std::make_shared<tf2_msgs::msg::TFMessage>();
+        ;
         tf_serializer.deserialize_message(&serialized_msg, msg.get());
 
         for (auto& transform : msg->transforms)

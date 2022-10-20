@@ -17,6 +17,8 @@
 #ifndef CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_OPTIONS_H
 #define CARTOGRAPHER_ROS_CARTOGRAPHER_ROS_NODE_OPTIONS_H
 
+#include <rclcpp/time.hpp>
+
 #include <string>
 #include <tuple>
 
@@ -24,8 +26,6 @@
 #include "cartographer/common/port.h"
 #include "cartographer/mapping/proto/map_builder_options.pb.h"
 #include "cartographer_ros/trajectory_options.h"
-
-#include <rclcpp/time.hpp>
 
 namespace cartographer_ros
 {

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 project(cartographer_ros_msgs)
 
-#find_package(catkin REQUIRED COMPONENTS std_msgs)
+# find_package(catkin REQUIRED COMPONENTS std_msgs)
 
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
@@ -13,7 +13,8 @@ find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
-rosidl_generate_interfaces(${PROJECT_NAME}
+rosidl_generate_interfaces(
+    ${PROJECT_NAME}
     "msg/BagfileProgress.msg"
     "msg/HistogramBucket.msg"
     "msg/LandmarkEntry.msg"
@@ -37,7 +38,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
     "srv/SubmapQuery.srv"
     "srv/TrajectoryQuery.srv"
     "srv/WriteState.srv"
-    DEPENDENCIES geometry_msgs graph_map nav_msgs sensor_msgs std_msgs
+    DEPENDENCIES
+    geometry_msgs
+    graph_map
+    nav_msgs
+    sensor_msgs
+    std_msgs
 )
 
 ament_package()

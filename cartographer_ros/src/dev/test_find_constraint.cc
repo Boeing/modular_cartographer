@@ -43,7 +43,7 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
 
     using SensorId = cartographer::mapping::TrajectoryBuilderInterface::SensorId;
     using SensorType = SensorId::SensorType;
-//    SensorId odom{SensorType::ODOMETRY, "odom"};
+    //    SensorId odom{SensorType::ODOMETRY, "odom"};
     SensorId front_laser{SensorType::RANGE, "/sick_s300_front/scan"};
     SensorId back_laser{SensorType::RANGE, "/sick_s300_back/scan"};
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> expected_sensor_ids = {front_laser,

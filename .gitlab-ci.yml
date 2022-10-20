@@ -1,3 +1,4 @@
+---
 include:
-  - project: robotics/continuous_integration
-    file: /pipelines/.ros-noetic-pkg-ci.yml
+  - project: mtdi/pi9419/continuous-integration
+    file: ci-templates/auto-rules/with-rosinstall/galactic-default.yml

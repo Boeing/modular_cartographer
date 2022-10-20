@@ -19,31 +19,32 @@
 #include "absl/memory/memory.h"
 #include "cartographer_ros/node_constants.h"
 #include "glog/logging.h"
-#include "tf2_msgs/msg/tf_message.hpp"
-#include "rosbag2_storage/topic_metadata.hpp"
 #include "rosbag2_storage/bag_metadata.hpp"
+#include "rosbag2_storage/topic_metadata.hpp"
+#include "tf2_msgs/msg/tf_message.hpp"
 
 namespace cartographer_ros
 {
 
 PlayableBag::PlayableBag(const std::string& bag_filename, const int bag_id, const rclcpp::Duration buffer_delay,
                          FilteringEarlyMessageHandler filtering_early_message_handler)
-    : bag_reader_(std::make_unique<rosbag2_cpp::Reader>()), finished_(false), bag_id_(bag_id), bag_filename_(bag_filename),
-      message_counter_(0), buffer_delay_(buffer_delay),
+    : bag_reader_(std::make_unique<rosbag2_cpp::Reader>()), finished_(false), bag_id_(bag_id),
+      bag_filename_(bag_filename), message_counter_(0), buffer_delay_(buffer_delay),
       filtering_early_message_handler_(std::move(filtering_early_message_handler))
 {
     // Open the bag
     LOG(WARNING) << "Opening bag: " << bag_filename;
     bag_reader_->open(bag_filename);
     bag_metadata = bag_reader_->get_metadata();
-    duration_in_seconds_ = bag_metadata.duration.count()/1e9;
+    duration_in_seconds_ = bag_metadata.duration.count() / 1e9;
     LOG(WARNING) << "duration_in_seconds_: " << duration_in_seconds_;
     LOG(WARNING) << "message_count: " << bag_metadata.message_count;
     LOG(WARNING) << "compression_mode: " << bag_metadata.compression_mode;
     LOG(WARNING) << "compression_format: " << bag_metadata.compression_format;
 
     AdvanceUntilMessageAvailable();
-    for (auto topic_info : bag_metadata.topics_with_message_count) {
+    for (auto topic_info : bag_metadata.topics_with_message_count)
+    {
         topics_.insert(topic_info.topic_metadata.name);
     }
 }
@@ -57,7 +58,8 @@ rclcpp::Time PlayableBag::PeekMessageTime() const
 // cppcheck-suppress unusedFunction
 std::tuple<rclcpp::Time, rclcpp::Time> PlayableBag::GetBeginEndTime() const
 {
-    return std::make_tuple(rclcpp::Time(bag_metadata.starting_time.time_since_epoch().count()),
+    return std::make_tuple(
+        rclcpp::Time(bag_metadata.starting_time.time_since_epoch().count()),
         rclcpp::Time(bag_metadata.starting_time.time_since_epoch().count() + bag_metadata.duration.count()));
 }
 
@@ -67,8 +69,8 @@ rosbag2_storage::SerializedBagMessage PlayableBag::GetNextMessage(cartographer_r
     const rosbag2_storage::SerializedBagMessage msg = buffered_messages_.front();
     buffered_messages_.pop_front();
     AdvanceUntilMessageAvailable();
-    double processed_seconds = (rclcpp::Time(msg.time_stamp) -
-       rclcpp::Time(bag_metadata.starting_time.time_since_epoch().count())).seconds();
+    double processed_seconds =
+        (rclcpp::Time(msg.time_stamp) - rclcpp::Time(bag_metadata.starting_time.time_since_epoch().count())).seconds();
     if ((message_counter_ % 10000) == 0)
     {
         LOG(INFO) << "Processed " << processed_seconds << " of " << duration_in_seconds_ << " seconds of bag "
@@ -132,7 +134,8 @@ PlayableBagMultiplexer::PlayableBagMultiplexer(rclcpp::Node::SharedPtr node)
     node_ = node;
     bag_progress_pub_ = node_->create_publisher<cartographer_ros_msgs::msg::BagfileProgress>("bagfile_progress", 10);
     // Must declare parameter to exists
-    if (!node_->has_parameter("bagfile_progress_pub_interval")) {
+    if (!node_->has_parameter("bagfile_progress_pub_interval"))
+    {
         node_->declare_parameter("bagfile_progress_pub_interval", progress_pub_interval_);
     }
     progress_pub_interval_ = node_->get_parameter_or("bagfile_progress_pub_interval", progress_pub_interval_, 10.0);
@@ -184,10 +187,12 @@ std::tuple<rosbag2_storage::SerializedBagMessage, int, std::string, bool> Playab
     }
 
     std::string topic_type;
-    for (auto topic_info : current_bag.bag_metadata.topics_with_message_count) {
-        if (topic_info.topic_metadata.name == msg.topic_name){
-        topic_type = topic_info.topic_metadata.type;
-        break;
+    for (auto topic_info : current_bag.bag_metadata.topics_with_message_count)
+    {
+        if (topic_info.topic_metadata.name == msg.topic_name)
+        {
+            topic_type = topic_info.topic_metadata.type;
+            break;
         }
     }
 

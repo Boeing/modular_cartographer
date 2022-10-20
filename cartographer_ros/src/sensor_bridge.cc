@@ -51,7 +51,8 @@ SensorBridge::SensorBridge(const int num_subdivisions_per_laser_scan, const std:
 {
 }
 
-std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(const nav_msgs::msg::Odometry::ConstSharedPtr& msg)
+std::unique_ptr<carto::sensor::OdometryData>
+    SensorBridge::ToOdometryData(const nav_msgs::msg::Odometry::ConstSharedPtr& msg)
 {
     const carto::common::Time time = FromRos(msg->header.stamp);
     const auto sensor_to_tracking = tf_bridge_.LookupToTracking(time, CheckNoLeadingSlash(msg->child_frame_id));
@@ -65,7 +66,8 @@ std::unique_ptr<carto::sensor::OdometryData> SensorBridge::ToOdometryData(const 
         Eigen::Vector3d(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z)});
 }
 
-void SensorBridge::HandleOdometryMessage(const std::string& sensor_id, const nav_msgs::msg::Odometry::ConstSharedPtr& msg)
+void SensorBridge::HandleOdometryMessage(const std::string& sensor_id,
+                                         const nav_msgs::msg::Odometry::ConstSharedPtr& msg)
 {
     std::unique_ptr<carto::sensor::OdometryData> odometry_data = ToOdometryData(msg);
     if (odometry_data != nullptr)
@@ -74,7 +76,8 @@ void SensorBridge::HandleOdometryMessage(const std::string& sensor_id, const nav
     }
 }
 
-void SensorBridge::HandleNavSatFixMessage(const std::string& sensor_id, const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg)
+void SensorBridge::HandleNavSatFixMessage(const std::string& sensor_id,
+                                          const sensor_msgs::msg::NavSatFix::ConstSharedPtr& msg)
 {
     const carto::common::Time time = FromRos(msg->header.stamp);
     if (msg->status.status == sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX)
@@ -140,7 +143,7 @@ std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(const sensor_msg
            "Transforming linear acceleration into the tracking frame will "
            "otherwise be imprecise.";
     return absl::make_unique<carto::sensor::ImuData>(
-    // return ::cartographer::common::make_unique<::cartographer::sensor::ImuData>( # Proposed in migrated version
+        // return ::cartographer::common::make_unique<::cartographer::sensor::ImuData>( # Proposed in migrated version
         carto::sensor::ImuData{time, sensor_to_tracking->rotation() * ToEigen(msg->linear_acceleration),
                                sensor_to_tracking->rotation() * ToEigen(msg->angular_velocity)});
 }
@@ -157,7 +160,8 @@ void SensorBridge::HandleImuMessage(const std::string& sensor_id, const sensor_m
     }
 }
 
-void SensorBridge::HandleLaserScanMessage(const std::string& sensor_id, const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg)
+void SensorBridge::HandleLaserScanMessage(const std::string& sensor_id,
+                                          const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg)
 {
     carto::sensor::TimedPointCloud point_cloud;
     carto::common::Time time;
@@ -174,7 +178,8 @@ void SensorBridge::HandleMultiEchoLaserScanMessage(const std::string& sensor_id,
     HandleLaserScan(sensor_id, time, msg->header.frame_id, point_cloud);
 }
 
-void SensorBridge::HandlePointCloud2Message(const std::string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg)
+void SensorBridge::HandlePointCloud2Message(const std::string& sensor_id,
+                                            const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg)
 {
     carto::sensor::TimedPointCloud point_cloud;
     carto::common::Time time;
