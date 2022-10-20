@@ -247,7 +247,8 @@ std::tuple<::cartographer::sensor::TimedPointCloud, ::cartographer::common::Time
             pcl::fromROSMsg(msg, pcl_point_cloud);
             point_cloud.reserve(pcl_point_cloud.size());
             std::transform(pcl_point_cloud.begin(), pcl_point_cloud.end(), std::back_inserter(point_cloud),
-                           [](const auto& point) {
+                           [](const auto& point)
+                           {
                                return cartographer::sensor::TimedRangefinderPoint{
                                    Eigen::Vector3f{point.x, point.y, point.z}, point.time, point.intensity};
                            });
@@ -258,7 +259,8 @@ std::tuple<::cartographer::sensor::TimedPointCloud, ::cartographer::common::Time
             pcl::fromROSMsg(msg, pcl_point_cloud);
             point_cloud.reserve(pcl_point_cloud.size());
             std::transform(pcl_point_cloud.begin(), pcl_point_cloud.end(), std::back_inserter(point_cloud),
-                           [](const auto& point) {
+                           [](const auto& point)
+                           {
                                return cartographer::sensor::TimedRangefinderPoint{
                                    Eigen::Vector3f{point.x, point.y, point.z}, 0.f, point.intensity};
                            });

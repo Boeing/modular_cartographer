@@ -109,9 +109,8 @@ std::vector<Eigen::Vector2i> worldToMap(const std::vector<Eigen::Vector2d>& poin
 {
     std::vector<Eigen::Vector2i> cells(points.size());
     std::transform(points.begin(), points.end(), cells.begin(),
-                   [&map_origin, &map_resolution](const Eigen::Vector2d& point) {
-                       return worldToMap(point, map_origin, map_resolution);
-                   });
+                   [&map_origin, &map_resolution](const Eigen::Vector2d& point)
+                   { return worldToMap(point, map_origin, map_resolution); });
     return cells;
 }
 
