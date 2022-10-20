@@ -18,140 +18,203 @@
 #include "cartographer_ros/ros_log_sink.h"
 #include "cartographer_ros/time_conversion.h"
 #include "gflags/gflags.h"
-#include "nav_msgs/Odometry.h"
-#include "ros/ros.h"
-#include "ros/time.h"
-#include "rosbag/bag.h"
-#include "rosbag/view.h"
-#include "sensor_msgs/Imu.h"
-#include "sensor_msgs/LaserScan.h"
-#include "sensor_msgs/MultiEchoLaserScan.h"
-#include "sensor_msgs/PointCloud2.h"
-#include "tf2_msgs/TFMessage.h"
+#include "nav_msgs/msg/odometry.hpp"
+#include <rclcpp/rclcpp.hpp>
+#include <rosbag2_cpp/reader.hpp>
+#include "sensor_msgs/msg/imu.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
+#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "tf2_msgs/msg/tf_message.hpp"
+#include <string>
 
 DEFINE_string(bag_filename, "", "Bag to publish.");
 
-const int kQueueSize = 1;
-
-template <typename MessagePtrType>
-void PublishWithModifiedTimestamp(MessagePtrType message, const ros::Publisher& publisher, ros::Duration bag_to_current)
+namespace cartographer_ros
 {
-    ros::Time& stamp = message->header.stamp;
-    stamp += bag_to_current;
-    publisher.publish(message);
-}
 
-template <>
-void PublishWithModifiedTimestamp<tf2_msgs::TFMessage::Ptr>(tf2_msgs::TFMessage::Ptr message,
-                                                            const ros::Publisher& publisher,
-                                                            ros::Duration bag_to_current)
+class BagPublisher : public rclcpp::Node
 {
-    for (const auto& transform : message->transforms)
+  public:
+    BagPublisher(const std::string& bag_filename)
+    : Node("rosbag_publisher"), bag_filename_(bag_filename)
     {
-        ros::Time& stamp = const_cast<ros::Time&>(transform.header.stamp);
-        stamp += bag_to_current;
-    }
-    publisher.publish(message);
-}
 
-int main(int argc, char** argv)
-{
-    google::InitGoogleLogging(argv[0]);
-    google::SetUsageMessage("\n\n"
-                            "This replays and publishes messages from a given bag file, modifying "
-                            "their header timestamps to match current ROS time.\n\n"
-                            "Messages are published in the same sequence and with the same delay "
-                            "they were recorded."
-                            "Contrary to rosbag play, it does not publish a clock, so time is"
-                            "hopefully smoother and it should be possible to reproduce timing"
-                            "issues.\n"
-                            "It only plays message types related to Cartographer.\n");
-    google::ParseCommandLineFlags(&argc, &argv, true);
-    CHECK(!FLAGS_bag_filename.empty()) << "-bag_filename is missing.";
+      auto pcl2_serializer = rclcpp::Serialization<sensor_msgs::msg::PointCloud2>();
+      auto multi_echo_laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::MultiEchoLaserScan>();
+      auto laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::LaserScan>();
+      auto imu_serializer = rclcpp::Serialization<sensor_msgs::msg::Imu>();
+      auto odom_serializer = rclcpp::Serialization<nav_msgs::msg::Odometry>();
+      auto tf_serializer = rclcpp::Serialization<tf2_msgs::msg::TFMessage>();
+      rclcpp::Time aux_time;
+      rcl_ret_t publish_result;
 
-    ros::init(argc, argv, "rosbag_publisher");
-    ros::start();
-
-    cartographer_ros::ScopedRosLogSink ros_log_sink;
-
-    rosbag::Bag bag;
-    bag.open(FLAGS_bag_filename, rosbag::bagmode::Read);
-    rosbag::View view(bag);
-    ros::NodeHandle node_handle;
-    bool use_sim_time;
-    node_handle.getParam("/use_sim_time", use_sim_time);
-    if (use_sim_time)
-    {
-        LOG(ERROR) << "use_sim_time is true but not supported. Expect conflicting "
-                      "ros::Time and message header times or weird behavior.";
-    }
-    std::map<std::string, ros::Publisher> topic_to_publisher;
-    for (const rosbag::ConnectionInfo* c : view.getConnections())
-    {
-        const std::string& topic = c->topic;
-        if (topic_to_publisher.count(topic) == 0)
+      bag_reader_.open(bag_filename);
+      // TO-DO: Check use_sim_time
+      topics_ = bag_reader_.get_all_topics_and_types();
+      for (const rosbag2_storage::TopicMetadata topic_info : topics_) 
+      {
+        if (topic_info.type == "sensor_msgs/msg/PointCloud2")
         {
-            ros::AdvertiseOptions options(c->topic, kQueueSize, c->md5sum, c->datatype, c->msg_def);
-            topic_to_publisher[topic] = node_handle.advertise(options);
+          topic_to_publisher_[topic_info.name] = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_info.name, kQueueSize_)->get_publisher_handle();
+        } else if (topic_info.type == "sensor_msgs/msg/MultiEchoLaserScan")
+        {
+          topic_to_publisher_[topic_info.name] = this->create_publisher<sensor_msgs::msg::MultiEchoLaserScan>(topic_info.name, kQueueSize_)->get_publisher_handle();
+        } else if (topic_info.type == "sensor_msgs/msg/LaserScan")
+        {
+          topic_to_publisher_[topic_info.name] = this->create_publisher<sensor_msgs::msg::LaserScan>(topic_info.name, kQueueSize_)->get_publisher_handle();
+        } else if (topic_info.type == "sensor_msgs/msg/Imu")
+        {
+          topic_to_publisher_[topic_info.name] = this->create_publisher<sensor_msgs::msg::Imu>(topic_info.name, kQueueSize_)->get_publisher_handle();
+        } else if (topic_info.type == "nav_msgs/msg/Odometry")
+        {
+          topic_to_publisher_[topic_info.name] = this->create_publisher<nav_msgs::msg::Odometry>(topic_info.name, kQueueSize_)->get_publisher_handle();
+        } else if (topic_info.type == "tf2_msgs/msg/TFMessage")
+        {
+          topic_to_publisher_[topic_info.name] = this->create_publisher<tf2_msgs::msg::TFMessage>(topic_info.name, kQueueSize_)->get_publisher_handle();
         }
-    }
-    ros::Duration(1).sleep();
-    CHECK(ros::ok());
+      }
+      rclcpp::sleep_for(std::chrono::nanoseconds(1000000000));
+      CHECK(rclcpp::ok());
 
-    ros::Time current_start = ros::Time::now();
-    ros::Time bag_start = view.getBeginTime();
-    ros::Duration bag_to_current = current_start - bag_start;
-    for (const rosbag::MessageInstance& message : view)
-    {
-        ros::Duration after_bag_start = message.getTime() - bag_start;
-        if (!::ros::ok())
+      current_start_ = this->now();
+      bag_start_ = rclcpp::Time(bag_reader_.get_metadata().starting_time.time_since_epoch().count());
+      // Offset between bag start and current time
+      bag_to_current_ = current_start_ - bag_start_;
+      while (bag_reader_.has_next()) 
+      {
+        if (!rclcpp::ok())
         {
+          break;
+        }
+        auto message = bag_reader_.read_next();
+        // Time elapsed (offset) between bag start and current message time stamp
+        rclcpp::Duration after_bag_start = rclcpp::Time(message->time_stamp) - bag_start_;
+        // Time at which we need to publish the message start time + message offset
+        rclcpp::Time planned_publish_time = current_start_ + after_bag_start;
+        // To be replaced by sleep_until in humble
+        rclcpp::sleep_for(std::chrono::nanoseconds((planned_publish_time - this->now()).nanoseconds()));        
+        // Search in metadata the current topic
+        for (const rosbag2_storage::TopicMetadata topic_info : topics_) 
+        {
+          // If topics names match, process message
+          if(topic_info.name == message->topic_name)
+          {
+            if (topic_info.type == "sensor_msgs/msg/PointCloud2")
+            {
+              rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
+              sensor_msgs::msg::PointCloud2::SharedPtr msg =
+                  std::make_shared<sensor_msgs::msg::PointCloud2>();
+              pcl2_serializer.deserialize_message(&serialized_msg, msg.get());
+              aux_time = msg->header.stamp;
+              aux_time += bag_to_current_;
+              msg->header.stamp = aux_time;
+              publish_result = rcl_publish(topic_to_publisher_.at(message->topic_name).get(), msg.get(), NULL);
+            } else if (topic_info.type == "sensor_msgs/msg/MultiEchoLaserScan")
+            {
+              rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
+              sensor_msgs::msg::MultiEchoLaserScan::SharedPtr msg =
+                std::make_shared<sensor_msgs::msg::MultiEchoLaserScan>();
+              multi_echo_laser_scan_serializer.deserialize_message(&serialized_msg, msg.get());
+              aux_time = msg->header.stamp;
+              aux_time += bag_to_current_;
+              msg->header.stamp = aux_time;
+              publish_result = rcl_publish(topic_to_publisher_.at(message->topic_name).get(), msg.get(), NULL);
+            } else if (topic_info.type == "sensor_msgs/msg/LaserScan")
+            {
+              rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
+              sensor_msgs::msg::LaserScan::SharedPtr msg =
+                std::make_shared<sensor_msgs::msg::LaserScan>();
+              laser_scan_serializer.deserialize_message(&serialized_msg, msg.get());
+              aux_time = msg->header.stamp;
+              aux_time += bag_to_current_;
+              msg->header.stamp = aux_time;
+              publish_result = rcl_publish(topic_to_publisher_.at(message->topic_name).get(), msg.get(), NULL);
+            } else if (topic_info.type == "sensor_msgs/msg/Imu")
+            {
+              rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
+              sensor_msgs::msg::Imu::SharedPtr msg =
+                std::make_shared<sensor_msgs::msg::Imu>();
+              imu_serializer.deserialize_message(&serialized_msg, msg.get());
+              aux_time = msg->header.stamp;
+              aux_time += bag_to_current_;
+              msg->header.stamp = aux_time;
+              publish_result = rcl_publish(topic_to_publisher_.at(message->topic_name).get(), msg.get(), NULL);
+            } else if (topic_info.type == "nav_msgs/msg/Odometry")
+            {
+              rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
+              nav_msgs::msg::Odometry::SharedPtr msg =
+                std::make_shared<nav_msgs::msg::Odometry>();
+              odom_serializer.deserialize_message(&serialized_msg, msg.get());
+              aux_time = msg->header.stamp;
+              aux_time += bag_to_current_;
+              msg->header.stamp = aux_time;
+              publish_result = rcl_publish(topic_to_publisher_.at(message->topic_name).get(), msg.get(), NULL);
+            } else if (topic_info.type == "tf2_msgs/msg/TFMessage")
+            {
+              rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
+              tf2_msgs::msg::TFMessage::SharedPtr msg
+                = std::make_shared<tf2_msgs::msg::TFMessage>();;
+              tf_serializer.deserialize_message(&serialized_msg, msg.get());
+              for (auto& transform : msg->transforms)
+              {
+                aux_time = transform.header.stamp;
+                aux_time += bag_to_current_;
+                transform.header.stamp = aux_time;
+              }
+              publish_result = rcl_publish(topic_to_publisher_.at(message->topic_name).get(), msg.get(), NULL);
+            } else
+            {
+              LOG(WARNING) << "Skipping message with type " << topic_info.type;
+              break;
+            }
+            if (publish_result != RCL_RET_OK)
+            {
+              LOG(WARNING) << "Error publishing message with type " << topic_info.type;
+            }
+            // Message processed, skip to next.
             break;
+          }
         }
-        ros::Time planned_publish_time = current_start + after_bag_start;
-        ros::Time::sleepUntil(planned_publish_time);
-
-        ros::Publisher& publisher = topic_to_publisher.at(message.getTopic());
-        if (message.isType<sensor_msgs::PointCloud2>())
-        {
-            PublishWithModifiedTimestamp(message.instantiate<sensor_msgs::PointCloud2>(), publisher, bag_to_current);
-        }
-        else if (message.isType<sensor_msgs::MultiEchoLaserScan>())
-        {
-            PublishWithModifiedTimestamp(message.instantiate<sensor_msgs::MultiEchoLaserScan>(), publisher,
-                                         bag_to_current);
-        }
-        else if (message.isType<sensor_msgs::LaserScan>())
-        {
-            PublishWithModifiedTimestamp(message.instantiate<sensor_msgs::LaserScan>(), publisher, bag_to_current);
-        }
-        else if (message.isType<sensor_msgs::Imu>())
-        {
-            PublishWithModifiedTimestamp(message.instantiate<sensor_msgs::Imu>(), publisher, bag_to_current);
-        }
-        else if (message.isType<nav_msgs::Odometry>())
-        {
-            PublishWithModifiedTimestamp(message.instantiate<nav_msgs::Odometry>(), publisher, bag_to_current);
-        }
-        else if (message.isType<tf2_msgs::TFMessage>())
-        {
-            PublishWithModifiedTimestamp(message.instantiate<tf2_msgs::TFMessage>(), publisher, bag_to_current);
-        }
-        else
-        {
-            LOG(WARNING) << "Skipping message with type " << message.getDataType();
-        }
-
-        ros::Time current_time = ros::Time::now();
-        double simulation_delay = cartographer::common::ToSeconds(cartographer_ros::FromRos(current_time) -
-                                                                  cartographer_ros::FromRos(planned_publish_time));
-        if (std::abs(simulation_delay) > 0.001)
-        {
-            LOG(WARNING) << "Playback delayed by " << simulation_delay
-                         << " s. planned_publish_time: " << planned_publish_time << " current_time: " << current_time;
-        }
+      }
     }
-    bag.close();
 
-    ros::shutdown();
+  private:
+    std::string bag_filename_;
+    rosbag2_cpp::Reader bag_reader_;
+    std::vector<rosbag2_storage::TopicMetadata> topics_;
+    // Publisher handlers stored as rcl_publisher_t
+    // Publication will be done using rcl_publish()
+    std::map<std::string, std::shared_ptr<rcl_publisher_t>> topic_to_publisher_;
+    rclcpp::Time current_start_, bag_start_;
+    rclcpp::Duration bag_to_current_ = rclcpp::Duration(1.0, 0);
+    const int kQueueSize_ = 1;
+};
+
+} // end namespace
+
+int main(int argc, char * argv[])
+{
+  rclcpp::init(argc, argv);
+
+  google::InitGoogleLogging(argv[0]);
+  google::SetUsageMessage("\n\n"
+                          "This replays and publishes messages from a given bag file, modifying "
+                          "their header timestamps to match current ROS time.\n\n"
+                          "Messages are published in the same sequence and with the same delay "
+                          "they were recorded."
+                          "Contrary to rosbag play, it does not publish a clock, so time is"
+                          "hopefully smoother and it should be possible to reproduce timing"
+                          "issues.\n"
+                          "It only plays message types related to Cartographer.\n");
+  google::ParseCommandLineFlags(&argc, &argv, true);
+  CHECK(!FLAGS_bag_filename.empty()) << "-bag_filename is missing.";
+
+  cartographer_ros::ScopedRosLogSink ros_log_sink;
+
+  auto node = std::make_shared<cartographer_ros::BagPublisher>(FLAGS_bag_filename);
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+  return 0;
 }
+
