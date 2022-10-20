@@ -43,7 +43,7 @@ class PlayableBag
 
     rclcpp::Time PeekMessageTime() const;
     rosbag2_storage::SerializedBagMessage GetNextMessage(cartographer_ros_msgs::msg::BagfileProgress* progress);
-    
+
     bool IsMessageAvailable() const;
     std::tuple<rclcpp::Time, rclcpp::Time> GetBeginEndTime() const;
 

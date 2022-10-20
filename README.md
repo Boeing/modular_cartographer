@@ -92,20 +92,20 @@ Cartographer can be quite sensitive to certain parameters. These are configured 
 files. A set of default configuration files are available in `cartographer/configuration_files`
 although a set of configurations dedicated to the project is most likely required.
 
-Upstream `cartographer_ros` has an excellent [guide](https://google-cartographer-ros.readthedocs.io/en/latest/algo_walkthrough.html) 
-on how the algorithm works. The general idea is still relevant, but we have made some enhancements. 
+Upstream `cartographer_ros` has an excellent [guide](https://google-cartographer-ros.readthedocs.io/en/latest/algo_walkthrough.html)
+on how the algorithm works. The general idea is still relevant, but we have made some enhancements.
 
 The main area that needs tuning is constraint finding. Constraint finding is the
 process of using scan matches to tie submaps together. Constraint finding needs to be
 finely tuned because you need to be able to find as many constraints as possible without
-getting any false positives. Constraint finding settings are in `map_builder.lua`. 
+getting any false positives. Constraint finding settings are in `map_builder.lua`.
 
-The there are two types of constraint finding: local and global. A global search is 
-performed when the robot has no idea where it is. During a global search, many poses are 
+The there are two types of constraint finding: local and global. A global search is
+performed when the robot has no idea where it is. During a global search, many poses are
 sampled and checked. The number of samples are controlled by `num_global_samples_per_sq_m`
-and `num_global_rotations`. Having too few samples will result in a failed search, 
+and `num_global_rotations`. Having too few samples will result in a failed search,
 but too many samples will slow down the search.
-These samples are filtered based on a number of criteria. 
+These samples are filtered based on a number of criteria.
 The scan is compared and a number of metrics such as inlier ratio
 are computed. The thresholds for these metrics may need to be tuned to generate
 a desired number of proposals.
@@ -120,10 +120,10 @@ The three most useful metrics are:
 **Raytrace fraction**
 
 The raytrace score is calculated by tracing a line from the robot to each laser point.
-If the line hits an object before reaching the point, it means we are seeing beyond 
+If the line hits an object before reaching the point, it means we are seeing beyond
 an obstacle, so the point fails the raytrace test. The ratio of bad points can be used
 to determine if the match was bad. Generally, the raytrace score should be quite high (>0.9)
-for a good match. 
+for a good match.
 
 Because laser scanners have noise, we allow a margin of error defined by
 `raytrace_threshold`. If a point is within this distance from the obstacle, then
@@ -141,9 +141,9 @@ point and an object for it to register as a hit.
 Features are unique objects in the room such as high-reflective points.
 They are very effective in removing ambiguity when the room is very
 symmetric. Features are so effective that if the robot sees many features,
-we can actually relax the raytrace and hit fraction thresholds. 
-Currently, if we see 3 or more features, we reduce the raytrace and hit 
-fraction required by 0.025. The parameters `min_hit_fraction` and 
+we can actually relax the raytrace and hit fraction thresholds.
+Currently, if we see 3 or more features, we reduce the raytrace and hit
+fraction required by 0.025. The parameters `min_hit_fraction` and
 `min_raytrace_fraction` are used when we see 2 or fewer features.
 
 ## Testing

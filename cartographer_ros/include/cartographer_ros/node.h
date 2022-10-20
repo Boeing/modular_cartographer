@@ -170,7 +170,7 @@ class Cartographer : public rclcpp::Node
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-    
+
     absl::Mutex mutex_;
     std::unique_ptr<cartographer_ros::metrics::FamilyFactory> metrics_registry_;
     std::shared_ptr<MapBuilderBridge> map_builder_bridge_ GUARDED_BY(mutex_);
@@ -180,7 +180,7 @@ class Cartographer : public rclcpp::Node
 
     ::cartographer::transform::Rigid3d paused_tracking_in_global_ GUARDED_BY(mutex_);
     ::cartographer::transform::Rigid3d paused_global_to_odom_ GUARDED_BY(mutex_);
-    
+
     ::rclcpp::TimerBase::SharedPtr paused_timer_;
 
     ::rclcpp::Node::SharedPtr nh_;
