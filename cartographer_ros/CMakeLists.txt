@@ -543,9 +543,16 @@ ament_target_dependencies(cartographer_dev_trajectory_comparison
   "tf2_msgs"
 )
 
-# Depends on bagfiles
-# add_executable(test_find_constraint src/dev/test_find_constraint.cc)
-# target_link_libraries(test_find_constraint PUBLIC ${PROJECT_NAME} ${LIBS})
+# Depends on boost
+add_executable(test_find_constraint src/dev/test_find_constraint.cc)
+target_link_libraries(test_find_constraint ${PROJECT_NAME} ${LIBS})
+ament_target_dependencies(test_find_constraint
+  "rclcpp"
+  "rosbag2_cpp"
+  "sensor_msgs"
+  "tf2_ros"
+  "urdf"
+)
 
 add_executable(sdf_to_pbstream src/dev/sdf_to_pbstream.cc)
 target_link_libraries(sdf_to_pbstream ${PROJECT_NAME} ${ABSEIL_LIBRARIES} tinyxml)
