@@ -1,7 +1,7 @@
 #include "cartographer_ros/node.h"
 
-#include <boost/interprocess/streams/vectorstream.hpp>
-#include <boost/iostreams/stream.hpp>
+// #include <boost/interprocess/streams/vectorstream.hpp>
+// #include <boost/iostreams/stream.hpp>
 #include <cartographer/mapping/map_builder.h>
 #include <nav_msgs/msg/odometry.hpp>
 #include <png.h>
@@ -234,8 +234,10 @@ void Cartographer::Reset()
     {
         try
         {
-            boost::iostreams::stream<boost::iostreams::array_source> ss(map_data_.c_str(), map_data_.size());
-            map_builder_bridge_->LoadState(ss, true);
+            // boost::iostreams::stream<boost::iostreams::array_source> ss(map_data_.c_str(), map_data_.size());
+            // map_builder_bridge_->LoadState(ss, true);
+            std::istringstream is(map_data_);
+            map_builder_bridge_->LoadState(is, true);
         }
         catch (const std::exception& e)
         {

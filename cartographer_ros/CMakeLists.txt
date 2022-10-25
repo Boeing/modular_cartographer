@@ -207,7 +207,7 @@ find_package(tf2_eigen REQUIRED)
 find_package(tf2_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system iostreams program_options)
+# find_package(Boost REQUIRED COMPONENTS system iostreams program_options)
 find_package(PCL REQUIRED COMPONENTS common)
 # find_package(LuaGoogle REQUIRED)
 find_package(Lua REQUIRED)
@@ -293,7 +293,7 @@ include_directories(
     # From previous CMakeLists
     SYSTEM
     ${ABSEIL_INCLUDE_DIRS}
-    ${Boost_INCLUDE_DIRS}
+    # ${Boost_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
     ${CARTOGRAPHER_INCLUDE_DIRS}
     ${CERES_INCLUDE_DIRS}
@@ -302,7 +302,8 @@ include_directories(
     ${PCL_INCLUDE_DIRS}
     ${PROTOBUF_INCLUDE_DIRS}
     ${urdfdom_headers_INCLUDE_DIRS}
-    ${Qt5Widgets_INCLUDE_DIRS}
+    # ${Qt5Widgets_INCLUDE_DIRS}
+    # ${OGRE_INCLUDE_DIRS}
 )
 
 set(
@@ -334,7 +335,7 @@ set(
     LIBS
     ${CARTOGRAPHER_LIBRARIES}
     ${ABSEIL_LIBRARIES}
-    ${Boost_LIBRARIES}
+    # ${Boost_LIBRARIES}
     ${CAIRO_LIBRARIES}
     # ${catkin_LIBRARIES}
     ${CERES_LIBRARIES}
@@ -402,16 +403,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS ${TARGET_COMPILE_
 
 install(TARGETS ${PROJECT_NAME} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 
-# ~~~
+# RVIZ plugin
+
+# set(OGRE_INCLUDE_DIRS /usr/include/OGRE)
+
 # set(RVIZ_SRC_FILES
 #     include/${PROJECT_NAME}/rviz/drawable_submap.h include/${PROJECT_NAME}/rviz/ogre_slice.h
 #     include/${PROJECT_NAME}/rviz/submaps_display.h src/rviz/drawable_submap.cc src/rviz/ogre_slice.cc
 #     src/rviz/submaps_display.cc
 # )
 
-# ~~~
 # qt5_wrap_cpp(RVIZ_SRC_FILES_MOC ${RVIZ_SRC_FILES})
-# add_library(cartographer_rviz_plugin ${RVIZ_SRC_FILES_MOC} ${RVIZ_SRC_FILES})
+# add_library(cartographer_rviz_plugin ${RVIZ_SRC_FILES})
+# target_include_directories(cartographer_rviz_plugin SYSTEM PUBLIC ${OGRE_INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS})
 
 add_executable(cartographer_node src/node_main.cc)
 target_include_directories(cartographer_node SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
@@ -521,7 +525,8 @@ ament_target_dependencies(
 
 add_executable(test_find_constraint src/dev/test_find_constraint.cc)
 target_link_libraries(test_find_constraint ${PROJECT_NAME} ${LIBS})
-ament_target_dependencies(test_find_constraint
+ament_target_dependencies(
+  test_find_constraint
   "rclcpp"
   "rosbag2_cpp"
   "sensor_msgs"
@@ -548,7 +553,16 @@ install(
     TARGETS
         cartographer_node
         occupancy_grid_node
+        cartographer_assets_writer
+        cartographer_offline_node
+        ${PROJECT_NAME}bag_validate
+        cartographer_pbstream_to_ros_map
         cartographer_pbstream_map_publisher
+        cartographer_dev_pbstream_trajectories_to_rosbag
+        cartographer_dev_rosbag_publisher
+        cartographer_dev_trajectory_comparison
+        test_find_constraint
+        sdf_to_pbstream
         DESTINATION
         lib/${PROJECT_NAME}
 )

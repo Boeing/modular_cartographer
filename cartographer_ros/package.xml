@@ -39,7 +39,7 @@
   <depend>rosbag</depend>
   <depend>rclcpp</depend>
   <depend>roslib</depend>
-  <depend>rviz</depend>
+  <depend>rviz-common</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>tf2</depend>
@@ -52,6 +52,6 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <rviz plugin="${prefix}/rviz_plugin_description.xml"/>
+    <!-- <rviz plugin="${prefix}/rviz_plugin_description.xml"/> -->
   </export>
 </package>
