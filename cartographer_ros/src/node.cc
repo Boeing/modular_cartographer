@@ -116,6 +116,9 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
     : Node("cartographer_node"), node_options_(node_options), trajectory_options_(trajectory_options)
 {
 
+    // this->declare_parameter("use_sim_time", false);
+
+    this->map_loaded_ = false;
     node_handle_ = std::shared_ptr<::rclcpp::Node>(this, [](::rclcpp::Node*) {});
 
     constexpr double kTfBufferCacheTimeInSeconds = 10.;
@@ -224,7 +227,7 @@ void Cartographer::Reset()
     sensor_samplers_.clear();
     subscribers_.clear();
     trajectories_scheduled_for_finish_.clear();
-    paused_timer_->cancel();
+    paused_timer_.reset();
 
     map_builder_bridge_->RunFinalOptimization();
 
@@ -250,7 +253,11 @@ void Cartographer::Reset()
 
 void Cartographer::StartTimerCallbacks()
 {
+    // if (this->timers_initialised_){
+    //     CancelTimerCallbacks();
+    // }
     CancelTimerCallbacks();
+
     submap_list_timer_ =
         this->create_wall_timer(std::chrono::milliseconds(int(node_options_.submap_publish_period_sec * 1000)),
                                 std::bind(&Cartographer::PublishSubmapList, this));
@@ -265,6 +272,8 @@ void Cartographer::StartTimerCallbacks()
                                 std::bind(&Cartographer::PublishLandmarkPosesList, this));
     constrain_list_timer_ = this->create_wall_timer(std::chrono::milliseconds(int(kConstraintPublishPeriodSec * 1000)),
                                                     std::bind(&Cartographer::PublishConstraintList, this));
+    // this->timers_initialised_ = true;
+
     // wall_timers_.clear();
     // wall_timers_.push_back(this->create_wall_timer(
     //     std::chrono::milliseconds(int(node_options_.submap_publish_period_sec * 1000)),
@@ -293,11 +302,21 @@ void Cartographer::StartTimerCallbacks()
 
 void Cartographer::CancelTimerCallbacks()
 {
-    submap_list_timer_->cancel();
-    trajectory_states_timer_->cancel();
-    trajectory_node_list_timer_->cancel();
-    landmark_pose_list_timer_->cancel();
-    constrain_list_timer_->cancel();
+    // if (this->timers_initialised_){
+    //     LOG(INFO) << "Canceling timers";
+    //     submap_list_timer_->cancel();
+    //     trajectory_states_timer_->cancel();
+    //     trajectory_node_list_timer_->cancel();
+    //     landmark_pose_list_timer_->cancel();
+    //     constrain_list_timer_->cancel();
+    //     LOG(INFO) << "Timers cancelled";
+    // }
+    // this->timers_initialised_ = false;
+    submap_list_timer_.reset();
+    trajectory_states_timer_.reset();
+    trajectory_node_list_timer_.reset();
+    landmark_pose_list_timer_.reset();
+    constrain_list_timer_.reset();
 }
 
 void Cartographer::HandleSubmapQuery(const std::shared_ptr<cartographer_ros_msgs::srv::SubmapQuery::Request> request,
@@ -517,10 +536,11 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
 
     for (const std::string& topic : ComputeRepeatedTopicNames(kLaserScanTopic, options.num_laser_scans))
     {
+        LOG(INFO) << "Subscribing to topic " << topic;
         std::function<void(const sensor_msgs::msg::LaserScan::ConstSharedPtr msg)> lsm_fcn =
             std::bind(&Cartographer::HandleLaserScanMessage, this, trajectory_id, topic, _1);
         subscribers_[trajectory_id].push_back(
-            {this->create_subscription<sensor_msgs::msg::LaserScan>(topic, rclcpp::QoS(rclcpp::KeepLast(1)), lsm_fcn),
+            {this->create_subscription<sensor_msgs::msg::LaserScan>(topic, rclcpp::SensorDataQoS(), lsm_fcn),
              topic});
         // subscribers_[trajectory_id].push_back(SubscribeWithHandler<sensor_msgs::msg::LaserScan>(&Cartographer::HandleLaserScanMessage,
         // trajectory_id, topic, node_handle_, this, custom_qos_profile_));
@@ -947,9 +967,11 @@ void Cartographer::HandleStartLocalisation(
         system_state_.number_of_global_constraints = 0;
         system_state_publisher_->publish(system_state_);
 
+        LOG(INFO) << "StartLocalisation: Starting timers.";
         StartTimerCallbacks();
     }
 
+    LOG(INFO) << "Localization started.";
     // return true;
 }
 
@@ -1160,6 +1182,8 @@ void Cartographer::HandleMapData(const std_msgs::msg::UInt8MultiArray::SharedPtr
 {
     absl::MutexLock lock(&mutex_);
 
+    if (this->map_loaded_) return;
+
     LOG(INFO) << "Loading incoming map data (" << msg->data.size() << ")...";
 
     map_data_ = std::string(reinterpret_cast<const char*>(msg->data.data()), msg->data.size());
@@ -1171,6 +1195,8 @@ void Cartographer::HandleMapData(const std_msgs::msg::UInt8MultiArray::SharedPtr
     system_state_.map_loaded = !map_data_.empty();
     system_state_.number_of_global_constraints = 0;
     system_state_publisher_->publish(system_state_);
+
+    this->map_loaded_ = true;
 }
 
 void Cartographer::FinishAllTrajectories()
@@ -1216,6 +1242,7 @@ void Cartographer::RunFinalOptimization()
 void Cartographer::HandleOdometryMessage(const int trajectory_id, const std::string& sensor_id,
                                          const nav_msgs::msg::Odometry::ConstSharedPtr msg)
 {
+    // LOG(INFO) << "Received odometry message";
     absl::MutexLock lock(&mutex_);
     if (!sensor_samplers_.at(trajectory_id).odometry_sampler.Pulse())
     {
@@ -1250,6 +1277,7 @@ void Cartographer::HandleLandmarkMessage(const int trajectory_id, const std::str
 void Cartographer::HandleLaserScanMessage(const int trajectory_id, const std::string& sensor_id,
                                           const sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
 {
+    // LOG(INFO) << "Received laserscan message";
     absl::MutexLock lock(&mutex_);
     if (!sensor_samplers_.at(trajectory_id).rangefinder_sampler.Pulse())
     {
