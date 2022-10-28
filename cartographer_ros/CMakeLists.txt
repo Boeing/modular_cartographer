@@ -567,6 +567,12 @@ install(
         lib/${PROJECT_NAME}
 )
 
+install(
+  PROGRAMS
+  launch/test_launch.py
+  DESTINATION share/${PROJECT_NAME}
+)
+
 # ~~~
 # target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
 # target_link_libraries(cartographer_rviz_plugin PUBLIC ${PROJECT_NAME} ${LIBS})
