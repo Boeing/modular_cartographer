@@ -362,7 +362,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
     std::unordered_map<int, int> bag_index_to_trajectory_id;
     const rclcpp::Time begin_time =
         // If no bags were loaded, we cannot peek the time of first message.
-        playable_bag_multiplexer.IsMessageAvailable() ? playable_bag_multiplexer.PeekMessageTime() : rclcpp::Time();
+        playable_bag_multiplexer.IsMessageAvailable() ? playable_bag_multiplexer.PeekMessageTime() : rclcpp::Clock(RCL_ROS_TIME).now();
 
     auto laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::LaserScan>();
     auto multi_echo_laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::MultiEchoLaserScan>();

@@ -543,7 +543,7 @@ nav_msgs::msg::OccupancyGrid MapBuilderBridge::GetOccupancyGridMsg(const double 
     }
 
     const auto painted_slices = ::cartographer::io::PaintSubmapSlices(submap_slices, resolution);
-    return *CreateOccupancyGridMsg(painted_slices, resolution, "map", rclcpp::Time());
+    return *CreateOccupancyGridMsg(painted_slices, resolution, "map", rclcpp::Clock(RCL_ROS_TIME).now());
 }
 
 SensorBridge* MapBuilderBridge::sensor_bridge(const int trajectory_id)
