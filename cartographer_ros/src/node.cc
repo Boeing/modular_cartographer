@@ -415,10 +415,10 @@ void Cartographer::PublishLocalTrajectoryData()
         const auto& trajectory_data = local_it->second;
 
         const auto constraints = map_builder_bridge_->map_builder().pose_graph()->constraints();
-        const long global_constraints =
-            std::count_if(constraints.begin(), constraints.end(), [&trajectory_id](const auto& c) {
-                return (c.node_id.trajectory_id == trajectory_id && c.submap_id.trajectory_id != trajectory_id);
-            });
+        const long global_constraints = std::count_if(
+            constraints.begin(), constraints.end(),
+            [&trajectory_id](const auto& c)
+            { return (c.node_id.trajectory_id == trajectory_id && c.submap_id.trajectory_id != trajectory_id); });
         const cartographer::transform::Rigid3d local_to_global = (global_it != global_slam_data.local_to_global.end())
                                                                      ? global_it->second
                                                                      : cartographer::transform::Rigid3d::Identity();
@@ -430,9 +430,9 @@ void Cartographer::PublishLocalTrajectoryData()
             point_cloud.reserve(trajectory_data.trajectory_node_data->range_data.returns.size());
             std::transform(trajectory_data.trajectory_node_data->range_data.returns.begin(),
                            trajectory_data.trajectory_node_data->range_data.returns.end(),
-                           std::back_inserter(point_cloud), [](const cartographer::sensor::RangefinderPoint& point) {
-                               return cartographer::sensor::ToTimedRangefinderPoint(point, 0.f /* time */);
-                           });
+                           std::back_inserter(point_cloud),
+                           [](const cartographer::sensor::RangefinderPoint& point)
+                           { return cartographer::sensor::ToTimedRangefinderPoint(point, 0.f /* time */); });
             scan_matched_point_cloud_publisher_->publish(ToPointCloud2Message(
                 carto::common::ToUniversal(trajectory_data.time), trajectory_options_.tracking_frame,
                 carto::sensor::TransformTimedPointCloud(point_cloud, local_to_global.cast<float>())));
@@ -819,7 +819,8 @@ void Cartographer::HandleWriteState(const std::shared_ptr<cartographer_ros_msgs:
             if (setjmp(png_jmpbuf(png)))
                 abort();
 
-            auto user_write_fn = [](png_structp png, png_bytep data, png_size_t length) {
+            auto user_write_fn = [](png_structp png, png_bytep data, png_size_t length)
+            {
                 auto v = (sensor_msgs::msg::CompressedImage::_data_type*)png_get_io_ptr(png);
                 for (unsigned int i = 0; i < length; ++i)
                 {

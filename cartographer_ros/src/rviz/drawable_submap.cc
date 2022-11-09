@@ -119,20 +119,22 @@ bool DrawableSubmap::MaybeFetchTexture(ros::ServiceClient* const client)
     }
     query_in_progress_ = true;
     last_query_timestamp_ = now;
-    rpc_request_future_ = std::async(std::launch::async, [this, client]() {
-        std::unique_ptr<::cartographer::io::SubmapTextures> submap_textures =
-            ::cartographer_ros::FetchSubmapTextures(id_, client);
-        absl::MutexLock _locker(&mutex_);
-        query_in_progress_ = false;
-        if (submap_textures != nullptr)
-        {
-            // We emit a signal to update in the right thread, and pass via the
-            // 'submap_texture_' member to simplify the signal-slot connection
-            // slightly.
-            submap_textures_ = std::move(submap_textures);
-            Q_EMIT RequestSucceeded();
-        }
-    });
+    rpc_request_future_ = std::async(std::launch::async,
+                                     [this, client]()
+                                     {
+                                         std::unique_ptr<::cartographer::io::SubmapTextures> submap_textures =
+                                             ::cartographer_ros::FetchSubmapTextures(id_, client);
+                                         absl::MutexLock _locker(&mutex_);
+                                         query_in_progress_ = false;
+                                         if (submap_textures != nullptr)
+                                         {
+                                             // We emit a signal to update in the right thread, and pass via the
+                                             // 'submap_texture_' member to simplify the signal-slot connection
+                                             // slightly.
+                                             submap_textures_ = std::move(submap_textures);
+                                             Q_EMIT RequestSucceeded();
+                                         }
+                                     });
     return true;
 }
 
