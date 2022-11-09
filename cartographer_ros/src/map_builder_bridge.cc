@@ -115,14 +115,16 @@ int MapBuilderBridge::AddTrajectory(
         expected_sensor_ids, trajectory_options.trajectory_builder_options,
         [this](const int trajectory_id, const ::cartographer::common::Time time, const Rigid3d local_pose,
                const Rigid3d odom,
-               std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult> insertion)
-        { OnLocalSlamResult(trajectory_id, time, local_pose, odom, std::move(insertion)); });
+               std::unique_ptr<const ::cartographer::mapping::TrajectoryBuilderInterface::InsertionResult> insertion) {
+            OnLocalSlamResult(trajectory_id, time, local_pose, odom, std::move(insertion));
+        });
     LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
 
     map_builder_.pose_graph()->SetGlobalSlamOptimizationCallback(
         [this](const std::map<int /* trajectory_id */, ::cartographer::mapping::SubmapId>& submap,
-               const std::map<int /* trajectory_id */, ::cartographer::mapping::NodeId>& node)
-        { OnGlobalSlamOptimization(submap, node); });
+               const std::map<int /* trajectory_id */, ::cartographer::mapping::NodeId>& node) {
+            OnGlobalSlamOptimization(submap, node);
+        });
 
     // Make sure there is no trajectory with 'trajectory_id' yet.
     CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);

@@ -65,8 +65,7 @@ int main(int argc, char** argv)
     google::InitGoogleLogging(argv[0]);
     google::ParseCommandLineFlags(&argc, &argv, true);
 
-    CHECK(!FLAGS_configuration_directory.empty())
-      << "-configuration_directory is missing.";
+    CHECK(!FLAGS_configuration_directory.empty()) << "-configuration_directory is missing.";
 
     cartographer_ros::ScopedRosLogSink ros_log_sink;
     cartographer_ros::Run();

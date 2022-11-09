@@ -8,11 +8,12 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rosbag2_cpp/reader.hpp>
 #include <urdf/model.h>
-#include "gflags/gflags.h"
 
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "gflags/gflags.h"
 
 // namespace po = boost::program_options;
 
@@ -55,7 +56,7 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
     bag_reader.open(rosbag_filename);
 
     std::vector<rosbag2_storage::TopicMetadata> topics = bag_reader.get_all_topics_and_types();
-    for (const rosbag2_storage::TopicMetadata topic_info : topics) 
+    for (const rosbag2_storage::TopicMetadata topic_info : topics)
     {
         LOG(INFO) << "Topic: " << topic_info.name;
     }
@@ -69,7 +70,7 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
     sensor_msgs::msg::LaserScan::SharedPtr front_laser_msgs = std::make_shared<sensor_msgs::msg::LaserScan>();
     sensor_msgs::msg::LaserScan::SharedPtr back_laser_msgs = std::make_shared<sensor_msgs::msg::LaserScan>();
 
-    while (bag_reader.has_next()) 
+    while (bag_reader.has_next())
     {
         auto message = bag_reader.read_next();
         if (message->topic_name == front_laser.id && !front_laser_read)
@@ -77,23 +78,21 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
             front_laser_read = true;
             rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
             laser_scan_serializer.deserialize_message(&serialized_msg, front_laser_msgs.get());
-        } else if (message->topic_name == back_laser.id && !back_laser_read)
+        }
+        else if (message->topic_name == back_laser.id && !back_laser_read)
         {
             back_laser_read = false;
             rclcpp::SerializedMessage serialized_msg(*message->serialized_data);
-            laser_scan_serializer.deserialize_message(&serialized_msg, back_laser_msgs.get());            
+            laser_scan_serializer.deserialize_message(&serialized_msg, back_laser_msgs.get());
         }
         if (front_laser_read && back_laser_read)
         {
             break;
         }
-
     }
 
-    map_builder_bridge->sensor_bridge(trajectory_id)
-        ->HandleLaserScanMessage(front_laser.id, front_laser_msgs);
-    map_builder_bridge->sensor_bridge(trajectory_id)
-        ->HandleLaserScanMessage(back_laser.id, back_laser_msgs);
+    map_builder_bridge->sensor_bridge(trajectory_id)->HandleLaserScanMessage(front_laser.id, front_laser_msgs);
+    map_builder_bridge->sensor_bridge(trajectory_id)->HandleLaserScanMessage(back_laser.id, back_laser_msgs);
 
     LOG(INFO) << "Running final optimization";
 
@@ -123,7 +122,8 @@ int main(int argc, char** argv)
     //     // clang-format off
     //     desc.add_options()
     //     ("help,h", "Help Screen")
-    //     ("configuration_directory", po::value<std::string>(&configuration_directory)->required(), "Cartographer configuration directory")
+    //     ("configuration_directory", po::value<std::string>(&configuration_directory)->required(), "Cartographer
+    //     configuration directory")
     //     ("pbstream", po::value<std::string>(&pbstream_filename)->required(), "Pbstream map")
     //     ("urdf", po::value<std::string>(&urdf_filename)->required(), "URDF")
     //     ("rosbag", po::value<std::string>(&rosbag_filename)->required(), "Rosbag");
@@ -148,7 +148,8 @@ int main(int argc, char** argv)
     // }
 
     cartographer_ros::ScopedRosLogSink ros_log_sink;
-    cartographer_ros::testFindConstraint(FLAGS_configuration_directory, FLAGS_urdf_filename, FLAGS_pbstream_filename, FLAGS_rosbag_filename);
+    cartographer_ros::testFindConstraint(FLAGS_configuration_directory, FLAGS_urdf_filename, FLAGS_pbstream_filename,
+                                         FLAGS_rosbag_filename);
 
     rclcpp::shutdown();
 }

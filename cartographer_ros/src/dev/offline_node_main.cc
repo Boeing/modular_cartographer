@@ -287,8 +287,7 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
                         // we will have already inserted further 'kDelay' seconds worth of
                         // transforms into 'tf_buffer' via this lambda.
                         [&tf_publisher, &tf_buffer, cartographer_offline_node,
-                         serializer](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg)
-                        {
+                         serializer](std::shared_ptr<rosbag2_storage::SerializedBagMessage> msg) {
                             // Can't filter by type as in ROS1
                             if (msg->topic_name == kTfTopic || msg->topic_name == kTfStaticTopic)
                             {
@@ -362,7 +361,8 @@ void RunOfflineNode(const MapBuilderFactory& map_builder_factory, rclcpp::Node::
     std::unordered_map<int, int> bag_index_to_trajectory_id;
     const rclcpp::Time begin_time =
         // If no bags were loaded, we cannot peek the time of first message.
-        playable_bag_multiplexer.IsMessageAvailable() ? playable_bag_multiplexer.PeekMessageTime() : rclcpp::Clock(RCL_ROS_TIME).now();
+        playable_bag_multiplexer.IsMessageAvailable() ? playable_bag_multiplexer.PeekMessageTime()
+                                                      : rclcpp::Clock(RCL_ROS_TIME).now();
 
     auto laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::LaserScan>();
     auto multi_echo_laser_scan_serializer = rclcpp::Serialization<sensor_msgs::msg::MultiEchoLaserScan>();
@@ -526,8 +526,9 @@ int main(int argc, char** argv)
     cartographer_ros::ScopedRosLogSink ros_log_sink;
 
     const cartographer_ros::MapBuilderFactory map_builder_factory =
-        [](const ::cartographer::mapping::proto::MapBuilderOptions& map_builder_options)
-    { return absl::make_unique<::cartographer::mapping::MapBuilder>(map_builder_options); };
+        [](const ::cartographer::mapping::proto::MapBuilderOptions& map_builder_options) {
+            return absl::make_unique<::cartographer::mapping::MapBuilder>(map_builder_options);
+        };
 
     rclcpp::Node::SharedPtr cartographer_offline_node = rclcpp::Node::make_shared("cartographer_offline_node");
     cartographer_ros::RunOfflineNode(map_builder_factory, cartographer_offline_node);

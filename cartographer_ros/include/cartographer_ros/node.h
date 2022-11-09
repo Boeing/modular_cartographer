@@ -245,7 +245,6 @@ class Cartographer : public rclcpp::Node
     // rclcpp::QoS custom_qos_profile_;
 
     bool map_loaded_;
-
 };
 
 }  // namespace cartographer_ros

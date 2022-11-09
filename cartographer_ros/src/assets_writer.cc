@@ -66,8 +66,9 @@ std::unique_ptr<carto::io::PointsProcessorPipelineBuilder>
     builder->Register(
         RosMapWritingPointsProcessor::kConfigurationFileActionName,
         [file_writer_factory](carto::common::LuaParameterDictionary* const dictionary,
-                              carto::io::PointsProcessor* const next) -> std::unique_ptr<carto::io::PointsProcessor>
-        { return RosMapWritingPointsProcessor::FromDictionary(file_writer_factory, dictionary, next); });
+                              carto::io::PointsProcessor* const next) -> std::unique_ptr<carto::io::PointsProcessor> {
+            return RosMapWritingPointsProcessor::FromDictionary(file_writer_factory, dictionary, next);
+        });
     return builder;
 }
 
@@ -275,8 +276,9 @@ void AssetsWriter::Run(const std::string& configuration_directory, const std::st
 
 ::cartographer::io::FileWriterFactory AssetsWriter::CreateFileWriterFactory(const std::string& file_path)
 {
-    const auto file_writer_factory = [file_path](const std::string& filename)
-    { return absl::make_unique<carto::io::StreamFileWriter>(file_path + filename); };
+    const auto file_writer_factory = [file_path](const std::string& filename) {
+        return absl::make_unique<carto::io::StreamFileWriter>(file_path + filename);
+    };
     return file_writer_factory;
 }
 
