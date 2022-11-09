@@ -1,7 +1,8 @@
-- git:
-    uri: git@gitlab.com:mtdi/pi9419/boeing/cartographer.git
-    local-name: cartographer
-    version: master
+# Pulled by cmake's external_project
+# - git:
+#     uri: git@gitlab.com:mtdi/pi9419/boeing/cartographer.git
+#     local-name: cartographer
+#     version: master
 - git:
     uri: git@gitlab.com:mtdi/pi9419/boeing/modular_navigation.git
     local-name: modular_navigation
