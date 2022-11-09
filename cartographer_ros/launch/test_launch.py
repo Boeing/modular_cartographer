@@ -15,7 +15,8 @@ def generate_launch_description():
                 ('/mapper/odom', '/odom')
             ],
             arguments=[
-                '-configuration_directory', '/root/workspaces/boeing_sim/src/bmpr_core/bmpr_core_bringup/config/cartographer'
+                '-configuration_directory',
+                '/root/workspaces/boeing_sim/src/bmpr_core/bmpr_core_bringup/config/cartographer'
             ],
             parameters=[{'use_sim_time': True}]
         )
