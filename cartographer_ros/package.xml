@@ -39,7 +39,7 @@
   <depend>rosbag</depend>
   <depend>rclcpp</depend>
   <depend>roslib</depend>
-  <depend>rviz-common</depend>
+  <depend>rviz_common</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>tf2</depend>
