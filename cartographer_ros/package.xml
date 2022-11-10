@@ -22,7 +22,7 @@
 
   <!-- <depend>cartographer</depend> -->
   <depend>cartographer_ros_msgs</depend>
-  <depend>eigen_conversions</depend>
+  <!-- <depend>eigen_conversions</depend> -->
   <depend>geometry_msgs</depend>
   <!-- <depend>googletest</depend> -->
   <depend>libcairo2-dev</depend>
