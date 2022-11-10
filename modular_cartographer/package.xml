@@ -7,13 +7,12 @@
     <author>Boeing</author>
     <license>Boeing Proprietary</license>
 
-    <buildtool_depend>catkin</buildtool_depend>
 
     <exec_depend>cartographer_ros</exec_depend>
     <exec_depend>cartographer_ros_msgs</exec_depend>
 
     <export>
-        <metapackage/>
+        <build_type>ament_cmake</build_type>
     </export>
 
 </package>

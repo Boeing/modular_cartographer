@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
-project(modular_cartographer)
-find_package(catkin REQUIRED)
-catkin_metapackage()
+cmake_minimum_required(VERSION 3.5)
+project(modular_cartographer NONE)
+find_package(ament_cmake REQUIRED)
+ament_package()
