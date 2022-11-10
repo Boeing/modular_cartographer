@@ -4,6 +4,6 @@
 #     local-name: cartographer
 #     version: master
 - git:
-    uri: git@gitlab.com:mtdi/pi9419/boeing/modular_navigation.git
-    local-name: modular_navigation
-    version: foxy-devel
+    uri: git@gitlab.com:mtdi/pi9419/boeing/graph_map.git
+    local-name: graph_map
+    version: main
