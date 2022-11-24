@@ -503,7 +503,12 @@ install(
     DESTINATION lib/${PROJECT_NAME}
 )
 
-install(PROGRAMS launch/test_launch.py DESTINATION share/${PROJECT_NAME})
+# install(PROGRAMS launch/test_launch.py DESTINATION share/${PROJECT_NAME})
+# Install launch files.
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 # ~~~
 # target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
