@@ -846,7 +846,7 @@ void Cartographer::HandleWriteState(const std::shared_ptr<cartographer_ros_msgs:
             if (og_map.info.height > PNG_SIZE_MAX / (og_map.info.width * bytes_per_pixel))
                 png_error(png, "Image data buffer would be too large");
 
-            png_bytep row_pointers[og_map.info.height];
+            png_bytep* row_pointers = new png_bytep[og_map.info.height];
 
             if (og_map.info.height > PNG_UINT_32_MAX / (sizeof(png_bytep)))
                 png_error(png, "Image is too tall to process in memory");
