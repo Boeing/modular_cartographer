@@ -180,11 +180,13 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
     handle_stop_mapping_server_ = this->create_service<std_srvs::srv::Trigger>(
         "stop_mapping", std::bind(&Cartographer::HandleStopMapping, this, _1, _2));
 
-    auto infinite_qos = rclcpp::QoS(rclcpp::KeepAll());
+    // auto infinite_qos = rclcpp::QoS(rclcpp::KeepAll());
+    auto latching_qos = rclcpp::QoS(rclcpp::KeepLast(1));
+    latching_qos.transient_local();
     // auto infinite_qos = rclcpp::QoS(1);
     // infinite_qos.keep_all();
     map_data_subscriber_ = this->create_subscription<std_msgs::msg::UInt8MultiArray>(
-        kMapDataTopic, infinite_qos, std::bind(&Cartographer::HandleMapData, this, _1));
+        kMapDataTopic, latching_qos, std::bind(&Cartographer::HandleMapData, this, _1));
 
     scan_matched_point_cloud_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
         kScanMatchedPointCloudTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
