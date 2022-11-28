@@ -243,8 +243,6 @@ class Cartographer : public rclcpp::Node
     ::rclcpp::TimerBase::SharedPtr constrain_list_timer_;
 
     // rclcpp::QoS custom_qos_profile_;
-
-    bool map_loaded_;
 };
 
 }  // namespace cartographer_ros

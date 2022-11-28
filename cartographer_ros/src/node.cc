@@ -118,7 +118,6 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
 
     // this->declare_parameter("use_sim_time", false);
 
-    this->map_loaded_ = false;
     node_handle_ = std::shared_ptr<::rclcpp::Node>(this, [](::rclcpp::Node*) {});
 
     constexpr double kTfBufferCacheTimeInSeconds = 10.;
@@ -180,11 +179,8 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
     handle_stop_mapping_server_ = this->create_service<std_srvs::srv::Trigger>(
         "stop_mapping", std::bind(&Cartographer::HandleStopMapping, this, _1, _2));
 
-    // auto infinite_qos = rclcpp::QoS(rclcpp::KeepAll());
     auto latching_qos = rclcpp::QoS(rclcpp::KeepLast(1));
     latching_qos.transient_local();
-    // auto infinite_qos = rclcpp::QoS(1);
-    // infinite_qos.keep_all();
     map_data_subscriber_ = this->create_subscription<std_msgs::msg::UInt8MultiArray>(
         kMapDataTopic, latching_qos, std::bind(&Cartographer::HandleMapData, this, _1));
 
@@ -552,9 +548,9 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
     {
         std::function<void(const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg)> melsm_fcn =
             std::bind(&Cartographer::HandleMultiEchoLaserScanMessage, this, trajectory_id, topic, _1);
-        subscribers_[trajectory_id].push_back({this->create_subscription<sensor_msgs::msg::MultiEchoLaserScan>(
-                                                   topic, rclcpp::QoS(rclcpp::KeepLast(1)), melsm_fcn),
-                                               topic});
+        subscribers_[trajectory_id].push_back(
+            {this->create_subscription<sensor_msgs::msg::MultiEchoLaserScan>(topic, rclcpp::SensorDataQoS(), melsm_fcn),
+             topic});
         // subscribers_[trajectory_id].push_back(
         //     {SubscribeWithHandler<sensor_msgs::msg::MultiEchoLaserScan>(&Cartographer::HandleMultiEchoLaserScanMessage,
         //                                                            trajectory_id, topic, nh_, this,
@@ -1183,9 +1179,6 @@ void Cartographer::HandleMapData(const std_msgs::msg::UInt8MultiArray::SharedPtr
 {
     absl::MutexLock lock(&mutex_);
 
-    if (this->map_loaded_)
-        return;
-
     LOG(INFO) << "Loading incoming map data (" << msg->data.size() << ")...";
 
     map_data_ = std::string(reinterpret_cast<const char*>(msg->data.data()), msg->data.size());
@@ -1197,8 +1190,6 @@ void Cartographer::HandleMapData(const std_msgs::msg::UInt8MultiArray::SharedPtr
     system_state_.map_loaded = !map_data_.empty();
     system_state_.number_of_global_constraints = 0;
     system_state_publisher_->publish(system_state_);
-
-    this->map_loaded_ = true;
 }
 
 void Cartographer::FinishAllTrajectories()
