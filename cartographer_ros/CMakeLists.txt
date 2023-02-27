@@ -156,7 +156,7 @@ if(NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
     externalproject_add(
         ${CARTOGRAPHER_PROJECT_NAME}
         PREFIX ${CARTOGRAPHER_PROJECT_NAME}
-        GIT_REPOSITORY git@gitlab.com:mtdi/pi9419/boeing/cartographer.git
+        GIT_REPOSITORY https://gitlab.com/mtdi/pi9419/boeing/cartographer.git
         GIT_TAG master
         GIT_SHALLOW ON
         UPDATE_COMMAND ""
