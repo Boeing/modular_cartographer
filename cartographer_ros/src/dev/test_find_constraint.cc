@@ -56,7 +56,7 @@ void testFindConstraint(const std::string& configuration_directory, const std::s
     bag_reader.open(rosbag_filename);
 
     std::vector<rosbag2_storage::TopicMetadata> topics = bag_reader.get_all_topics_and_types();
-    for (const rosbag2_storage::TopicMetadata topic_info : topics)
+    for (const rosbag2_storage::TopicMetadata& topic_info : topics)
     {
         LOG(INFO) << "Topic: " << topic_info.name;
     }

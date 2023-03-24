@@ -59,7 +59,7 @@ void pbstream_trajectories_to_bag(const std::string&, const std::string& output_
     auto writer = std::make_unique<rosbag2_cpp::Writer>();
     writer->open(output_bag_filename);
 
-    for (const auto trajectory : pose_graph.trajectory())
+    for (const auto& trajectory : pose_graph.trajectory())
     {
         const auto child_frame_id = absl::StrCat("trajectory_", trajectory.trajectory_id());
         LOG(INFO) << "Writing tf and geometry_msgs/TransformStamped for trajectory id " << trajectory.trajectory_id()

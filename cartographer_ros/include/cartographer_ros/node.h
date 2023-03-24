@@ -144,7 +144,7 @@ class Cartographer : public rclcpp::Node
     void HandleStopMapping(const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
                            std::shared_ptr<std_srvs::srv::Trigger::Response> res) LOCKS_EXCLUDED(mutex_);
 
-    void HandleMapData(const std_msgs::msg::UInt8MultiArray::SharedPtr msg) LOCKS_EXCLUDED(mutex_);
+    void HandleMapData(const std_msgs::msg::UInt8MultiArray msg) LOCKS_EXCLUDED(mutex_);
 
     int AddTrajectory(const TrajectoryOptions& options);
 
