@@ -191,6 +191,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 # find_package(Boost REQUIRED COMPONENTS system iostreams program_options)
@@ -459,7 +460,7 @@ ament_target_dependencies(
 
 add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc)
 target_link_libraries(${PROJECT_NAME}bag_validate ${PROJECT_NAME} ${LIBS})
-ament_target_dependencies(${PROJECT_NAME}bag_validate "nav_msgs" "rclcpp" "rosbag2_cpp" "sensor_msgs" "tf2_msgs")
+ament_target_dependencies(${PROJECT_NAME}bag_validate "nav_msgs" "rclcpp" "rosbag2_cpp" "sensor_msgs" "tf2_geometry_msgs" "tf2_msgs")
 
 add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} cairo)
