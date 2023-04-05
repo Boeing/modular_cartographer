@@ -156,13 +156,13 @@ if(NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
     externalproject_add(
         ${CARTOGRAPHER_PROJECT_NAME}
         PREFIX ${CARTOGRAPHER_PROJECT_NAME}
-        GIT_REPOSITORY https://gitlab.com/mtdi/pi9419/boeing/cartographer.git
+        GIT_REPOSITORY git@gitlab.com:mtdi/pi9419/boeing/cartographer.git
         GIT_TAG master
         GIT_SHALLOW ON
         UPDATE_COMMAND ""
         DEPENDS ${PROTOBUF_PROJECT_NAME} ${ABSEIL_PROJECT_NAME}
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=install -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_STANDARD=17
-                   CMAKE_CXX_STANDARD=17
+                   CMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED:BOOL=ON
         CMAKE_CACHE_ARGS
             "-DCMAKE_PREFIX_PATH:STRING=${PROTOBUF_INSTALL_DIR}" "-DABSEIL_INCLUDE_DIRS:STRING=${ABSEIL_INCLUDE_DIRS}"
             "-DABSEIL_LIBRARIES:STRING=${ABSEIL_LIBRARIES}"
@@ -191,6 +191,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 # find_package(Boost REQUIRED COMPONENTS system iostreams program_options)
@@ -272,10 +273,13 @@ include_directories(
     ${rclcpp_INCLUDE_DIRS}
     ${sensor_msgs_INCLUDE_DIRS}
     ${std_msgs_INCLUDE_DIRS}
+    ${std_srvs_INCLUDE_DIRS}
+    ${rosbag2_cpp_INCLUDE_DIRS}
     ${tf2_INCLUDE_DIRS}
     ${tf2_msgs_INCLUDE_DIRS}
     ${tf2_ros_INCLUDE_DIRS}
     ${tf2_eigen_INCLUDE_DIRS}
+    ${urdf_INCLUDE_DIRS}
     ${visualization_msgs_INCLUDE_DIRS}
     # From previous CMakeLists
     SYSTEM
@@ -351,6 +355,7 @@ target_link_libraries(
         glog
         gflags
         png16
+
 )
 
 # Lua
@@ -455,7 +460,7 @@ ament_target_dependencies(
 
 add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc)
 target_link_libraries(${PROJECT_NAME}bag_validate ${PROJECT_NAME} ${LIBS})
-ament_target_dependencies(${PROJECT_NAME}bag_validate "nav_msgs" "rclcpp" "rosbag2_cpp" "sensor_msgs" "tf2_msgs")
+ament_target_dependencies(${PROJECT_NAME}bag_validate "nav_msgs" "rclcpp" "rosbag2_cpp" "sensor_msgs" "tf2_geometry_msgs" "tf2_msgs")
 
 add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} cairo)

@@ -36,7 +36,7 @@
 #include "glog/logging.h"
 // #include "ros/serialization.h"
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <tf2_eigen/tf2_eigen.h>
+#include <tf2_eigen/tf2_eigen.hpp>
 
 #include "visualization_msgs/msg/marker_array.hpp"
 
@@ -1175,13 +1175,13 @@ void Cartographer::HandleStopMapping(const std::shared_ptr<std_srvs::srv::Trigge
     // return true;
 }
 
-void Cartographer::HandleMapData(const std_msgs::msg::UInt8MultiArray::SharedPtr msg)
+void Cartographer::HandleMapData(const std_msgs::msg::UInt8MultiArray msg)
 {
     absl::MutexLock lock(&mutex_);
 
-    LOG(INFO) << "Loading incoming map data (" << msg->data.size() << ")...";
+    LOG(INFO) << "Loading incoming map data (" << msg.data.size() << ")...";
 
-    map_data_ = std::string(reinterpret_cast<const char*>(msg->data.data()), msg->data.size());
+    map_data_ = std::string(reinterpret_cast<const char*>(msg.data.data()), msg.data.size());
 
     Reset();
 

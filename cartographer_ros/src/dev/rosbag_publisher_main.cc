@@ -53,7 +53,7 @@ class BagPublisher : public rclcpp::Node
         bag_reader_.open(bag_filename);
         // TO-DO: Check use_sim_time
         topics_ = bag_reader_.get_all_topics_and_types();
-        for (const rosbag2_storage::TopicMetadata topic_info : topics_)
+        for (const rosbag2_storage::TopicMetadata& topic_info : topics_)
         {
             if (topic_info.type == "sensor_msgs/msg/PointCloud2")
             {
@@ -112,7 +112,7 @@ class BagPublisher : public rclcpp::Node
             // To be replaced by sleep_until in humble
             rclcpp::sleep_for(std::chrono::nanoseconds((planned_publish_time - this->now()).nanoseconds()));
             // Search in metadata the current topic
-            for (const rosbag2_storage::TopicMetadata topic_info : topics_)
+            for (const rosbag2_storage::TopicMetadata& topic_info : topics_)
             {
                 // If topics names match, process message
                 if (topic_info.name == message->topic_name)

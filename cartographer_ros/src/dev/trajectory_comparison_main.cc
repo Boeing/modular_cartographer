@@ -31,7 +31,7 @@
 #include "cartographer_ros/time_conversion.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
-#include "tf2_eigen/tf2_eigen.h"
+#include "tf2_eigen/tf2_eigen.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 
 DEFINE_string(bag_filename, "",
