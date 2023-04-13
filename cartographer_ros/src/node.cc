@@ -196,7 +196,7 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
     system_state_.map_loaded = false;
 
     system_state_publisher_ =
-        this->create_publisher<cartographer_ros_msgs::msg::SystemState>("state", rclcpp::QoS(rclcpp::KeepLast(1)));
+        this->create_publisher<cartographer_ros_msgs::msg::SystemState>("state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local());
     system_state_publisher_->publish(system_state_);
 }
 
