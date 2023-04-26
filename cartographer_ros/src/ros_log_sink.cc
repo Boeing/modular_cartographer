@@ -23,12 +23,7 @@
 #include <thread>
 
 #include "glog/log_severity.h"
-// #include "ros/console.h"
-
-#define ROS_INFO_STREAM(str) std::cout << str << std::endl;
-#define ROS_WARN_STREAM(str) std::cout << str << std::endl;
-#define ROS_ERROR_STREAM(str) std::cerr << str << std::endl;
-#define ROS_FATAL_STREAM(str) std::cerr << str << std::endl;
+#include <rclcpp/rclcpp.hpp>
 
 namespace cartographer_ros
 {
@@ -62,19 +57,19 @@ void ScopedRosLogSink::send(const ::google::LogSeverity severity, const char* co
     switch (severity)
     {
         case ::google::GLOG_INFO:
-            ROS_INFO_STREAM(message_string);
+            RCLCPP_INFO_STREAM(rclcpp::get_logger("cartographer_ros"), message_string);
             break;
 
         case ::google::GLOG_WARNING:
-            ROS_WARN_STREAM(message_string);
+            RCLCPP_WARN_STREAM(rclcpp::get_logger("cartographer_ros"), message_string);
             break;
 
         case ::google::GLOG_ERROR:
-            ROS_ERROR_STREAM(message_string);
+            RCLCPP_ERROR_STREAM(rclcpp::get_logger("cartographer_ros"), message_string);
             break;
 
         case ::google::GLOG_FATAL:
-            ROS_FATAL_STREAM(message_string);
+            RCLCPP_FATAL_STREAM(rclcpp::get_logger("cartographer_ros"), message_string);
             will_die_ = true;
             break;
     }
