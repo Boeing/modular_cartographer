@@ -256,18 +256,23 @@ void Cartographer::StartTimerCallbacks()
     // }
     CancelTimerCallbacks();
 
+    submap_list_timer_last_update = std::chrono::steady_clock::now();
     submap_list_timer_ =
         this->create_wall_timer(std::chrono::milliseconds(int(node_options_.submap_publish_period_sec * 1000)),
                                 std::bind(&Cartographer::PublishSubmapList, this));
+    trajectory_states_timer__last_update = std::chrono::steady_clock::now();
     trajectory_states_timer_ =
         this->create_wall_timer(std::chrono::milliseconds(int(node_options_.pose_publish_period_sec * 1000)),
                                 std::bind(&Cartographer::PublishLocalTrajectoryData, this));
+    trajectory_node_list_timer_last_update = std::chrono::steady_clock::now();
     trajectory_node_list_timer_ =
         this->create_wall_timer(std::chrono::milliseconds(int(node_options_.trajectory_publish_period_sec * 1000)),
                                 std::bind(&Cartographer::PublishTrajectoryNodeList, this));
+    landmark_pose_list_timer_update = std::chrono::steady_clock::now();
     landmark_pose_list_timer_ =
         this->create_wall_timer(std::chrono::milliseconds(int(node_options_.trajectory_publish_period_sec * 1000)),
                                 std::bind(&Cartographer::PublishLandmarkPosesList, this));
+    constrain_list_timer_last_update = std::chrono::steady_clock::now();
     constrain_list_timer_ = this->create_wall_timer(std::chrono::milliseconds(int(kConstraintPublishPeriodSec * 1000)),
                                                     std::bind(&Cartographer::PublishConstraintList, this));
     // this->timers_initialised_ = true;
@@ -394,6 +399,16 @@ void Cartographer::PublishSubmapList()
 
         submap_features_publisher_->publish(feature_markers);
     }
+    const double update_duration_sec =
+            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - submap_list_timer_last_update)
+                    .count();
+    if (update_duration_sec > node_options_.submap_publish_period_sec)
+        RCLCPP_WARN_STREAM(this->get_logger(), "PublishSubmapList duration took too long: "
+                << update_duration_sec
+                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+    submap_list_timer_last_update = std::chrono::steady_clock::now();
+
+
 }
 
 void Cartographer::PublishLocalTrajectoryData()
@@ -491,6 +506,15 @@ void Cartographer::PublishLocalTrajectoryData()
 
         system_state_publisher_->publish(system_state_);
     }
+    const double update_duration_sec =
+            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - trajectory_states_timer__last_update)
+                    .count();
+    if (update_duration_sec > node_options_.pose_publish_period_sec)
+        RCLCPP_WARN_STREAM(this->get_logger(), "PublishLocalTrajectoryData duration took too long: "
+                << update_duration_sec
+                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+    trajectory_states_timer__last_update = std::chrono::steady_clock::now();
+
 }
 
 void Cartographer::PublishTrajectoryNodeList()
@@ -500,6 +524,14 @@ void Cartographer::PublishTrajectoryNodeList()
         absl::MutexLock lock(&mutex_);
         trajectory_node_list_publisher_->publish(map_builder_bridge_->GetTrajectoryNodeList(this->get_clock()->now()));
     }
+    const double update_duration_sec =
+            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - trajectory_node_list_timer_last_update)
+                    .count();
+    if (update_duration_sec > node_options_.trajectory_publish_period_sec)
+        RCLCPP_WARN_STREAM(this->get_logger(), "PublishTrajectoryNodeList duration took too long: "
+                << update_duration_sec
+                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+    trajectory_node_list_timer_last_update = std::chrono::steady_clock::now();
 }
 
 void Cartographer::PublishLandmarkPosesList()
@@ -509,6 +541,15 @@ void Cartographer::PublishLandmarkPosesList()
         absl::MutexLock lock(&mutex_);
         landmark_poses_list_publisher_->publish(map_builder_bridge_->GetLandmarkPosesList(this->get_clock()->now()));
     }
+
+    const double update_duration_sec =
+            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - landmark_pose_list_timer_update)
+                    .count();
+    if (update_duration_sec > node_options_.trajectory_publish_period_sec)
+        RCLCPP_WARN_STREAM(this->get_logger(), "PublishLandmarkPosesList duration took too long: "
+                << update_duration_sec
+                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+    landmark_pose_list_timer_update = std::chrono::steady_clock::now();
 }
 
 void Cartographer::PublishConstraintList()
@@ -518,10 +559,19 @@ void Cartographer::PublishConstraintList()
         absl::MutexLock lock(&mutex_);
         constraint_list_publisher_->publish(map_builder_bridge_->GetConstraintList(this->get_clock()->now()));
     }
+    const double update_duration_sec =
+            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - constrain_list_timer_last_update)
+                    .count();
+    if (update_duration_sec > kConstraintPublishPeriodSec)
+        RCLCPP_WARN_STREAM(this->get_logger(), "PublishConstraintList duration took too long: "
+                << update_duration_sec
+                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+    constrain_list_timer_last_update = std::chrono::steady_clock::now();
 }
 
 int Cartographer::AddTrajectory(const TrajectoryOptions& options)
 {
+    LOG(INFO) << "AddTrajectory fired: PRE MUTEX";
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId> expected_sensor_ids =
         ComputeExpectedSensorIds(options);
     const int trajectory_id = map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
@@ -620,7 +670,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
     //     [this]() {
     //     MaybeWarnAboutTopicMismatch();
     //     });
-
+    LOG(INFO) << "AddTrajectory fired: END";
     return trajectory_id;
 }
 
@@ -628,7 +678,9 @@ int Cartographer::AddOfflineTrajectory(
     const std::set<cartographer::mapping::TrajectoryBuilderInterface::SensorId>& expected_sensor_ids,
     const TrajectoryOptions& options)
 {
+    LOG(INFO) << "AddOfflineTrajectory fired: PRE MUTEX";
     absl::MutexLock lock(&mutex_);
+    LOG(INFO) << "AddOfflineTrajectory fired: POST MUTEX";
     const int trajectory_id = map_builder_bridge_->AddTrajectory(expected_sensor_ids, options);
 
     CHECK(sensor_samplers_.count(trajectory_id) == 0);

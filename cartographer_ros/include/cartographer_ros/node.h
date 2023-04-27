@@ -237,10 +237,15 @@ class Cartographer : public rclcpp::Node
     // We have to keep the timer handles of ::rclcpp::TimerBase around, otherwise they do not fire
     // std::vector<::rclcpp::TimerBase> wall_timers_;
     ::rclcpp::TimerBase::SharedPtr submap_list_timer_;
+    std::chrono::time_point<std::chrono::steady_clock> submap_list_timer_last_update;
     ::rclcpp::TimerBase::SharedPtr trajectory_states_timer_;
+    std::chrono::time_point<std::chrono::steady_clock> trajectory_states_timer__last_update;
     ::rclcpp::TimerBase::SharedPtr trajectory_node_list_timer_;
+    std::chrono::time_point<std::chrono::steady_clock> trajectory_node_list_timer_last_update;
     ::rclcpp::TimerBase::SharedPtr landmark_pose_list_timer_;
+    std::chrono::time_point<std::chrono::steady_clock> landmark_pose_list_timer_update;
     ::rclcpp::TimerBase::SharedPtr constrain_list_timer_;
+    std::chrono::time_point<std::chrono::steady_clock> constrain_list_timer_last_update;
 
     // rclcpp::QoS custom_qos_profile_;
 };
