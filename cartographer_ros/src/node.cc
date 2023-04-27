@@ -402,7 +402,7 @@ void Cartographer::PublishSubmapList()
     const double update_duration_sec =
             std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - submap_list_timer_last_update)
                     .count();
-    if (update_duration_sec > node_options_.submap_publish_period_sec)
+    if (update_duration_sec > node_options_.submap_publish_period_sec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishSubmapList duration took too long: "
                 << update_duration_sec
                 << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
@@ -509,7 +509,7 @@ void Cartographer::PublishLocalTrajectoryData()
     const double update_duration_sec =
             std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - trajectory_states_timer__last_update)
                     .count();
-    if (update_duration_sec > node_options_.pose_publish_period_sec)
+    if (update_duration_sec > node_options_.pose_publish_period_sec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishLocalTrajectoryData duration took too long: "
                 << update_duration_sec
                 << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
@@ -527,7 +527,7 @@ void Cartographer::PublishTrajectoryNodeList()
     const double update_duration_sec =
             std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - trajectory_node_list_timer_last_update)
                     .count();
-    if (update_duration_sec > node_options_.trajectory_publish_period_sec)
+    if (update_duration_sec > node_options_.trajectory_publish_period_sec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishTrajectoryNodeList duration took too long: "
                 << update_duration_sec
                 << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
@@ -545,7 +545,7 @@ void Cartographer::PublishLandmarkPosesList()
     const double update_duration_sec =
             std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - landmark_pose_list_timer_update)
                     .count();
-    if (update_duration_sec > node_options_.trajectory_publish_period_sec)
+    if (update_duration_sec > node_options_.trajectory_publish_period_sec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishLandmarkPosesList duration took too long: "
                 << update_duration_sec
                 << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
@@ -562,7 +562,7 @@ void Cartographer::PublishConstraintList()
     const double update_duration_sec =
             std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - constrain_list_timer_last_update)
                     .count();
-    if (update_duration_sec > kConstraintPublishPeriodSec)
+    if (update_duration_sec > kConstraintPublishPeriodSec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishConstraintList duration took too long: "
                 << update_duration_sec
                 << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
