@@ -141,43 +141,43 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
     }
 
     submap_list_publisher_ = this->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
-        kSubmapListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+            "~/" + kSubmapListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     trajectory_node_list_publisher_ = this->create_publisher<::visualization_msgs::msg::MarkerArray>(
-        kTrajectoryNodeListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+        "~/" + kTrajectoryNodeListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     landmark_poses_list_publisher_ = this->create_publisher<::visualization_msgs::msg::MarkerArray>(
-        kLandmarkPosesListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+            "~/" + kLandmarkPosesListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     constraint_list_publisher_ = this->create_publisher<::visualization_msgs::msg::MarkerArray>(
-        kConstraintListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+            "~/" + kConstraintListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     occupancy_grid_publisher_ =
-        this->create_publisher<::nav_msgs::msg::OccupancyGrid>(kOccupancyGridTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+        this->create_publisher<::nav_msgs::msg::OccupancyGrid>("~/" + kOccupancyGridTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
 
     submap_query_service_ = this->create_service<cartographer_ros_msgs::srv::SubmapQuery>(
-        kSubmapQueryServiceName, std::bind(&Cartographer::HandleSubmapQuery, this, _1, _2));
+            "~/" + kSubmapQueryServiceName, std::bind(&Cartographer::HandleSubmapQuery, this, _1, _2));
     trajectory_query_service_ = this->create_service<cartographer_ros_msgs::srv::TrajectoryQuery>(
-        kTrajectoryQueryServiceName, std::bind(&Cartographer::HandleTrajectoryQuery, this, _1, _2));
+            "~/" + kTrajectoryQueryServiceName, std::bind(&Cartographer::HandleTrajectoryQuery, this, _1, _2));
     load_state_service_ = this->create_service<cartographer_ros_msgs::srv::LoadState>(
-        kLoadStateServiceName, std::bind(&Cartographer::HandleLoadState, this, _1, _2));
+            "~/" + kLoadStateServiceName, std::bind(&Cartographer::HandleLoadState, this, _1, _2));
     write_state_service_ = this->create_service<cartographer_ros_msgs::srv::WriteState>(
-        kWriteStateServiceName, std::bind(&Cartographer::HandleWriteState, this, _1, _2));
+            "~/" + kWriteStateServiceName, std::bind(&Cartographer::HandleWriteState, this, _1, _2));
     get_trajectory_states_service_ = this->create_service<cartographer_ros_msgs::srv::GetTrajectoryStates>(
-        kGetTrajectoryStatesServiceName, std::bind(&Cartographer::HandleGetTrajectoryStates, this, _1, _2));
+            "~/" + kGetTrajectoryStatesServiceName, std::bind(&Cartographer::HandleGetTrajectoryStates, this, _1, _2));
     read_metrics_service_ = this->create_service<cartographer_ros_msgs::srv::ReadMetrics>(
-        kReadMetricsServiceName, std::bind(&Cartographer::HandleReadMetrics, this, _1, _2));
+            "~/" + kReadMetricsServiceName, std::bind(&Cartographer::HandleReadMetrics, this, _1, _2));
 
     start_localisation_service_ = this->create_service<cartographer_ros_msgs::srv::StartLocalisation>(
-        "start_localisation", std::bind(&Cartographer::HandleStartLocalisation, this, _1, _2));
+        "~/start_localisation", std::bind(&Cartographer::HandleStartLocalisation, this, _1, _2));
     stop_localisation_service_ = this->create_service<std_srvs::srv::Trigger>(
-        "stop_localisation", std::bind(&Cartographer::HandleStopLocalisation, this, _1, _2));
+        "~/stop_localisation", std::bind(&Cartographer::HandleStopLocalisation, this, _1, _2));
 
     pause_localisation_service_ = this->create_service<std_srvs::srv::Trigger>(
-        "pause_localisation", std::bind(&Cartographer::HandlePauseLocalisation, this, _1, _2));
+        "~/pause_localisation", std::bind(&Cartographer::HandlePauseLocalisation, this, _1, _2));
     resume_localisation_service_ = this->create_service<std_srvs::srv::Trigger>(
-        "resume_localisation", std::bind(&Cartographer::HandleResumeLocalisation, this, _1, _2));
+        "~/resume_localisation", std::bind(&Cartographer::HandleResumeLocalisation, this, _1, _2));
 
     handle_start_mapping_server_ = this->create_service<cartographer_ros_msgs::srv::StartMapping>(
-        "start_mapping", std::bind(&Cartographer::HandleStartMapping, this, _1, _2));
+        "~/start_mapping", std::bind(&Cartographer::HandleStartMapping, this, _1, _2));
     handle_stop_mapping_server_ = this->create_service<std_srvs::srv::Trigger>(
-        "stop_mapping", std::bind(&Cartographer::HandleStopMapping, this, _1, _2));
+        "~/stop_mapping", std::bind(&Cartographer::HandleStopMapping, this, _1, _2));
 
     auto latching_qos = rclcpp::QoS(rclcpp::KeepLast(1));
     latching_qos.transient_local();
@@ -185,18 +185,18 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
         kMapDataTopic, latching_qos, std::bind(&Cartographer::HandleMapData, this, _1));
 
     scan_matched_point_cloud_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-        kScanMatchedPointCloudTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+        "~/" + kScanMatchedPointCloudTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     scan_features_publisher_ =
-        this->create_publisher<visualization_msgs::msg::MarkerArray>("scan_features", rclcpp::QoS(rclcpp::KeepLast(1)));
+        this->create_publisher<visualization_msgs::msg::MarkerArray>("~/scan_features", rclcpp::QoS(rclcpp::KeepLast(1)));
     submap_features_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-        "submap_features", rclcpp::QoS(rclcpp::KeepLast(1)));
+        "~/submap_features", rclcpp::QoS(rclcpp::KeepLast(1)));
 
     system_state_.mode = cartographer_ros_msgs::msg::SystemState::MODE_IDLE;
     system_state_.localisation_status = cartographer_ros_msgs::msg::SystemState::LOST;
     system_state_.map_loaded = false;
 
     system_state_publisher_ =
-        this->create_publisher<cartographer_ros_msgs::msg::SystemState>("state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local());
+        this->create_publisher<cartographer_ros_msgs::msg::SystemState>("~/state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local());
     system_state_publisher_->publish(system_state_);
 }
 
@@ -935,7 +935,6 @@ void Cartographer::HandleWriteState(const std::shared_ptr<cartographer_ros_msgs:
 void Cartographer::HandleReadMetrics(const std::shared_ptr<cartographer_ros_msgs::srv::ReadMetrics::Request> request,
                                      std::shared_ptr<cartographer_ros_msgs::srv::ReadMetrics::Response> response)
 {
-    (void)request;
     absl::MutexLock lock(&mutex_);
     response->timestamp = this->get_clock()->now();
     if (!metrics_registry_)
