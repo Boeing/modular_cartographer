@@ -74,35 +74,56 @@ class OccupancyGridNode : public rclcpp::Node
 
     const double resolution_;
 
-    absl::Mutex mutex_;
-    ::rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_ GUARDED_BY(mutex_);
+    mutable std::mutex submap_mutex_;
+    ::rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_;
     ::rclcpp::Subscription<cartographer_ros_msgs::msg::SubmapList>::SharedPtr
-        submap_list_subscriber_ GUARDED_BY(mutex_);
-    ::rclcpp::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_ GUARDED_BY(mutex_);
-    std::map<SubmapId, SubmapSlice> submap_slices_ GUARDED_BY(mutex_);
+        submap_list_subscriber_;
+    ::rclcpp::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_;
+    std::map<SubmapId, SubmapSlice> submap_slices_ GUARDED_BY(submap_mutex_);
     ::rclcpp::TimerBase::SharedPtr occupancy_grid_publisher_timer_;
     std::string last_frame_id_;
     ::rclcpp::Time last_timestamp_;
+
+
+    // callback groups
+    rclcpp::CallbackGroup::SharedPtr umbrella_callback_group_;
+    rclcpp::CallbackGroup::SharedPtr timer_callback_group_;
+
+
+
 };
 
 OccupancyGridNode::OccupancyGridNode(const double resolution, const double publish_period_sec)
     : Node("cartographer_occupancy_grid_node"), resolution_(resolution)
 {
+
+    umbrella_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    auto umbrella_sub_opt = rclcpp::SubscriptionOptions();
+    umbrella_sub_opt.callback_group = umbrella_callback_group_;
+
+    timer_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+
     client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName);
 
     submap_list_subscriber_ = create_subscription<cartographer_ros_msgs::msg::SubmapList>(
-        kSubmapListTopic, rclcpp::QoS(10), std::bind(&OccupancyGridNode::HandleSubmapList, this, _1));
+        kSubmapListTopic, rclcpp::QoS(10), std::bind(&OccupancyGridNode::HandleSubmapList, this, _1), umbrella_sub_opt);
 
     occupancy_grid_publisher_ =
         this->create_publisher<::nav_msgs::msg::OccupancyGrid>("~/" + kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
 
-    occupancy_grid_publisher_timer_ = this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
-                                                              [this]() { DrawAndPublish(); });
+//    occupancy_grid_publisher_timer_ = this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
+//                                                              [this]() { DrawAndPublish(); });
+    occupancy_grid_publisher_timer_ =
+    this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
+                            std::bind(&OccupancyGridNode::DrawAndPublish, this), timer_callback_group_);
+
+
+
 }
 
 void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg)
 {
-    absl::MutexLock locker(&mutex_);
+    std::cout << "\nDebug occupancy grid HandleSubmapList PRE MUTEX\n";
 
     // We do not do any work if nobody listens.
     if (occupancy_grid_publisher_->get_subscription_count() == 0)
@@ -112,71 +133,83 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
 
     // Keep track of submap IDs that don't appear in the message anymore.
     std::set<SubmapId> submap_ids_to_delete;
-    for (const auto& pair : submap_slices_)
     {
-        submap_ids_to_delete.insert(pair.first);
-    }
-
-    for (const auto& submap_msg : msg->submap)
-    {
-        const SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
-        submap_ids_to_delete.erase(id);
-        if ((submap_msg.is_frozen && !FLAGS_include_frozen_submaps) ||
-            (!submap_msg.is_frozen && !FLAGS_include_unfrozen_submaps))
-        {
-            continue;
-        }
-        SubmapSlice& submap_slice = submap_slices_[id];
-        submap_slice.pose = ToRigid3d(submap_msg.pose);
-        submap_slice.metadata_version = submap_msg.submap_version;
-        if (submap_slice.surface != nullptr && submap_slice.version == submap_msg.submap_version)
-        {
-            continue;
+        std::lock_guard <std::mutex> lock(submap_mutex_);
+        std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX\n";
+        for (const auto &pair: submap_slices_) {
+            submap_ids_to_delete.insert(pair.first);
         }
 
-        auto fetched_textures = ::cartographer_ros::FetchSubmapTextures(id, client_);
-        if (fetched_textures == nullptr)
+
+        for (const auto& submap_msg : msg->submap)
         {
-            continue;
+            const SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
+            submap_ids_to_delete.erase(id);
+            if ((submap_msg.is_frozen && !FLAGS_include_frozen_submaps) ||
+                (!submap_msg.is_frozen && !FLAGS_include_unfrozen_submaps))
+            {
+                continue;
+            }
+
+            SubmapSlice& submap_slice = submap_slices_[id];
+            submap_slice.pose = ToRigid3d(submap_msg.pose);
+            submap_slice.metadata_version = submap_msg.submap_version;
+            if (submap_slice.surface != nullptr && submap_slice.version == submap_msg.submap_version)
+            {
+                continue;
+            }
+
+            auto fetched_textures = ::cartographer_ros::FetchSubmapTextures(id, client_);
+            if (fetched_textures == nullptr)
+            {
+                continue;
+            }
+            CHECK(!fetched_textures->textures.empty());
+            submap_slice.version = fetched_textures->version;
+
+            // We use the first texture only. By convention this is the highest
+            // resolution texture and that is the one we want to use to construct the
+            // map for ROS.
+            const auto fetched_texture = fetched_textures->textures.begin();
+            submap_slice.width = fetched_texture->width;
+            submap_slice.height = fetched_texture->height;
+            submap_slice.slice_pose = fetched_texture->slice_pose;
+            submap_slice.resolution = fetched_texture->resolution;
+            submap_slice.cairo_data.clear();
+            submap_slice.surface =
+                ::cartographer::io::DrawTexture(fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
+                                                fetched_texture->width, fetched_texture->height, &submap_slice.cairo_data);
         }
-        CHECK(!fetched_textures->textures.empty());
-        submap_slice.version = fetched_textures->version;
 
-        // We use the first texture only. By convention this is the highest
-        // resolution texture and that is the one we want to use to construct the
-        // map for ROS.
-        const auto fetched_texture = fetched_textures->textures.begin();
-        submap_slice.width = fetched_texture->width;
-        submap_slice.height = fetched_texture->height;
-        submap_slice.slice_pose = fetched_texture->slice_pose;
-        submap_slice.resolution = fetched_texture->resolution;
-        submap_slice.cairo_data.clear();
-        submap_slice.surface =
-            ::cartographer::io::DrawTexture(fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
-                                            fetched_texture->width, fetched_texture->height, &submap_slice.cairo_data);
-    }
+        // Delete all submaps that didn't appear in the message.
+        for (const auto& id : submap_ids_to_delete)
+        {
+            submap_slices_.erase(id);
+        }
 
-    // Delete all submaps that didn't appear in the message.
-    for (const auto& id : submap_ids_to_delete)
-    {
-        submap_slices_.erase(id);
     }
 
     last_timestamp_ = msg->header.stamp;
     last_frame_id_ = msg->header.frame_id;
+    std::cout << "\nDebug occupancy grid HandleSubmapList END\n";
 }
 
 void OccupancyGridNode::DrawAndPublish()
 {
-    absl::MutexLock locker(&mutex_);
-    if (submap_slices_.empty() || last_frame_id_.empty())
+    std::cout << "\nDebug occupancy grid PRE MUTEX\n";
     {
-        return;
+        std::lock_guard <std::mutex> lock(submap_mutex_);
+        if (submap_slices_.empty() || last_frame_id_.empty()) {
+            return;
+        }
+        std::cout << "\nDebug occupancy grid IN MUTEX\n";
+        auto painted_slices = PaintSubmapSlices(submap_slices_, resolution_);
+
+        std::unique_ptr<nav_msgs::msg::OccupancyGrid> msg_ptr =
+            CreateOccupancyGridMsg(painted_slices, resolution_, last_frame_id_, last_timestamp_);
+        std::cout << "\nDebug occupancy grid publish\n";
+        occupancy_grid_publisher_->publish(*msg_ptr);
     }
-    auto painted_slices = PaintSubmapSlices(submap_slices_, resolution_);
-    std::unique_ptr<nav_msgs::msg::OccupancyGrid> msg_ptr =
-        CreateOccupancyGridMsg(painted_slices, resolution_, last_frame_id_, last_timestamp_);
-    occupancy_grid_publisher_->publish(*msg_ptr);
 }
 
 }  // namespace
