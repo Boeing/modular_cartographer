@@ -15,11 +15,11 @@ namespace cartographer_ros
 const std::string kLaserScanTopic = "scan";
 const std::string kMultiEchoLaserScanTopic = "echoes";
 const std::string kPointCloud2Topic = "points2";
-const std::string kImuTopic = "imu";
+//const std::string kImuTopic = "imu";
 const std::string kOdometryTopic = "odom";
 const std::string kNavSatFixTopic = "fix";
 const std::string kLandmarkTopic = "landmark";
-const std::string kFinishTrajectoryServiceName = "finish_trajectory";
+//const std::string kFinishTrajectoryServiceName = "finish_trajectory";
 const std::string kOccupancyGridTopic = "occupancy_grid";
 const std::string kScanMatchedPointCloudTopic = "scan_matched_points2";
 const std::string kSubmapListTopic = "submap_list";

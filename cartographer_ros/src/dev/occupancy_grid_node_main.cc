@@ -94,7 +94,7 @@ OccupancyGridNode::OccupancyGridNode(const double resolution, const double publi
         kSubmapListTopic, rclcpp::QoS(10), std::bind(&OccupancyGridNode::HandleSubmapList, this, _1));
 
     occupancy_grid_publisher_ =
-        this->create_publisher<::nav_msgs::msg::OccupancyGrid>(kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
+        this->create_publisher<::nav_msgs::msg::OccupancyGrid>("~/" + kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
 
     occupancy_grid_publisher_timer_ = this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
                                                               [this]() { DrawAndPublish(); });
@@ -184,18 +184,25 @@ void OccupancyGridNode::DrawAndPublish()
 
 int main(int argc, char** argv)
 {
-    google::InitGoogleLogging(argv[0]);
-    google::ParseCommandLineFlags(&argc, &argv, true);
+    rclcpp::init(argc, argv);
+
 
     CHECK(FLAGS_include_frozen_submaps || FLAGS_include_unfrozen_submaps)
         << "Ignoring both frozen and unfrozen submaps makes no sense.";
 
-    ::rclcpp::init(argc, argv);
 
     cartographer_ros::ScopedRosLogSink ros_log_sink;
 
     auto node = std::make_shared<cartographer_ros::OccupancyGridNode>(FLAGS_resolution, FLAGS_publish_period_sec);
 
-    ::rclcpp::spin(node);
-    ::rclcpp::shutdown();
+    // Create an executor to spin the node
+    rclcpp::executors::MultiThreadedExecutor executor;
+    executor.add_node(node);
+
+    executor.spin();
+
+    // Shutdown
+    rclcpp::shutdown();
+
+    return EXIT_SUCCESS;
 }

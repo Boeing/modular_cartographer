@@ -193,7 +193,7 @@ class Cartographer : public rclcpp::Node
     ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr trajectory_node_list_publisher_;
     ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr landmark_poses_list_publisher_;
     ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr constraint_list_publisher_;
-    ::rclcpp::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_;
+    ::rclcpp::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr mapping_occupancy_grid_publisher_;
 
     rclcpp::Service<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr submap_query_service_;
     rclcpp::Service<cartographer_ros_msgs::srv::TrajectoryQuery>::SharedPtr trajectory_query_service_;

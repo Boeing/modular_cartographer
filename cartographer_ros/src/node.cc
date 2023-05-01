@@ -148,8 +148,8 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
             "~/" + kLandmarkPosesListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     constraint_list_publisher_ = this->create_publisher<::visualization_msgs::msg::MarkerArray>(
             "~/" + kConstraintListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
-    occupancy_grid_publisher_ =
-        this->create_publisher<::nav_msgs::msg::OccupancyGrid>("~/" + kOccupancyGridTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+    mapping_occupancy_grid_publisher_ =
+        this->create_publisher<::nav_msgs::msg::OccupancyGrid>("~/mapping_mode/" + kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
 
     submap_query_service_ = this->create_service<cartographer_ros_msgs::srv::SubmapQuery>(
             "~/" + kSubmapQueryServiceName, std::bind(&Cartographer::HandleSubmapQuery, this, _1, _2));
@@ -363,7 +363,7 @@ void Cartographer::PublishSubmapList()
         if (og_throttle == 0)
         {
             const nav_msgs::msg::OccupancyGrid og_map = map_builder_bridge_->GetOccupancyGridMsg(0.02);
-            occupancy_grid_publisher_->publish(og_map);
+            mapping_occupancy_grid_publisher_->publish(og_map);
         }
         og_throttle++;
         if (og_throttle >= 5)
