@@ -31,21 +31,25 @@ std::unique_ptr<::cartographer::io::SubmapTextures>
                         rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client)
 {
     auto req = std::make_shared<cartographer_ros_msgs::srv::SubmapQuery::Request>();
-    // auto res = std::make_shared<cartographer_ros_msgs::srv::SubmapQuery::Response>();
     req->trajectory_id = submap_id.trajectory_id;
     req->submap_index = submap_id.submap_index;
     auto res = client->async_send_request(req);
-    if (res.get()->status.code != ::cartographer_ros_msgs::msg::StatusCode::OK)
+    if (res.wait_for(std::chrono::seconds(10)) != std::future_status::ready)
+    {
+        throw std::runtime_error("Failed to call: " + std::string(client->get_service_name()));
+    }
+    auto submap_result = res.get();
+    if (submap_result->status.code != ::cartographer_ros_msgs::msg::StatusCode::OK)
     {
         return nullptr;
     }
-    if (res.get()->textures.empty())
+    if (submap_result->textures.empty())
     {
         return nullptr;
     }
     auto response = absl::make_unique<::cartographer::io::SubmapTextures>();
-    response->version = res.get()->submap_version;
-    for (const auto& texture : res.get()->textures)
+    response->version = submap_result->submap_version;
+    for (const auto& texture : submap_result->textures)
     {
         const std::string compressed_cells(texture.cells.begin(), texture.cells.end());
         response->textures.emplace_back(::cartographer::io::SubmapTexture{

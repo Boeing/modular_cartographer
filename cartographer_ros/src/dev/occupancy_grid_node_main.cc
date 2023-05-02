@@ -125,8 +125,6 @@ OccupancyGridNode::OccupancyGridNode(const double resolution, const double publi
 
 void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg)
 {
-    std::cout << "\nDebug occupancy grid HandleSubmapList PRE MUTEX\n";
-
     // We do not do any work if nobody listens.
     if (occupancy_grid_publisher_->get_subscription_count() == 0)
     {
@@ -137,12 +135,10 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
     std::set<SubmapId> submap_ids_to_delete;
     {
         std::lock_guard <std::mutex> lock(submap_mutex_);
-        std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX\n";
         for (const auto &pair: submap_slices_) {
             submap_ids_to_delete.insert(pair.first);
         }
 
-        std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX2\n";
         for (const auto& submap_msg : msg->submap)
         {
             const SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
@@ -152,7 +148,6 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
             {
                 continue;
             }
-            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX3\n";
             SubmapSlice& submap_slice = submap_slices_[id];
             submap_slice.pose = ToRigid3d(submap_msg.pose);
             submap_slice.metadata_version = submap_msg.submap_version;
@@ -160,32 +155,27 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
             {
                 continue;
             }
-            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX4\n";
             auto fetched_textures = ::cartographer_ros::FetchSubmapTextures(id, submap_srv_client_);
             if (fetched_textures == nullptr)
             {
                 continue;
             }
-            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX5\n";
             CHECK(!fetched_textures->textures.empty());
             submap_slice.version = fetched_textures->version;
 
             // We use the first texture only. By convention this is the highest
             // resolution texture and that is the one we want to use to construct the
             // map for ROS.
-            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX6\n";
             const auto fetched_texture = fetched_textures->textures.begin();
             submap_slice.width = fetched_texture->width;
             submap_slice.height = fetched_texture->height;
             submap_slice.slice_pose = fetched_texture->slice_pose;
             submap_slice.resolution = fetched_texture->resolution;
             submap_slice.cairo_data.clear();
-            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX7\n";
             submap_slice.surface =
                 ::cartographer::io::DrawTexture(fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
                                                 fetched_texture->width, fetched_texture->height, &submap_slice.cairo_data);
         }
-        std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX8\n";
         // Delete all submaps that didn't appear in the message.
         for (const auto& id : submap_ids_to_delete)
         {
@@ -196,23 +186,19 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
 
     last_timestamp_ = msg->header.stamp;
     last_frame_id_ = msg->header.frame_id;
-    std::cout << "\nDebug occupancy grid HandleSubmapList END\n";
 }
 
 void OccupancyGridNode::DrawAndPublish()
 {
-    std::cout << "\nDebug occupancy grid PRE MUTEX\n";
     {
         std::lock_guard <std::mutex> lock(submap_mutex_);
         if (submap_slices_.empty() || last_frame_id_.empty()) {
             return;
         }
-        std::cout << "\nDebug occupancy grid IN MUTEX\n";
         auto painted_slices = PaintSubmapSlices(submap_slices_, resolution_);
 
         std::unique_ptr<nav_msgs::msg::OccupancyGrid> msg_ptr =
             CreateOccupancyGridMsg(painted_slices, resolution_, last_frame_id_, last_timestamp_);
-        std::cout << "\nDebug occupancy grid publish\n";
         occupancy_grid_publisher_->publish(*msg_ptr);
     }
 }
