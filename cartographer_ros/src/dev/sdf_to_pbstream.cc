@@ -368,8 +368,8 @@ int main(int argc, char** argv)
         // Add free spaces
         if (!FLAGS_free_space.empty())
         {
-            const std::vector<std::string> free_spaces = absl::StrSplit(FLAGS_free_space, ';');
-
+            std::vector<std::string> free_spaces = absl::StrSplit(FLAGS_free_space, ';');
+            free_spaces.pop_back(); //Remove trailing character
             // Each element in free_spaces is a polygon in the form x1, y1, x2, y2, x3, y3...
             for (size_t i = 0; i < free_spaces.size(); ++i)
             {
