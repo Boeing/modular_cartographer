@@ -75,7 +75,7 @@ class OccupancyGridNode : public rclcpp::Node
     const double resolution_;
 
     mutable std::mutex submap_mutex_;
-    ::rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_;
+    ::rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr submap_srv_client_;
     ::rclcpp::Subscription<cartographer_ros_msgs::msg::SubmapList>::SharedPtr
         submap_list_subscriber_;
     ::rclcpp::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_;
@@ -88,6 +88,9 @@ class OccupancyGridNode : public rclcpp::Node
     // callback groups
     rclcpp::CallbackGroup::SharedPtr umbrella_callback_group_;
     rclcpp::CallbackGroup::SharedPtr timer_callback_group_;
+    rclcpp::CallbackGroup::SharedPtr srv_callback_group_;
+
+
 
 
 
@@ -102,8 +105,9 @@ OccupancyGridNode::OccupancyGridNode(const double resolution, const double publi
     umbrella_sub_opt.callback_group = umbrella_callback_group_;
 
     timer_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    srv_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
-    client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName);
+    submap_srv_client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName, rclcpp::ServicesQoS().get_rmw_qos_profile(), srv_callback_group_);
 
     submap_list_subscriber_ = create_subscription<cartographer_ros_msgs::msg::SubmapList>(
         kSubmapListTopic, rclcpp::QoS(10), std::bind(&OccupancyGridNode::HandleSubmapList, this, _1), umbrella_sub_opt);
@@ -111,8 +115,6 @@ OccupancyGridNode::OccupancyGridNode(const double resolution, const double publi
     occupancy_grid_publisher_ =
         this->create_publisher<::nav_msgs::msg::OccupancyGrid>("~/" + kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
 
-//    occupancy_grid_publisher_timer_ = this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
-//                                                              [this]() { DrawAndPublish(); });
     occupancy_grid_publisher_timer_ =
     this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
                             std::bind(&OccupancyGridNode::DrawAndPublish, this), timer_callback_group_);
@@ -140,7 +142,7 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
             submap_ids_to_delete.insert(pair.first);
         }
 
-
+        std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX2\n";
         for (const auto& submap_msg : msg->submap)
         {
             const SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
@@ -150,7 +152,7 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
             {
                 continue;
             }
-
+            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX3\n";
             SubmapSlice& submap_slice = submap_slices_[id];
             submap_slice.pose = ToRigid3d(submap_msg.pose);
             submap_slice.metadata_version = submap_msg.submap_version;
@@ -158,29 +160,32 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
             {
                 continue;
             }
-
-            auto fetched_textures = ::cartographer_ros::FetchSubmapTextures(id, client_);
+            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX4\n";
+            auto fetched_textures = ::cartographer_ros::FetchSubmapTextures(id, submap_srv_client_);
             if (fetched_textures == nullptr)
             {
                 continue;
             }
+            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX5\n";
             CHECK(!fetched_textures->textures.empty());
             submap_slice.version = fetched_textures->version;
 
             // We use the first texture only. By convention this is the highest
             // resolution texture and that is the one we want to use to construct the
             // map for ROS.
+            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX6\n";
             const auto fetched_texture = fetched_textures->textures.begin();
             submap_slice.width = fetched_texture->width;
             submap_slice.height = fetched_texture->height;
             submap_slice.slice_pose = fetched_texture->slice_pose;
             submap_slice.resolution = fetched_texture->resolution;
             submap_slice.cairo_data.clear();
+            std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX7\n";
             submap_slice.surface =
                 ::cartographer::io::DrawTexture(fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
                                                 fetched_texture->width, fetched_texture->height, &submap_slice.cairo_data);
         }
-
+        std::cout << "\nDebug occupancy grid HandleSubmapList IN MUTEX8\n";
         // Delete all submaps that didn't appear in the message.
         for (const auto& id : submap_ids_to_delete)
         {
