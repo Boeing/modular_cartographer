@@ -4,7 +4,3 @@ include:
     file:
       - ci-templates/auto-rules/with-rosinstall/humble-default.yml
       - ci-templates/lfs-pull.yml
-    ref: 43-incorporate-rosidl-fix-1
-
-variables:
-  REGISTRY_TAG_SUFFIX: -staging-43-incorporate-rosidl-fix-1
