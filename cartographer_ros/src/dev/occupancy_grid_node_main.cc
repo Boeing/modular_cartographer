@@ -76,24 +76,17 @@ class OccupancyGridNode : public rclcpp::Node
 
     mutable std::mutex submap_mutex_;
     ::rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr submap_srv_client_;
-    ::rclcpp::Subscription<cartographer_ros_msgs::msg::SubmapList>::SharedPtr
-        submap_list_subscriber_;
+    ::rclcpp::Subscription<cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_subscriber_;
     ::rclcpp::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_;
     std::map<SubmapId, SubmapSlice> submap_slices_ GUARDED_BY(submap_mutex_);
     ::rclcpp::TimerBase::SharedPtr occupancy_grid_publisher_timer_;
     std::string last_frame_id_;
     ::rclcpp::Time last_timestamp_;
 
-
     // callback groups
     rclcpp::CallbackGroup::SharedPtr umbrella_callback_group_;
     rclcpp::CallbackGroup::SharedPtr timer_callback_group_;
     rclcpp::CallbackGroup::SharedPtr srv_callback_group_;
-
-
-
-
-
 };
 
 OccupancyGridNode::OccupancyGridNode(const double resolution, const double publish_period_sec)
@@ -107,20 +100,18 @@ OccupancyGridNode::OccupancyGridNode(const double resolution, const double publi
     timer_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     srv_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
-    submap_srv_client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName, rclcpp::ServicesQoS().get_rmw_qos_profile(), srv_callback_group_);
+    submap_srv_client_ = this->create_client<cartographer_ros_msgs::srv::SubmapQuery>(
+        kSubmapQueryServiceName, rclcpp::ServicesQoS().get_rmw_qos_profile(), srv_callback_group_);
 
     submap_list_subscriber_ = create_subscription<cartographer_ros_msgs::msg::SubmapList>(
         kSubmapListTopic, rclcpp::QoS(10), std::bind(&OccupancyGridNode::HandleSubmapList, this, _1), umbrella_sub_opt);
 
-    occupancy_grid_publisher_ =
-        this->create_publisher<::nav_msgs::msg::OccupancyGrid>("~/" + kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
+    occupancy_grid_publisher_ = this->create_publisher<::nav_msgs::msg::OccupancyGrid>(
+        "~/" + kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
 
     occupancy_grid_publisher_timer_ =
-    this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
-                            std::bind(&OccupancyGridNode::DrawAndPublish, this), timer_callback_group_);
-
-
-
+        this->create_wall_timer(std::chrono::milliseconds(int(publish_period_sec * 1000)),
+                                std::bind(&OccupancyGridNode::DrawAndPublish, this), timer_callback_group_);
 }
 
 void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg)
@@ -134,8 +125,9 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
     // Keep track of submap IDs that don't appear in the message anymore.
     std::set<SubmapId> submap_ids_to_delete;
     {
-        std::lock_guard <std::mutex> lock(submap_mutex_);
-        for (const auto &pair: submap_slices_) {
+        std::lock_guard<std::mutex> lock(submap_mutex_);
+        for (const auto& pair : submap_slices_)
+        {
             submap_ids_to_delete.insert(pair.first);
         }
 
@@ -172,16 +164,15 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
             submap_slice.slice_pose = fetched_texture->slice_pose;
             submap_slice.resolution = fetched_texture->resolution;
             submap_slice.cairo_data.clear();
-            submap_slice.surface =
-                ::cartographer::io::DrawTexture(fetched_texture->pixels.intensity, fetched_texture->pixels.alpha,
-                                                fetched_texture->width, fetched_texture->height, &submap_slice.cairo_data);
+            submap_slice.surface = ::cartographer::io::DrawTexture(
+                fetched_texture->pixels.intensity, fetched_texture->pixels.alpha, fetched_texture->width,
+                fetched_texture->height, &submap_slice.cairo_data);
         }
         // Delete all submaps that didn't appear in the message.
         for (const auto& id : submap_ids_to_delete)
         {
             submap_slices_.erase(id);
         }
-
     }
 
     last_timestamp_ = msg->header.stamp;
@@ -191,8 +182,9 @@ void OccupancyGridNode::HandleSubmapList(const cartographer_ros_msgs::msg::Subma
 void OccupancyGridNode::DrawAndPublish()
 {
     {
-        std::lock_guard <std::mutex> lock(submap_mutex_);
-        if (submap_slices_.empty() || last_frame_id_.empty()) {
+        std::lock_guard<std::mutex> lock(submap_mutex_);
+        if (submap_slices_.empty() || last_frame_id_.empty())
+        {
             return;
         }
         auto painted_slices = PaintSubmapSlices(submap_slices_, resolution_);
@@ -210,10 +202,8 @@ int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
 
-
     CHECK(FLAGS_include_frozen_submaps || FLAGS_include_unfrozen_submaps)
         << "Ignoring both frozen and unfrozen submaps makes no sense.";
-
 
     cartographer_ros::ScopedRosLogSink ros_log_sink;
 

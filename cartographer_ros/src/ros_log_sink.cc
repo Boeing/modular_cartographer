@@ -16,6 +16,8 @@
 
 #include "cartographer_ros/ros_log_sink.h"
 
+#include <rclcpp/rclcpp.hpp>
+
 #include <chrono>
 #include <cstring>
 #include <iostream>
@@ -23,7 +25,6 @@
 #include <thread>
 
 #include "glog/log_severity.h"
-#include <rclcpp/rclcpp.hpp>
 
 namespace cartographer_ros
 {

@@ -375,7 +375,7 @@ geometry_msgs::msg::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d)
 Eigen::Vector3d LatLongAltToEcef(const double latitude, const double longitude, const double altitude)
 {
     // https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_geodetic_to_ECEF_coordinates
-    constexpr double a = 6378137.;  // semi-major axis, equator to center.
+    constexpr double a = 6378137.;      // semi-major axis, equator to center.
     constexpr double f = 1. / 298.257223563;
     constexpr double b = a * (1. - f);  // semi-minor axis, pole to center.
     constexpr double a_squared = a * a;
