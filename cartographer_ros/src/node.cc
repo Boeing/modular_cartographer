@@ -141,28 +141,28 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
     }
 
     submap_list_publisher_ = this->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(
-            "~/" + kSubmapListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+        "~/" + kSubmapListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     trajectory_node_list_publisher_ = this->create_publisher<::visualization_msgs::msg::MarkerArray>(
         "~/" + kTrajectoryNodeListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     landmark_poses_list_publisher_ = this->create_publisher<::visualization_msgs::msg::MarkerArray>(
-            "~/" + kLandmarkPosesListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+        "~/" + kLandmarkPosesListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
     constraint_list_publisher_ = this->create_publisher<::visualization_msgs::msg::MarkerArray>(
-            "~/" + kConstraintListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
-    mapping_occupancy_grid_publisher_ =
-        this->create_publisher<::nav_msgs::msg::OccupancyGrid>("~/mapping_mode/" + kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
+        "~/" + kConstraintListTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
+    mapping_occupancy_grid_publisher_ = this->create_publisher<::nav_msgs::msg::OccupancyGrid>(
+        "~/mapping_mode/" + kOccupancyGridTopic, rclcpp::QoS(10).transient_local());
 
     submap_query_service_ = this->create_service<cartographer_ros_msgs::srv::SubmapQuery>(
-            "~/" + kSubmapQueryServiceName, std::bind(&Cartographer::HandleSubmapQuery, this, _1, _2));
+        "~/" + kSubmapQueryServiceName, std::bind(&Cartographer::HandleSubmapQuery, this, _1, _2));
     trajectory_query_service_ = this->create_service<cartographer_ros_msgs::srv::TrajectoryQuery>(
-            "~/" + kTrajectoryQueryServiceName, std::bind(&Cartographer::HandleTrajectoryQuery, this, _1, _2));
+        "~/" + kTrajectoryQueryServiceName, std::bind(&Cartographer::HandleTrajectoryQuery, this, _1, _2));
     load_state_service_ = this->create_service<cartographer_ros_msgs::srv::LoadState>(
-            "~/" + kLoadStateServiceName, std::bind(&Cartographer::HandleLoadState, this, _1, _2));
+        "~/" + kLoadStateServiceName, std::bind(&Cartographer::HandleLoadState, this, _1, _2));
     write_state_service_ = this->create_service<cartographer_ros_msgs::srv::WriteState>(
-            "~/" + kWriteStateServiceName, std::bind(&Cartographer::HandleWriteState, this, _1, _2));
+        "~/" + kWriteStateServiceName, std::bind(&Cartographer::HandleWriteState, this, _1, _2));
     get_trajectory_states_service_ = this->create_service<cartographer_ros_msgs::srv::GetTrajectoryStates>(
-            "~/" + kGetTrajectoryStatesServiceName, std::bind(&Cartographer::HandleGetTrajectoryStates, this, _1, _2));
+        "~/" + kGetTrajectoryStatesServiceName, std::bind(&Cartographer::HandleGetTrajectoryStates, this, _1, _2));
     read_metrics_service_ = this->create_service<cartographer_ros_msgs::srv::ReadMetrics>(
-            "~/" + kReadMetricsServiceName, std::bind(&Cartographer::HandleReadMetrics, this, _1, _2));
+        "~/" + kReadMetricsServiceName, std::bind(&Cartographer::HandleReadMetrics, this, _1, _2));
 
     start_localisation_service_ = this->create_service<cartographer_ros_msgs::srv::StartLocalisation>(
         "~/start_localisation", std::bind(&Cartographer::HandleStartLocalisation, this, _1, _2));
@@ -186,8 +186,8 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
 
     scan_matched_point_cloud_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
         "~/" + kScanMatchedPointCloudTopic, rclcpp::QoS(rclcpp::KeepLast(1)));
-    scan_features_publisher_ =
-        this->create_publisher<visualization_msgs::msg::MarkerArray>("~/scan_features", rclcpp::QoS(rclcpp::KeepLast(1)));
+    scan_features_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+        "~/scan_features", rclcpp::QoS(rclcpp::KeepLast(1)));
     submap_features_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
         "~/submap_features", rclcpp::QoS(rclcpp::KeepLast(1)));
 
@@ -195,8 +195,8 @@ Cartographer::Cartographer(const NodeOptions& node_options, const TrajectoryOpti
     system_state_.localisation_status = cartographer_ros_msgs::msg::SystemState::LOST;
     system_state_.map_loaded = false;
 
-    system_state_publisher_ =
-        this->create_publisher<cartographer_ros_msgs::msg::SystemState>("~/state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local());
+    system_state_publisher_ = this->create_publisher<cartographer_ros_msgs::msg::SystemState>(
+        "~/state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local());
     system_state_publisher_->publish(system_state_);
 }
 
@@ -399,16 +399,14 @@ void Cartographer::PublishSubmapList()
 
         submap_features_publisher_->publish(feature_markers);
     }
-    const double update_duration_sec =
-            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - submap_list_timer_last_update)
-                    .count();
+    const double update_duration_sec = std::chrono::duration_cast<std::chrono::duration<double>>(
+                                           std::chrono::steady_clock::now() - submap_list_timer_last_update)
+                                           .count();
     if (update_duration_sec > node_options_.submap_publish_period_sec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishSubmapList duration took too long: "
-                << update_duration_sec
-                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+                                                   << update_duration_sec << "s. Expected: "
+                                                   << node_options_.submap_publish_period_sec << "s.");
     submap_list_timer_last_update = std::chrono::steady_clock::now();
-
-
 }
 
 void Cartographer::PublishLocalTrajectoryData()
@@ -506,15 +504,14 @@ void Cartographer::PublishLocalTrajectoryData()
 
         system_state_publisher_->publish(system_state_);
     }
-    const double update_duration_sec =
-            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - trajectory_states_timer__last_update)
-                    .count();
+    const double update_duration_sec = std::chrono::duration_cast<std::chrono::duration<double>>(
+                                           std::chrono::steady_clock::now() - trajectory_states_timer__last_update)
+                                           .count();
     if (update_duration_sec > node_options_.pose_publish_period_sec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishLocalTrajectoryData duration took too long: "
-                << update_duration_sec
-                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+                                                   << update_duration_sec << "s. Expected: "
+                                                   << node_options_.submap_publish_period_sec << "s.");
     trajectory_states_timer__last_update = std::chrono::steady_clock::now();
-
 }
 
 void Cartographer::PublishTrajectoryNodeList()
@@ -524,13 +521,13 @@ void Cartographer::PublishTrajectoryNodeList()
         absl::MutexLock lock(&mutex_);
         trajectory_node_list_publisher_->publish(map_builder_bridge_->GetTrajectoryNodeList(this->get_clock()->now()));
     }
-    const double update_duration_sec =
-            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - trajectory_node_list_timer_last_update)
-                    .count();
+    const double update_duration_sec = std::chrono::duration_cast<std::chrono::duration<double>>(
+                                           std::chrono::steady_clock::now() - trajectory_node_list_timer_last_update)
+                                           .count();
     if (update_duration_sec > node_options_.trajectory_publish_period_sec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishTrajectoryNodeList duration took too long: "
-                << update_duration_sec
-                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+                                                   << update_duration_sec << "s. Expected: "
+                                                   << node_options_.submap_publish_period_sec << "s.");
     trajectory_node_list_timer_last_update = std::chrono::steady_clock::now();
 }
 
@@ -542,13 +539,13 @@ void Cartographer::PublishLandmarkPosesList()
         landmark_poses_list_publisher_->publish(map_builder_bridge_->GetLandmarkPosesList(this->get_clock()->now()));
     }
 
-    const double update_duration_sec =
-            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - landmark_pose_list_timer_update)
-                    .count();
+    const double update_duration_sec = std::chrono::duration_cast<std::chrono::duration<double>>(
+                                           std::chrono::steady_clock::now() - landmark_pose_list_timer_update)
+                                           .count();
     if (update_duration_sec > node_options_.trajectory_publish_period_sec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishLandmarkPosesList duration took too long: "
-                << update_duration_sec
-                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+                                                   << update_duration_sec << "s. Expected: "
+                                                   << node_options_.submap_publish_period_sec << "s.");
     landmark_pose_list_timer_update = std::chrono::steady_clock::now();
 }
 
@@ -559,13 +556,13 @@ void Cartographer::PublishConstraintList()
         absl::MutexLock lock(&mutex_);
         constraint_list_publisher_->publish(map_builder_bridge_->GetConstraintList(this->get_clock()->now()));
     }
-    const double update_duration_sec =
-            std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - constrain_list_timer_last_update)
-                    .count();
+    const double update_duration_sec = std::chrono::duration_cast<std::chrono::duration<double>>(
+                                           std::chrono::steady_clock::now() - constrain_list_timer_last_update)
+                                           .count();
     if (update_duration_sec > kConstraintPublishPeriodSec + 0.005)
         RCLCPP_WARN_STREAM(this->get_logger(), "PublishConstraintList duration took too long: "
-                << update_duration_sec
-                << "s. Expected: " << node_options_.submap_publish_period_sec << "s.");
+                                                   << update_duration_sec << "s. Expected: "
+                                                   << node_options_.submap_publish_period_sec << "s.");
     constrain_list_timer_last_update = std::chrono::steady_clock::now();
 }
 
