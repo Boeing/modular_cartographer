@@ -6,4 +6,4 @@
 - git:
     uri: git@gitlab.com:mtdi/pi9419/boeing/graph_map.git
     local-name: graph_map
-    version: main
+    version: master
