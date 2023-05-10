@@ -157,7 +157,7 @@ if(NOT DEFINED CARTOGRAPHER_INSTALL_DIR)
         ${CARTOGRAPHER_PROJECT_NAME}
         PREFIX ${CARTOGRAPHER_PROJECT_NAME}
         GIT_REPOSITORY git@gitlab.com:mtdi/pi9419/boeing/cartographer.git
-        GIT_TAG 1-cartographer-being-built-with-c++11-on-newer-versions-of-cmake-1
+        GIT_TAG humble
         GIT_SHALLOW ON
         UPDATE_COMMAND ""
         DEPENDS ${PROTOBUF_PROJECT_NAME} ${ABSEIL_PROJECT_NAME}
