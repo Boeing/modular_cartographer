@@ -355,7 +355,6 @@ target_link_libraries(
         glog
         gflags
         png16
-
 )
 
 # Lua
@@ -460,7 +459,15 @@ ament_target_dependencies(
 
 add_executable(${PROJECT_NAME}bag_validate src/dev/rosbag_validate_main.cc)
 target_link_libraries(${PROJECT_NAME}bag_validate ${PROJECT_NAME} ${LIBS})
-ament_target_dependencies(${PROJECT_NAME}bag_validate "nav_msgs" "rclcpp" "rosbag2_cpp" "sensor_msgs" "tf2_geometry_msgs" "tf2_msgs")
+ament_target_dependencies(
+    ${PROJECT_NAME}bag_validate
+    "nav_msgs"
+    "rclcpp"
+    "rosbag2_cpp"
+    "sensor_msgs"
+    "tf2_geometry_msgs"
+    "tf2_msgs"
+)
 
 add_executable(cartographer_pbstream_to_ros_map src/dev/pbstream_to_ros_map_main.cc)
 target_link_libraries(cartographer_pbstream_to_ros_map PUBLIC ${PROJECT_NAME} cairo)
@@ -508,12 +515,8 @@ install(
     DESTINATION lib/${PROJECT_NAME}
 )
 
-# install(PROGRAMS launch/test_launch.py DESTINATION share/${PROJECT_NAME})
-# Install launch files.
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}/
-)
+# install(PROGRAMS launch/test_launch.py DESTINATION share/${PROJECT_NAME}) Install launch files.
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
 
 # ~~~
 # target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
