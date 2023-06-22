@@ -623,7 +623,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
         std::function<void(const nav_msgs::msg::Odometry::ConstSharedPtr msg)> om_fcn =
             std::bind(&Cartographer::HandleOdometryMessage, this, trajectory_id, kOdometryTopic, _1);
         subscribers_[trajectory_id].push_back({this->create_subscription<nav_msgs::msg::Odometry>(
-                                                   kOdometryTopic, rclcpp::QoS(rclcpp::KeepLast(1)), om_fcn),
+                                                   kOdometryTopic, rclcpp::QoS(rclcpp::KeepLast(1).reliable()), om_fcn),
                                                kOdometryTopic});
         // subscribers_[trajectory_id].push_back(
         //     {SubscribeWithHandler<nav_msgs::msg::Odometry>(&Cartographer::HandleOdometryMessage, trajectory_id,
