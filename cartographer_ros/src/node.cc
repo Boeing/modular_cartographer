@@ -610,7 +610,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
         std::function<void(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg)> pcm_fcn =
             std::bind(&Cartographer::HandlePointCloud2Message, this, trajectory_id, topic, _1);
         subscribers_[trajectory_id].push_back(
-            {this->create_subscription<sensor_msgs::msg::PointCloud2>(topic, rclcpp::QoS(rclcpp::KeepLast(1)), pcm_fcn),
+            {this->create_subscription<sensor_msgs::msg::PointCloud2>(topic, rclcpp::SensorDataQoS(), pcm_fcn),
              topic});
         // subscribers_[trajectory_id].push_back({SubscribeWithHandler<sensor_msgs::msg::PointCloud2>(
         //                                            &Cartographer::HandlePointCloud2Message, trajectory_id, topic,
@@ -623,7 +623,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
         std::function<void(const nav_msgs::msg::Odometry::ConstSharedPtr msg)> om_fcn =
             std::bind(&Cartographer::HandleOdometryMessage, this, trajectory_id, kOdometryTopic, _1);
         subscribers_[trajectory_id].push_back({this->create_subscription<nav_msgs::msg::Odometry>(
-                                                   kOdometryTopic, rclcpp::QoS(rclcpp::KeepLast(1)).reliable(), om_fcn),
+                                                   kOdometryTopic, rclcpp::SystemDefaultsQoS(), om_fcn),
                                                kOdometryTopic});
         // subscribers_[trajectory_id].push_back(
         //     {SubscribeWithHandler<nav_msgs::msg::Odometry>(&Cartographer::HandleOdometryMessage, trajectory_id,
@@ -637,7 +637,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
         std::function<void(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)> nsfm_fcn =
             std::bind(&Cartographer::HandleNavSatFixMessage, this, trajectory_id, kNavSatFixTopic, _1);
         subscribers_[trajectory_id].push_back({this->create_subscription<sensor_msgs::msg::NavSatFix>(
-                                                   kNavSatFixTopic, rclcpp::QoS(rclcpp::KeepLast(1)), nsfm_fcn),
+                                                   kNavSatFixTopic, rclcpp::SystemDefaultsQoS(), nsfm_fcn),
                                                kNavSatFixTopic});
         // subscribers_[trajectory_id].push_back(
         //     {SubscribeWithHandler<sensor_msgs::msg::NavSatFix>(&Cartographer::HandleNavSatFixMessage, trajectory_id,
@@ -651,7 +651,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
         std::function<void(const cartographer_ros_msgs::msg::LandmarkList::ConstSharedPtr msg)> lm_fcn =
             std::bind(&Cartographer::HandleLandmarkMessage, this, trajectory_id, kLandmarkTopic, _1);
         subscribers_[trajectory_id].push_back({this->create_subscription<cartographer_ros_msgs::msg::LandmarkList>(
-                                                   kLandmarkTopic, rclcpp::QoS(rclcpp::KeepLast(1)), lm_fcn),
+                                                   kLandmarkTopic, rclcpp::SystemDefaultsQoS(), lm_fcn),
                                                kLandmarkTopic});
         // subscribers_[trajectory_id].push_back(
         //     {SubscribeWithHandler<cartographer_ros_msgs::msg::LandmarkList>(&Cartographer::HandleLandmarkMessage,
