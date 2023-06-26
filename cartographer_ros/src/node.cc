@@ -610,8 +610,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
         std::function<void(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg)> pcm_fcn =
             std::bind(&Cartographer::HandlePointCloud2Message, this, trajectory_id, topic, _1);
         subscribers_[trajectory_id].push_back(
-            {this->create_subscription<sensor_msgs::msg::PointCloud2>(topic, rclcpp::SensorDataQoS(), pcm_fcn),
-             topic});
+            {this->create_subscription<sensor_msgs::msg::PointCloud2>(topic, rclcpp::SensorDataQoS(), pcm_fcn), topic});
         // subscribers_[trajectory_id].push_back({SubscribeWithHandler<sensor_msgs::msg::PointCloud2>(
         //                                            &Cartographer::HandlePointCloud2Message, trajectory_id, topic,
         //                                            nh_, this, custom_qos_profile_),
@@ -622,9 +621,9 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
     {
         std::function<void(const nav_msgs::msg::Odometry::ConstSharedPtr msg)> om_fcn =
             std::bind(&Cartographer::HandleOdometryMessage, this, trajectory_id, kOdometryTopic, _1);
-        subscribers_[trajectory_id].push_back({this->create_subscription<nav_msgs::msg::Odometry>(
-                                                   kOdometryTopic, rclcpp::SystemDefaultsQoS(), om_fcn),
-                                               kOdometryTopic});
+        subscribers_[trajectory_id].push_back(
+            {this->create_subscription<nav_msgs::msg::Odometry>(kOdometryTopic, rclcpp::SystemDefaultsQoS(), om_fcn),
+             kOdometryTopic});
         // subscribers_[trajectory_id].push_back(
         //     {SubscribeWithHandler<nav_msgs::msg::Odometry>(&Cartographer::HandleOdometryMessage, trajectory_id,
         //     kOdometryTopic, nh_,
