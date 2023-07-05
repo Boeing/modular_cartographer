@@ -501,8 +501,9 @@ int main(int argc, char** argv)
                     f.fdescriptor.score = 0.0;
                     f.fdescriptor.radius = static_cast<float>(p.radius);
 
-                    if ((p.origin.x() >= submap_tl_x && p.origin.x() <= submap_max_x) &&
-                        (p.origin.y() >= submap_tl_y && p.origin.y() <= submap_max_y))
+                    if ((p.origin.x() - map_origin.x() >= submap_tl_x &&
+                         p.origin.x() - map_origin.x() <= submap_max_x) &&
+                        (p.origin.y() - map_origin.y() >= submap_tl_y && p.origin.y() - map_origin.y() <= submap_max_y))
                     {
                         cf.push_back(f);
                     }
