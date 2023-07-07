@@ -588,6 +588,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
             {this->create_subscription<sensor_msgs::msg::LaserScan>(topic, rclcpp::SensorDataQoS(), lsm_fcn), topic});
         // subscribers_[trajectory_id].push_back(SubscribeWithHandler<sensor_msgs::msg::LaserScan>(&Cartographer::HandleLaserScanMessage,
         // trajectory_id, topic, node_handle_, this, custom_qos_profile_));
+        sensor_samplers_.at(trajectory_id).addRangefinderSampler(topic);
     }
 
     for (const std::string& topic :
@@ -1284,7 +1285,7 @@ void Cartographer::HandleOdometryMessage(const int trajectory_id, const std::str
 {
     // LOG(INFO) << "Received odometry message";
     absl::MutexLock lock(&mutex_);
-    if (!sensor_samplers_.at(trajectory_id).odometry_sampler.Pulse())
+    if (!sensor_samplers_.at(trajectory_id).OdometryPulse())
     {
         return;
     }
@@ -1296,7 +1297,7 @@ void Cartographer::HandleNavSatFixMessage(const int trajectory_id, const std::st
                                           const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
 {
     absl::MutexLock lock(&mutex_);
-    if (!sensor_samplers_.at(trajectory_id).fixed_frame_pose_sampler.Pulse())
+    if (!sensor_samplers_.at(trajectory_id).PosePulse())
     {
         return;
     }
@@ -1307,7 +1308,7 @@ void Cartographer::HandleLandmarkMessage(const int trajectory_id, const std::str
                                          const cartographer_ros_msgs::msg::LandmarkList::ConstSharedPtr msg)
 {
     absl::MutexLock lock(&mutex_);
-    if (!sensor_samplers_.at(trajectory_id).landmark_sampler.Pulse())
+    if (!sensor_samplers_.at(trajectory_id).LandmarkPulse())
     {
         return;
     }
@@ -1319,10 +1320,12 @@ void Cartographer::HandleLaserScanMessage(const int trajectory_id, const std::st
 {
     // LOG(INFO) << "Received laserscan message";
     absl::MutexLock lock(&mutex_);
-    if (!sensor_samplers_.at(trajectory_id).rangefinder_sampler.Pulse())
+    if (!sensor_samplers_.at(trajectory_id).RangefinderPulse(sensor_id))
     {
+        // LOG(INFO) << "Dropped message from " << sensor_id;
         return;
     }
+    // LOG(INFO) << "Processing message from " << sensor_id;
     map_builder_bridge_->sensor_bridge(trajectory_id)->HandleLaserScanMessage(sensor_id, msg);
 }
 
@@ -1330,7 +1333,7 @@ void Cartographer::HandleMultiEchoLaserScanMessage(const int trajectory_id, cons
                                                    const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg)
 {
     absl::MutexLock lock(&mutex_);
-    if (!sensor_samplers_.at(trajectory_id).rangefinder_sampler.Pulse())
+    if (!sensor_samplers_.at(trajectory_id).RangefinderPulse(sensor_id))
     {
         return;
     }
@@ -1341,7 +1344,7 @@ void Cartographer::HandlePointCloud2Message(const int trajectory_id, const std::
                                             const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg)
 {
     absl::MutexLock lock(&mutex_);
-    if (!sensor_samplers_.at(trajectory_id).rangefinder_sampler.Pulse())
+    if (!sensor_samplers_.at(trajectory_id).RangefinderPulse(sensor_id))
     {
         return;
     }
