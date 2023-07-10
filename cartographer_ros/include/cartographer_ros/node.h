@@ -73,7 +73,7 @@ class TrajectorySensorSamplers
 
     // ~TrajectorySensorSamplers();
 
-    void addRangefinderSampler(const std::string sensor_id)
+    void AddRangefinderSampler(const std::string sensor_id)
     {
         rangefinder_samplers.emplace(std::piecewise_construct, std::forward_as_tuple(sensor_id),
                                      std::forward_as_tuple(rangefinder_sampling_ratio));

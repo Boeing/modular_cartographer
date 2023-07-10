@@ -588,7 +588,7 @@ int Cartographer::AddTrajectory(const TrajectoryOptions& options)
             {this->create_subscription<sensor_msgs::msg::LaserScan>(topic, rclcpp::SensorDataQoS(), lsm_fcn), topic});
         // subscribers_[trajectory_id].push_back(SubscribeWithHandler<sensor_msgs::msg::LaserScan>(&Cartographer::HandleLaserScanMessage,
         // trajectory_id, topic, node_handle_, this, custom_qos_profile_));
-        sensor_samplers_.at(trajectory_id).addRangefinderSampler(topic);
+        sensor_samplers_.at(trajectory_id).AddRangefinderSampler(topic);
     }
 
     for (const std::string& topic :
