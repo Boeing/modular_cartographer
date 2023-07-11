@@ -63,6 +63,50 @@
 namespace cartographer_ros
 {
 
+class TrajectorySensorSamplers
+{
+  public:
+    TrajectorySensorSamplers(const double rangefinder_sampling_ratio, const double odometry_sampling_ratio,
+                             const double fixed_frame_pose_sampling_ratio, const double landmark_sampling_ratio)
+        : rangefinder_sampling_ratio(rangefinder_sampling_ratio), odometry_sampler(odometry_sampling_ratio),
+          fixed_frame_pose_sampler(fixed_frame_pose_sampling_ratio), landmark_sampler(landmark_sampling_ratio){};
+
+    // ~TrajectorySensorSamplers();
+
+    void AddRangefinderSampler(const std::string sensor_id)
+    {
+        rangefinder_samplers.emplace(std::piecewise_construct, std::forward_as_tuple(sensor_id),
+                                     std::forward_as_tuple(rangefinder_sampling_ratio));
+    };
+
+    bool RangefinderPulse(const std::string sensor_id)
+    {
+        return rangefinder_samplers.at(sensor_id).Pulse();
+    };
+
+    bool OdometryPulse()
+    {
+        return odometry_sampler.Pulse();
+    };
+
+    bool PosePulse()
+    {
+        return fixed_frame_pose_sampler.Pulse();
+    };
+
+    bool LandmarkPulse()
+    {
+        return landmark_sampler.Pulse();
+    };
+
+  private:
+    double rangefinder_sampling_ratio;
+    std::unordered_map<std::string, ::cartographer::common::FixedRatioSampler> rangefinder_samplers;
+    ::cartographer::common::FixedRatioSampler odometry_sampler;
+    ::cartographer::common::FixedRatioSampler fixed_frame_pose_sampler;
+    ::cartographer::common::FixedRatioSampler landmark_sampler;
+};
+
 // Wires up ROS topics to SLAM.
 class Cartographer : public rclcpp::Node
 {
@@ -214,23 +258,8 @@ class Cartographer : public rclcpp::Node
     ::rclcpp::Publisher<cartographer_ros_msgs::msg::SystemState>::SharedPtr system_state_publisher_;
     ::rclcpp::Subscription<std_msgs::msg::UInt8MultiArray>::SharedPtr map_data_subscriber_;
 
-    struct TrajectorySensorSamplers
-    {
-        TrajectorySensorSamplers(const double rangefinder_sampling_ratio, const double odometry_sampling_ratio,
-                                 const double fixed_frame_pose_sampling_ratio, const double landmark_sampling_ratio)
-            : rangefinder_sampler(rangefinder_sampling_ratio), odometry_sampler(odometry_sampling_ratio),
-              fixed_frame_pose_sampler(fixed_frame_pose_sampling_ratio), landmark_sampler(landmark_sampling_ratio)
-        {
-        }
-
-        ::cartographer::common::FixedRatioSampler rangefinder_sampler;
-        ::cartographer::common::FixedRatioSampler odometry_sampler;
-        ::cartographer::common::FixedRatioSampler fixed_frame_pose_sampler;
-        ::cartographer::common::FixedRatioSampler landmark_sampler;
-    };
-
     // These are keyed with 'trajectory_id'.
-    std::unordered_map<int, TrajectorySensorSamplers> sensor_samplers_;
+    std::unordered_map<int, cartographer_ros::TrajectorySensorSamplers> sensor_samplers_;
     std::unordered_map<int, std::vector<Subscriber>> subscribers_;
     std::unordered_set<int> trajectories_scheduled_for_finish_;
 
