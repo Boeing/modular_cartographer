@@ -1,4 +1,0 @@
-uint8[] pbstream_data
-bool load_frozen_state
----
-cartographer_ros_msgs/StatusResponse status

@@ -7,3 +7,7 @@
       uri: git@gitlab.com:mtdi/pi9419/boeing/graph_map.git
       local-name: graph_map
       version: humble
+- git:
+    uri: git@gitlab.com:mtdi/pi9419/boeing/cartographer_ros_msgs.git
+    local-name: cartographer_ros_msgs
+    version: main

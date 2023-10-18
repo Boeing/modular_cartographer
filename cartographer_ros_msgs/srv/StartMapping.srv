@@ -1,3 +1,0 @@
----
-cartographer_ros_msgs/StatusResponse status
-int32 trajectory_id
