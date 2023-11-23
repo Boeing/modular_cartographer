@@ -42,7 +42,7 @@ into a `.pbstream` (protobuf stream), which is how Cartographer likes its maps.
 If you just want to use as-is, run
 
 ```bash
-catkin build modular_cartographer
+colcon build --symlink-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2" --packages-select modular_cartographer
 ```
 
 The `CMakeLists.txt` is configured to automagically pull, build and link `cartographer`.
@@ -53,7 +53,7 @@ If you are a developer and would like to build `cartographer` manually:
 ### Build protobuf
 
 ```bash
-cd /home/boeing/git
+cd ~/git
 git clone https://github.com/protocolbuffers/protobuf.git
 cd protobuf
 git checkout v3.4.1
@@ -95,7 +95,33 @@ add
 set(CARTOGRAPHER_INSTALL_DIR /home/boeing/ros/cartographer/build/install)
 ```
 
-## Tuning Cartographer
+# Cartographer Tuning
+
+## Summary
+
+- Visually inspect environment and note down
+  - Ratio of dynamic to static obstacles
+  - Bollard visibility (10m from any location)
+  - Doors that frequently open
+  - Any unintentional retro-reflective objects
+- Drive robot around and take laser bags using the laser_bagger.py script
+- Run laser bags through the constraint finding tests
+- Adjust thresholds to optimise speed and reliability of constraint finding
+
+## Definitions
+
+| Term              | Definition                                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| SLAM              | Simultaneous Localization And Mapping                                                                                 |
+| Laser/Lidar       | Scanning laser rangefinder. Produces a point cloud of surrounding objects                                             |
+| Bollards          | Permanently mounted round poles with retro-reflective tape                                                            |
+| Static obstacles  | Any obstacle of a permanent nature (ie. cannot be moved without tools). Eg. Walls, bolted shelves etc.                |
+| Dynamic obstacles | Any obstacle of a non-permanent nature (ie. can be moved without tools) Eg. Bins, trolleys, temporary bollards etc.   |
+| Feature           | A notable object in the environment that is not unique. Currently only supported feature are retroreflective bollards |
+| Landmark          | A notable object in the environment that is unique. Landmarks are currently not used                                  |
+| ICP               | Iterative Closest Point - an algorithm that aligns two point-clouds                                                   |
+
+## Overview
 
 Cartographer can be quite sensitive to certain parameters. These are configured in `.lua`
 files. A set of default configuration files are available in `cartographer/configuration_files`
@@ -108,9 +134,10 @@ The main area that needs tuning is constraint finding. Constraint finding is the
 process of using scan matches to tie submaps together. Constraint finding needs to be
 finely tuned because you need to be able to find as many constraints as possible without
 getting any false positives. Constraint finding settings are in `map_builder.lua`.
+Circle detection options are in `trajectory_builder.lua`.
 
-The there are two types of constraint finding: local and global. A global search is
-performed when the robot has no idea where it is. During a global search, many poses are
+The there are two types of constraint finding: local and global. A global search, also known as a cold
+localization is performed when the robot has no idea where it is. During a global search, many poses are
 sampled and checked. The number of samples are controlled by `num_global_samples_per_sq_m`
 and `num_global_rotations`. Having too few samples will result in a failed search,
 but too many samples will slow down the search.
@@ -124,7 +151,22 @@ run for each cluster origin. The ICP will produce a score as well as some metric
 for determining whether the match was good. The metrics and its threshold are critical
 to filtering out bad constraints. Remember, a bad constraint is worse than no constraint!
 
-The three most useful metrics are:
+## Important Settings
+
+### `num_global_samples_per_sq_m` and `num_global_rotations`
+
+Cartographer calculates the area of free space and multiplies it by these numbers to obtain
+the number of poses it should sample. A high number can be used in small areas to maximise the chances of a
+successful localisation in the first pass but using a higher number for large maps will drastically slow down
+the process.
+
+### min_features_required
+
+This is a fast way to reject scans that do not contain enough features. If it is known that not having a certain number
+of features can result in bad localization (depends on the environment and other settings),
+this setting can be used to prevent it from trying (ie. it would rather fail than give a potentially wrong output)
+
+## Important Thresholds
 
 ### Raytrace fraction
 
@@ -137,6 +179,10 @@ for a good match.
 Because laser scanners have noise, we allow a margin of error defined by
 `raytrace_threshold`. If a point is within this distance from the obstacle, then
 we still consider it a pass.
+
+Doors that are included in the map will cause a drop in the raytrace ratio when open because the robot will not see
+the obstacle but expects it. It is therefore advisable to remove doors that are frequently open from the map,
+allowing the raytrace threshold to be kept as high as possible.
 
 ### Hit fraction
 
@@ -178,5 +224,5 @@ Build cartographer_ros and the test app will be in
 Run it with something like:
 
 ```bash
-~/catkin_ws/devel/.private/cartographer_ros/lib/cartographer_ros/test_find_constraint --configuration_directory ~/your_project/cartographer_config --pbstream map.pbstream --urdf robot.urdf --rosbag test.bag
+./test_find_constraint --configuration_directory ~/your_project/cartographer_config --pbstream map.pbstream --urdf robot.urdf --rosbag test.bag
 ```
